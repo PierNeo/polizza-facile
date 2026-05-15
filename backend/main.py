@@ -30,6 +30,10 @@ class ExtractRequest(BaseModel):
 class SummaryRequest(BaseModel):
     policies: list
 
+class RaccomandaRequest(BaseModel):
+    risposte: dict
+    agenzia: str = "default"
+
 
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
 
@@ -97,6 +101,59 @@ Regole:
         return json.loads(match.group(0))
     except Exception as e:
         raise HTTPException(500, f"Errore estrazione: {str(e)}")
+
+
+@app.post("/api/raccomanda")
+async def raccomanda(req: RaccomandaRequest):
+    """Genera raccomandazioni assicurative personalizzate dal questionario."""
+    import re, json as _json
+    if not req.risposte:
+        raise HTTPException(400, "Risposte questionario vuote")
+
+    profile = "\n".join([f"- {k}: {v}" for k, v in req.risposte.items()])
+
+    prompt = f"""Sei un esperto consulente assicurativo italiano. Analizza il profilo di questo cliente e genera raccomandazioni assicurative personalizzate.
+
+PROFILO CLIENTE:
+{profile}
+
+Rispondi SOLO con un oggetto JSON valido con questa struttura:
+{{
+  "sintesi_profilo": "2 frasi che descrivono il profilo e i principali bisogni",
+  "raccomandazioni": [
+    {{
+      "priorita": 1,
+      "tipo": "Tipo polizza (es: Vita, Infortuni, Salute, RC Professionale, Casa, Multirischio...)",
+      "urgenza": "alta",
+      "motivo": "Perché questa copertura è importante per questo specifico cliente (2-3 frasi concrete)",
+      "cosa_cercare": ["caratteristica chiave 1", "caratteristica chiave 2", "caratteristica chiave 3"],
+      "budget_indicativo": "es: 25–50 €/mese"
+    }}
+  ],
+  "gap_principali": ["gap critico 1", "gap critico 2", "gap critico 3"],
+  "nota_consulente": "Consiglio operativo per l'agente: come approcciare questo cliente in 1-2 frasi"
+}}
+
+Regole:
+- Fornisci 3–5 raccomandazioni ordinate per priorità (priorita: 1 = più urgente)
+- urgenza può essere solo: alta, media, bassa
+- Considera le polizze già esistenti per non duplicare coperture
+- Sii concreto: motivo e cosa_cercare devono essere specifici per il profilo
+- budget_indicativo: stima realistica per il mercato italiano"""
+
+    try:
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = msg.content[0].text.strip()
+        match = re.search(r'\{[\s\S]*\}', raw)
+        if not match:
+            raise HTTPException(500, "Risposta AI non valida")
+        return _json.loads(match.group(0))
+    except Exception as e:
+        raise HTTPException(500, f"Errore raccomandazioni: {str(e)}")
 
 
 @app.post("/api/summary")

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Polizza Facile — Confronto Polizze</title>
+<title>Polizza Facile — Consulenza Assicurativa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -18,8 +18,10 @@
   --green-dark: #15803D;
   --red:        #DC2626;
   --red-soft:   #FEE2E2;
-  --yellow:     #D97706;
-  --yellow-soft:#FEF3C7;
+  --amber:      #D97706;
+  --amber-soft: #FEF3C7;
+  --purple:     #7C3AED;
+  --purple-soft:#F5F3FF;
   --gray-50:    #F9FAFB;
   --gray-100:   #F3F4F6;
   --gray-200:   #E5E7EB;
@@ -39,60 +41,275 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gray-800); min-height:100vh; }
 
-/* ── HEADER ─────────────────────────────────────────────────────── */
+/* ── HEADER ──────────────────────────────────────────────────────────── */
 .header {
   background:var(--white); border-bottom:1px solid var(--gray-200);
   padding:0 28px; height:56px; display:flex; align-items:center;
   justify-content:space-between; position:sticky; top:0; z-index:100;
   box-shadow:var(--shadow-sm);
 }
-.logo { font-size:19px; font-weight:700; color:var(--gray-900); letter-spacing:-0.4px; }
+.logo { font-size:19px; font-weight:700; color:var(--gray-900); letter-spacing:-0.4px; cursor:pointer; }
 .logo span { color:var(--blue); }
 .header-right { display:flex; align-items:center; gap:12px; }
-.api-badge {
-  display:flex; align-items:center; gap:6px; padding:5px 12px;
-  border:1px solid var(--gray-200); border-radius:8px; cursor:pointer;
-  font-size:12px; font-weight:500; color:var(--gray-500); background:var(--white);
-  transition:all .15s;
-}
-.api-badge:hover { border-color:var(--blue); color:var(--blue); }
-.api-dot { width:6px; height:6px; border-radius:50%; background:var(--gray-300); flex-shrink:0; }
-.api-dot.ok { background:var(--green); }
+.header-step { font-size:12px; color:var(--gray-400); font-weight:500; }
 
-/* ── MODAL ──────────────────────────────────────────────────────── */
-.overlay {
-  display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
-  z-index:300; align-items:center; justify-content:center; padding:24px;
-}
-.overlay.open { display:flex; }
-.modal {
-  background:var(--white); border-radius:var(--radius); padding:32px;
-  width:100%; max-width:420px; box-shadow:var(--shadow-lg);
-}
-.modal h2 { font-size:18px; font-weight:700; margin-bottom:8px; }
-.modal p { font-size:13px; color:var(--gray-500); line-height:1.65; margin-bottom:20px; }
-.modal input {
-  width:100%; padding:10px 14px; border:1.5px solid var(--gray-200);
-  border-radius:10px; font-size:14px; font-family:inherit; outline:none;
-  margin-bottom:18px; transition:border .15s;
-}
-.modal input:focus { border-color:var(--blue); }
-.modal-btns { display:flex; justify-content:flex-end; gap:10px; }
-
-/* ── BUTTONS ────────────────────────────────────────────────────── */
+/* ── BUTTONS ─────────────────────────────────────────────────────────── */
 .btn { padding:9px 20px; border-radius:9px; font-size:13px; font-weight:600;
   cursor:pointer; font-family:inherit; border:none; transition:all .15s; }
 .btn-primary { background:var(--blue); color:#fff; }
 .btn-primary:hover { background:var(--blue-dark); }
 .btn-ghost { background:var(--white); border:1.5px solid var(--gray-200); color:var(--gray-600); }
 .btn-ghost:hover { border-color:var(--gray-400); }
+.btn-sm { padding:7px 16px; font-size:12px; }
+.btn-go {
+  background:var(--blue); color:#fff; border:none; padding:13px 32px;
+  border-radius:10px; font-size:15px; font-weight:700; cursor:pointer;
+  font-family:inherit; transition:background .15s; display:flex; align-items:center; gap:9px;
+}
+.btn-go:hover:not(:disabled) { background:var(--blue-dark); }
+.btn-go:disabled { background:var(--gray-200); color:var(--gray-400); cursor:not-allowed; }
 
-/* ── UPLOAD AREA ────────────────────────────────────────────────── */
+/* ── HOME PAGE ───────────────────────────────────────────────────────── */
+.home-page { max-width:760px; margin:0 auto; padding:64px 24px; }
+.home-hero { text-align:center; margin-bottom:52px; }
+.home-hero h1 {
+  font-size:36px; font-weight:700; letter-spacing:-0.8px; line-height:1.2;
+  margin-bottom:14px; color:var(--gray-900);
+}
+.home-hero h1 em { font-style:normal; color:var(--blue); }
+.home-hero p { font-size:16px; color:var(--gray-500); line-height:1.65; max-width:480px; margin:0 auto; }
+
+.path-cards { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+@media(max-width:580px) { .path-cards { grid-template-columns:1fr; } }
+
+.path-card {
+  background:var(--white); border:2px solid var(--gray-200); border-radius:var(--radius);
+  padding:32px 28px; cursor:pointer; transition:all .2s; box-shadow:var(--shadow-sm);
+  display:flex; flex-direction:column; align-items:flex-start; gap:12px;
+}
+.path-card:hover { border-color:var(--blue); box-shadow:var(--shadow), 0 0 0 4px var(--blue-soft); transform:translateY(-2px); }
+.path-card.featured { border-color:var(--blue); background:var(--blue-soft); }
+.path-card.featured:hover { box-shadow:var(--shadow), 0 0 0 4px #BFDBFE; }
+.path-icon { font-size:36px; }
+.path-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--blue); }
+.path-card.featured .path-label { color:var(--blue-dark); }
+.path-title { font-size:20px; font-weight:700; color:var(--gray-900); line-height:1.25; }
+.path-desc { font-size:13px; color:var(--gray-500); line-height:1.6; }
+.path-cta {
+  margin-top:4px; font-size:13px; font-weight:600; color:var(--blue);
+  display:flex; align-items:center; gap:5px;
+}
+.path-card.featured .path-cta { color:var(--blue-dark); }
+
+.home-features { margin-top:48px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+@media(max-width:580px) { .home-features { grid-template-columns:1fr; } }
+.home-feature {
+  background:var(--white); border:1px solid var(--gray-200); border-radius:12px;
+  padding:18px 16px; text-align:center; box-shadow:var(--shadow-sm);
+}
+.home-feature-icon { font-size:24px; margin-bottom:8px; }
+.home-feature-title { font-size:13px; font-weight:600; color:var(--gray-700); margin-bottom:4px; }
+.home-feature-desc { font-size:12px; color:var(--gray-400); line-height:1.5; }
+
+/* ── QUESTIONNAIRE PAGE ──────────────────────────────────────────────── */
+.questionnaire-page { max-width:680px; margin:0 auto; padding:40px 24px 80px; }
+
+.section-progress-bar {
+  margin-bottom:36px;
+}
+.section-progress-info {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:10px;
+}
+.section-progress-label { font-size:13px; font-weight:600; color:var(--gray-700); }
+.section-progress-count { font-size:12px; color:var(--gray-400); }
+.progress-track {
+  height:4px; background:var(--gray-200); border-radius:4px; overflow:hidden;
+}
+.progress-fill {
+  height:100%; background:var(--blue); border-radius:4px; transition:width .4s ease;
+}
+
+.section-header { display:flex; align-items:center; gap:12px; margin-bottom:32px; }
+.section-icon { font-size:28px; }
+.section-title-text { font-size:22px; font-weight:700; letter-spacing:-0.3px; }
+
+.question-block { margin-bottom:28px; }
+.question-label {
+  font-size:14px; font-weight:600; color:var(--gray-700);
+  margin-bottom:12px; display:flex; align-items:center; gap:6px;
+}
+.required-star { color:var(--red); font-size:12px; }
+.optional-tag { font-size:11px; font-weight:400; color:var(--gray-400); background:var(--gray-100); padding:2px 8px; border-radius:20px; }
+
+/* Option cards */
+.option-cards { display:flex; flex-wrap:wrap; gap:8px; }
+.option-card {
+  padding:9px 16px; border:1.5px solid var(--gray-200); border-radius:9px;
+  font-size:13px; font-weight:500; cursor:pointer; transition:all .15s;
+  background:var(--white); color:var(--gray-700); user-select:none;
+}
+.option-card:hover { border-color:var(--blue); color:var(--blue); background:var(--blue-soft); }
+.option-card.selected { border-color:var(--blue); background:var(--blue); color:#fff; }
+.option-card.disabled { opacity:.4; cursor:not-allowed; }
+.option-card.disabled:hover { border-color:var(--gray-200); color:var(--gray-700); background:var(--white); }
+
+/* Text inputs */
+.q-input {
+  width:100%; padding:11px 14px; border:1.5px solid var(--gray-200);
+  border-radius:10px; font-size:14px; font-family:inherit; outline:none;
+  transition:border .15s; color:var(--gray-800); background:var(--white);
+}
+.q-input:focus { border-color:var(--blue); }
+.q-textarea { resize:vertical; min-height:90px; }
+
+.questionnaire-nav {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-top:36px; padding-top:24px; border-top:1px solid var(--gray-200);
+}
+.btn-next {
+  background:var(--blue); color:#fff; border:none; padding:12px 28px;
+  border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;
+  font-family:inherit; transition:background .15s; display:flex; align-items:center; gap:8px;
+}
+.btn-next:hover { background:var(--blue-dark); }
+.btn-back {
+  background:none; border:none; color:var(--gray-400); font-size:13px; font-weight:500;
+  cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:5px;
+  padding:8px 4px; transition:color .15s;
+}
+.btn-back:hover { color:var(--gray-700); }
+
+/* ── LOADING PAGE ────────────────────────────────────────────────────── */
+.loading-page { max-width:480px; margin:0 auto; padding:80px 24px; text-align:center; }
+.big-spinner {
+  width:52px; height:52px; border:4px solid var(--gray-200);
+  border-top-color:var(--blue); border-radius:50%;
+  animation:spin .75s linear infinite; margin:0 auto 24px;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-page h2 { font-size:20px; font-weight:700; margin-bottom:8px; }
+.loading-page p { font-size:14px; color:var(--gray-500); margin-bottom:24px; }
+.progress-steps { list-style:none; display:inline-flex; flex-direction:column; gap:8px; text-align:left; }
+.progress-steps li { font-size:13px; color:var(--gray-400); display:flex; align-items:center; gap:10px; }
+.progress-steps li.active { color:var(--blue); font-weight:500; }
+.progress-steps li.done { color:var(--green); }
+.step-dot { width:7px; height:7px; border-radius:50%; background:var(--gray-300); flex-shrink:0; }
+.progress-steps li.active .step-dot { background:var(--blue); }
+.progress-steps li.done .step-dot { background:var(--green); }
+
+/* ── RECOMMENDATIONS PAGE ────────────────────────────────────────────── */
+.recs-page { max-width:800px; margin:0 auto; padding:36px 24px 72px; }
+
+.recs-topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:28px; flex-wrap:wrap; gap:12px;
+}
+.recs-topbar h1 { font-size:22px; font-weight:700; letter-spacing:-0.3px; }
+.recs-actions { display:flex; gap:8px; }
+
+.profile-box {
+  background:linear-gradient(135deg, var(--blue-soft) 0%, var(--purple-soft) 100%);
+  border:1px solid var(--blue-mid); border-radius:var(--radius);
+  padding:20px 22px; margin-bottom:28px;
+  display:flex; gap:12px; align-items:flex-start;
+}
+.profile-box-icon { font-size:22px; flex-shrink:0; margin-top:1px; }
+.profile-box-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--blue); margin-bottom:5px; }
+.profile-box-text { font-size:14px; color:var(--gray-700); line-height:1.65; }
+
+.recs-section-title { font-size:15px; font-weight:700; color:var(--gray-700); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+
+.rec-cards { display:flex; flex-direction:column; gap:14px; margin-bottom:32px; }
+
+.rec-card {
+  background:var(--white); border:1.5px solid var(--gray-200);
+  border-radius:var(--radius); padding:22px 22px;
+  box-shadow:var(--shadow-sm); display:flex; gap:18px; align-items:flex-start;
+  transition:border .2s;
+}
+.rec-card:hover { border-color:var(--blue-mid); }
+.rec-card.urgenza-alta { border-left:4px solid var(--red); }
+.rec-card.urgenza-media { border-left:4px solid var(--amber); }
+.rec-card.urgenza-bassa { border-left:4px solid var(--green); }
+
+.rec-priority {
+  width:36px; height:36px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-size:15px; font-weight:800; flex-shrink:0;
+  color:#fff; margin-top:1px;
+}
+.urgenza-alta .rec-priority { background:var(--red); }
+.urgenza-media .rec-priority { background:var(--amber); }
+.urgenza-bassa .rec-priority { background:var(--green); }
+
+.rec-body { flex:1; min-width:0; }
+.rec-header { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+.rec-tipo { font-size:16px; font-weight:700; color:var(--gray-900); }
+.urgency-badge {
+  font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px;
+  text-transform:uppercase; letter-spacing:.4px; flex-shrink:0;
+}
+.urgenza-alta .urgency-badge { background:var(--red-soft); color:var(--red); }
+.urgenza-media .urgency-badge { background:var(--amber-soft); color:var(--amber); }
+.urgenza-bassa .urgency-badge { background:var(--green-soft); color:var(--green-dark); }
+
+.rec-motivo { font-size:13px; color:var(--gray-600); line-height:1.65; margin-bottom:10px; }
+
+.rec-cercare-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--gray-400); margin-bottom:6px; }
+.rec-cercare-list { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.rec-cercare-tag {
+  font-size:11px; font-weight:500; padding:3px 10px; border-radius:20px;
+  background:var(--gray-100); color:var(--gray-600); border:1px solid var(--gray-200);
+}
+
+.rec-budget {
+  font-size:12px; color:var(--gray-400);
+  display:flex; align-items:center; gap:5px;
+}
+.rec-budget strong { color:var(--gray-700); }
+
+/* Gap section */
+.gap-card {
+  background:var(--white); border:1px solid var(--amber-soft);
+  border-radius:var(--radius); padding:18px 20px; margin-bottom:28px;
+  box-shadow:var(--shadow-sm);
+}
+.gap-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.gap-header-icon { font-size:18px; }
+.gap-header-title { font-size:13px; font-weight:700; color:var(--amber); }
+.gap-list { display:flex; flex-direction:column; gap:6px; }
+.gap-item { font-size:13px; color:var(--gray-700); display:flex; gap:8px; align-items:flex-start; line-height:1.5; }
+.gap-item::before { content:"△"; color:var(--amber); font-size:11px; flex-shrink:0; margin-top:2px; }
+
+/* Consultant note */
+.nota-card {
+  background:linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%);
+  border:1px solid #BBF7D0; border-radius:var(--radius);
+  padding:18px 20px; margin-bottom:28px; box-shadow:var(--shadow-sm);
+  display:flex; gap:10px; align-items:flex-start;
+}
+.nota-icon { font-size:18px; flex-shrink:0; }
+.nota-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--green-dark); margin-bottom:5px; }
+.nota-text { font-size:13px; color:var(--gray-700); line-height:1.65; }
+
+.recs-cta {
+  display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+  padding:24px; background:var(--white); border:1.5px solid var(--gray-200);
+  border-radius:var(--radius); box-shadow:var(--shadow-sm);
+}
+.recs-cta p { font-size:13px; color:var(--gray-500); flex:1; min-width:200px; line-height:1.5; }
+
+/* ── UPLOAD AREA ─────────────────────────────────────────────────────── */
 .upload-page { max-width:680px; margin:0 auto; padding:52px 24px; }
 .upload-hero { text-align:center; margin-bottom:36px; }
-.upload-hero h1 { font-size:30px; font-weight:700; letter-spacing:-0.6px; line-height:1.2; margin-bottom:10px; }
+.upload-hero h1 { font-size:28px; font-weight:700; letter-spacing:-0.5px; line-height:1.2; margin-bottom:10px; }
 .upload-hero h1 em { font-style:normal; color:var(--blue); }
 .upload-hero p { font-size:15px; color:var(--gray-500); }
+.upload-context {
+  background:var(--blue-soft); border:1px solid var(--blue-mid); border-radius:10px;
+  padding:12px 16px; margin-bottom:24px; font-size:13px; color:var(--blue-dark);
+  display:flex; align-items:center; gap:8px;
+}
 
 .drop-zone {
   border:2px dashed var(--gray-200); border-radius:var(--radius);
@@ -119,38 +336,10 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .chip-x { background:none; border:none; cursor:pointer; color:var(--gray-400);
   font-size:15px; line-height:1; padding:0 2px; margin-left:2px; }
 .chip-x:hover { color:var(--red); }
-
 .upload-action { margin-top:24px; display:flex; align-items:center; gap:14px; }
-.btn-go {
-  background:var(--blue); color:#fff; border:none; padding:13px 32px;
-  border-radius:10px; font-size:15px; font-weight:700; cursor:pointer;
-  font-family:inherit; transition:background .15s; display:flex; align-items:center; gap:9px;
-}
-.btn-go:hover:not(:disabled) { background:var(--blue-dark); }
-.btn-go:disabled { background:var(--gray-200); color:var(--gray-400); cursor:not-allowed; }
 .upload-hint { font-size:12px; color:var(--gray-400); }
 
-/* ── LOADING ────────────────────────────────────────────────────── */
-.loading-page { max-width:480px; margin:0 auto; padding:80px 24px; text-align:center; }
-.big-spinner {
-  width:52px; height:52px; border:4px solid var(--gray-200);
-  border-top-color:var(--blue); border-radius:50%;
-  animation:spin .75s linear infinite; margin:0 auto 24px;
-}
-@keyframes spin { to { transform:rotate(360deg); } }
-.loading-page h2 { font-size:20px; font-weight:700; margin-bottom:8px; }
-.loading-page p { font-size:14px; color:var(--gray-500); margin-bottom:24px; }
-.progress-steps { list-style:none; display:inline-flex; flex-direction:column; gap:8px; text-align:left; }
-.progress-steps li {
-  font-size:13px; color:var(--gray-400); display:flex; align-items:center; gap:10px;
-}
-.progress-steps li.active { color:var(--blue); font-weight:500; }
-.progress-steps li.done { color:var(--green); }
-.step-dot { width:7px; height:7px; border-radius:50%; background:var(--gray-300); flex-shrink:0; }
-.progress-steps li.active .step-dot { background:var(--blue); }
-.progress-steps li.done .step-dot { background:var(--green); }
-
-/* ── RESULTS PAGE ────────────────────────────────────────────────── */
+/* ── RESULTS PAGE ────────────────────────────────────────────────────── */
 .results-page { max-width:1100px; margin:0 auto; padding:32px 24px 60px; }
 .results-topbar {
   display:flex; align-items:center; justify-content:space-between;
@@ -170,149 +359,100 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 }
 .btn-new:hover { border-color:var(--gray-400); }
 
-/* ── SCORE CARDS ─────────────────────────────────────────────────── */
+/* Score cards */
 .score-cards { display:grid; gap:16px; margin-bottom:28px; }
 .score-card {
   background:var(--white); border:1.5px solid var(--gray-200);
   border-radius:var(--radius); padding:22px 24px;
-  box-shadow:var(--shadow-sm); display:flex; align-items:center; gap:20px;
-  transition:border .2s;
+  box-shadow:var(--shadow-sm); display:flex; align-items:center; gap:20px; transition:border .2s;
 }
 .score-card.winner { border-color:var(--green); box-shadow:0 0 0 3px rgba(22,163,74,.08); }
-.score-ring {
-  flex-shrink:0; position:relative; width:64px; height:64px;
-}
+.score-ring { flex-shrink:0; position:relative; width:64px; height:64px; }
 .score-ring svg { transform:rotate(-90deg); }
 .score-ring .track { fill:none; stroke:var(--gray-100); stroke-width:6; }
-.score-ring .fill { fill:none; stroke-width:6; stroke-linecap:round;
-  transition:stroke-dashoffset .8s ease; }
-.score-ring .score-num {
-  position:absolute; inset:0; display:flex; align-items:center;
-  justify-content:center; font-size:16px; font-weight:700;
-}
+.score-ring .fill { fill:none; stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset .8s ease; }
+.score-ring .score-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; }
 .score-body { flex:1; min-width:0; }
-.score-company { font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.6px; color:var(--gray-400); margin-bottom:3px; }
-.score-product { font-size:16px; font-weight:700; margin-bottom:4px; white-space:nowrap;
-  overflow:hidden; text-overflow:ellipsis; }
-.score-tipo { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px;
-  border-radius:20px; background:var(--blue-soft); color:var(--blue); }
+.score-company { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:3px; }
+.score-product { font-size:16px; font-weight:700; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.score-tipo { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--blue-soft); color:var(--blue); }
 .score-premio { font-size:12px; color:var(--gray-500); margin-top:6px; }
 .score-premio strong { color:var(--gray-700); }
 .score-badges { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-.score-badge {
-  font-size:11px; font-weight:500; padding:3px 9px; border-radius:20px;
-  background:var(--gray-100); color:var(--gray-600);
-}
+.score-badge { font-size:11px; font-weight:500; padding:3px 9px; border-radius:20px; background:var(--gray-100); color:var(--gray-600); }
 .score-badge.best { background:var(--green-soft); color:var(--green-dark); }
-.winner-tag {
-  flex-shrink:0; background:var(--green); color:#fff; font-size:11px; font-weight:700;
-  padding:4px 12px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px;
-  align-self:flex-start;
-}
+.winner-tag { flex-shrink:0; background:var(--green); color:#fff; font-size:11px; font-weight:700; padding:4px 12px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; align-self:flex-start; }
 
-/* ── AI SUMMARY ──────────────────────────────────────────────────── */
+/* AI Summary */
 .ai-summary {
   background:linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%);
   border:1px solid var(--blue-mid); border-radius:var(--radius);
   padding:22px 24px; margin-bottom:28px;
 }
-.ai-summary-label { font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.6px; color:var(--blue); margin-bottom:8px; display:flex;
-  align-items:center; gap:6px; }
+.ai-summary-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--blue); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
 .ai-summary-text { font-size:14px; line-height:1.7; color:var(--gray-700); }
 
-/* ── COMPARISON TABLE ────────────────────────────────────────────── */
+/* Comparison table */
 .section-title { font-size:16px; font-weight:700; margin-bottom:14px; color:var(--gray-800); }
 .table-outer { border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); margin-bottom:32px; }
 .table-scroll { overflow-x:auto; }
 table { width:100%; border-collapse:collapse; background:var(--white); font-size:13px; }
-
-thead th {
-  background:var(--gray-900); color:#fff; padding:14px 16px;
-  font-size:12px; font-weight:600; text-align:center;
-  border-right:1px solid rgba(255,255,255,.08);
-}
+thead th { background:var(--gray-900); color:#fff; padding:14px 16px; font-size:12px; font-weight:600; text-align:center; border-right:1px solid rgba(255,255,255,.08); }
 thead th:first-child { text-align:left; min-width:200px; background:var(--gray-800); }
 thead th:not(:first-child) { min-width:175px; }
 thead .th-company { display:block; font-size:11px; opacity:.6; font-weight:400; margin-bottom:2px; }
 thead .th-product { display:block; font-size:13px; font-weight:700; }
-thead .th-score { display:block; font-size:11px; margin-top:4px; opacity:.7; }
-
-.group-row td {
-  background:var(--gray-100); font-size:10px; font-weight:700; text-transform:uppercase;
-  letter-spacing:1px; color:var(--gray-400); padding:7px 16px;
-  border-bottom:1px solid var(--gray-200);
-}
-
+.group-row td { background:var(--gray-100); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gray-400); padding:7px 16px; border-bottom:1px solid var(--gray-200); }
 tbody tr td { border-bottom:1px solid var(--gray-100); }
 tbody tr:last-child td { border-bottom:none; }
 tbody tr:hover td { background:var(--blue-soft) !important; }
-
-td.row-label { padding:13px 16px; font-weight:500; color:var(--gray-700);
-  background:var(--white); font-size:13px; }
+td.row-label { padding:13px 16px; font-weight:500; color:var(--gray-700); background:var(--white); font-size:13px; }
 td.cell { padding:10px 14px; text-align:center; vertical-align:middle; }
-
-/* Cell states */
 .cell.c-best { background:var(--green-soft); }
 .cell.c-mid { background:var(--white); }
-.cell.c-worst { background:var(--red-soft); }
 .cell.c-absent { background:var(--gray-50); }
-
 .cell-inner { display:flex; flex-direction:column; align-items:center; gap:3px; }
 .c-absent .absent-x { font-size:18px; color:var(--gray-300); }
 .massimale { font-size:14px; font-weight:700; color:var(--gray-900); }
 .massimale.best-val { color:var(--green-dark); }
 .detail-row { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
-.detail-tag {
-  font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px;
-}
-.detail-tag.franchigia { background:var(--yellow-soft); color:var(--yellow); }
+.detail-tag { font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; }
+.detail-tag.franchigia { background:var(--amber-soft); color:var(--amber); }
 .detail-tag.scoperto { background:var(--red-soft); color:var(--red); }
 .detail-tag.niente { background:var(--green-soft); color:var(--green-dark); }
 .note-text { font-size:10px; color:var(--gray-400); font-style:italic; margin-top:2px; }
-.best-pill { font-size:9px; font-weight:700; background:var(--green); color:#fff;
-  padding:1px 7px; border-radius:20px; text-transform:uppercase; letter-spacing:.3px; }
+.best-pill { font-size:9px; font-weight:700; background:var(--green); color:#fff; padding:1px 7px; border-radius:20px; text-transform:uppercase; letter-spacing:.3px; }
 
-/* ── EXCLUSIONS ──────────────────────────────────────────────────── */
+/* Exclusions */
 .excl-grid { display:grid; gap:14px; }
-.excl-card {
-  background:var(--white); border:1px solid var(--gray-200);
-  border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow-sm);
-}
+.excl-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow-sm); }
 .excl-header { display:flex; gap:8px; align-items:baseline; margin-bottom:12px; }
-.excl-company { font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.5px; color:var(--gray-400); }
+.excl-company { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); }
 .excl-product { font-size:13px; font-weight:600; color:var(--gray-800); }
 .excl-list { display:flex; flex-direction:column; gap:5px; }
 .excl-item { font-size:12px; color:var(--gray-600); display:flex; gap:8px; align-items:flex-start; line-height:1.5; }
 .excl-item::before { content:"×"; color:var(--red); font-weight:700; font-size:11px; flex-shrink:0; margin-top:1px; }
 
-/* ── CONSIGLIO ───────────────────────────────────────────────────── */
+/* Advice */
 .advice-grid { display:grid; gap:12px; margin-bottom:32px; }
-.advice-card {
-  background:var(--white); border:1px solid var(--gray-200);
-  border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow-sm);
-  display:flex; gap:14px;
-}
+.advice-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow-sm); display:flex; gap:14px; }
 .advice-icon { font-size:28px; flex-shrink:0; }
-.advice-company { font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.5px; color:var(--gray-400); margin-bottom:2px; }
+.advice-company { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); margin-bottom:2px; }
 .advice-for { font-size:13px; font-weight:600; color:var(--gray-800); margin-bottom:4px; }
 .advice-text { font-size:12px; color:var(--gray-500); line-height:1.55; }
 
-/* ── PRINT ───────────────────────────────────────────────────────── */
+/* ── PRINT ───────────────────────────────────────────────────────────── */
 @media print {
-  .header, .results-topbar-actions, .upload-page, .loading-page { display:none !important; }
+  .header, .results-topbar-actions, .upload-page, .loading-page,
+  .home-page, .questionnaire-page, .recs-page { display:none !important; }
   .results-page { padding:0; }
   body { background:#fff; }
   .score-card, .ai-summary, .excl-card, .advice-card { box-shadow:none !important; break-inside:avoid; }
   .table-outer { box-shadow:none !important; }
 }
 
-/* ── RESPONSIVE ─────────────────────────────────────────────────── */
 @media(max-width:600px) {
-  .upload-hero h1 { font-size:24px; }
+  .upload-hero h1, .home-hero h1 { font-size:24px; }
   .score-card { flex-wrap:wrap; }
 }
 </style>
@@ -321,19 +461,143 @@ td.cell { padding:10px 14px; text-align:center; vertical-align:middle; }
 
 <!-- HEADER -->
 <header class="header">
-  <div class="logo">Polizza<span>Facile</span></div>
+  <div class="logo" onclick="goHome()">Polizza<span>Facile</span></div>
   <div class="header-right">
+    <span class="header-step" id="headerStep"></span>
     <span style="font-size:12px; color:var(--gray-400);">Beta</span>
   </div>
 </header>
 
 
-<!-- UPLOAD PAGE -->
-<div id="pagUpload">
+<!-- ══ HOME PAGE ══════════════════════════════════════════════════════════ -->
+<div id="pagHome">
+  <div class="home-page">
+    <div class="home-hero">
+      <h1>Strumenti AI per<br><em>agenti assicurativi</em></h1>
+      <p>Questionario cliente, raccomandazioni personalizzate e confronto polizze — tutto in un flusso guidato.</p>
+    </div>
+
+    <div class="path-cards">
+      <div class="path-card featured" onclick="startQuestionnaire()">
+        <div class="path-icon">📋</div>
+        <div class="path-label">Flusso completo</div>
+        <div class="path-title">Questionario + Raccomandazioni</div>
+        <div class="path-desc">Compila il profilo del cliente, ottieni raccomandazioni AI personalizzate e poi confronta le polizze concrete.</div>
+        <div class="path-cta">Inizia il questionario →</div>
+      </div>
+      <div class="path-card" onclick="startDirectComparison()">
+        <div class="path-icon">📑</div>
+        <div class="path-label">Accesso rapido</div>
+        <div class="path-title">Confronto polizze diretto</div>
+        <div class="path-desc">Hai già i PDF? Caricali e ottieni un confronto dettagliato di garanzie, franchigie e scoperti.</div>
+        <div class="path-cta">Carica i PDF →</div>
+      </div>
+    </div>
+
+    <div class="home-features">
+      <div class="home-feature">
+        <div class="home-feature-icon">🤖</div>
+        <div class="home-feature-title">Analisi AI</div>
+        <div class="home-feature-desc">Claude analizza ogni polizza e genera raccomandazioni contestuali al profilo del cliente</div>
+      </div>
+      <div class="home-feature">
+        <div class="home-feature-icon">📊</div>
+        <div class="home-feature-title">Confronto visuale</div>
+        <div class="home-feature-desc">Tabella comparativa con colori, massimali e franchigie in una sola schermata</div>
+      </div>
+      <div class="home-feature">
+        <div class="home-feature-icon">🎯</div>
+        <div class="home-feature-title">Orientamento commerciale</div>
+        <div class="home-feature-desc">Priorità di vendita e suggerimenti operativi basati sulle esigenze reali del cliente</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ QUESTIONNAIRE PAGE ══════════════════════════════════════════════ -->
+<div id="pagQuestionario" style="display:none">
+  <div class="questionnaire-page">
+    <div class="section-progress-bar">
+      <div class="section-progress-info">
+        <span class="section-progress-label" id="sezLabel">Sezione 1 di 5</span>
+        <span class="section-progress-count" id="sezCount"></span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-icon" id="sezIcon"></span>
+      <span class="section-title-text" id="sezTitle"></span>
+    </div>
+
+    <div id="questionsContainer"></div>
+
+    <div class="questionnaire-nav">
+      <button class="btn-back" id="btnBack" onclick="prevSection()">← Indietro</button>
+      <button class="btn-next" id="btnNext" onclick="nextSection()">Continua →</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ RECOMMENDATIONS PAGE ════════════════════════════════════════════ -->
+<div id="pagRaccomandazioni" style="display:none">
+  <div class="recs-page">
+    <div class="recs-topbar">
+      <h1>Raccomandazioni per <span id="recsClientName">il cliente</span></h1>
+      <div class="recs-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editQuestionnaire()">← Modifica profilo</button>
+        <button class="btn btn-primary btn-sm" onclick="startDirectComparison()">Confronta polizze →</button>
+      </div>
+    </div>
+
+    <div class="profile-box">
+      <div class="profile-box-icon">✦</div>
+      <div>
+        <div class="profile-box-label">Profilo cliente</div>
+        <div class="profile-box-text" id="profileSummary"></div>
+      </div>
+    </div>
+
+    <div class="recs-section-title">📌 Coperture raccomandate</div>
+    <div class="rec-cards" id="recCards"></div>
+
+    <div class="gap-card" id="gapCard" style="display:none">
+      <div class="gap-header">
+        <span class="gap-header-icon">⚠️</span>
+        <span class="gap-header-title">Gap di copertura principali</span>
+      </div>
+      <div class="gap-list" id="gapList"></div>
+    </div>
+
+    <div class="nota-card" id="notaCard" style="display:none">
+      <div class="nota-icon">💡</div>
+      <div>
+        <div class="nota-label">Nota per il consulente</div>
+        <div class="nota-text" id="notaText"></div>
+      </div>
+    </div>
+
+    <div class="recs-cta">
+      <p>Hai le Condizioni Generali delle polizze in PDF? Caricale per un confronto dettagliato su garanzie, franchigie e scoperti.</p>
+      <button class="btn btn-primary" onclick="startDirectComparison()">Confronta polizze PDF →</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ UPLOAD PAGE ═════════════════════════════════════════════════════ -->
+<div id="pagUpload" style="display:none">
   <div class="upload-page">
     <div class="upload-hero">
       <h1>Confronta le polizze<br><em>in pochi secondi</em></h1>
       <p>Carica 2–4 PDF — l'AI estrae garanzie, franchigie e scoperti e li confronta per te</p>
+    </div>
+
+    <div class="upload-context" id="uploadContext" style="display:none">
+      <span>📋</span>
+      <span id="uploadContextText"></span>
     </div>
 
     <div class="drop-zone" id="dropZone"
@@ -357,24 +621,26 @@ td.cell { padding:10px 14px; text-align:center; vertical-align:middle; }
   </div>
 </div>
 
-<!-- LOADING PAGE -->
+
+<!-- ══ LOADING PAGE ════════════════════════════════════════════════════ -->
 <div id="pagLoading" style="display:none">
   <div class="loading-page">
     <div class="big-spinner"></div>
-    <h2>Analisi in corso</h2>
-    <p>L'AI sta leggendo e confrontando le polizze...</p>
+    <h2 id="loadingTitle">Analisi in corso</h2>
+    <p id="loadingSubtitle">L'AI sta elaborando...</p>
     <ul class="progress-steps" id="progressSteps"></ul>
   </div>
 </div>
 
-<!-- RESULTS PAGE -->
+
+<!-- ══ RESULTS PAGE ════════════════════════════════════════════════════ -->
 <div id="pagResults" style="display:none">
   <div class="results-page">
     <div class="results-topbar">
-      <h1>Confronto polizze</h1>
+      <h1 id="resultsTitle">Confronto polizze</h1>
       <div class="results-topbar-actions">
         <button class="btn-print" onclick="window.print()">Stampa / Salva PDF</button>
-        <button class="btn-new" onclick="newComparison()">↩ Nuovo confronto</button>
+        <button class="btn-new" onclick="goHome()">↩ Home</button>
       </div>
     </div>
     <div id="scoreCards" class="score-cards"></div>
@@ -391,16 +657,383 @@ td.cell { padding:10px 14px; text-align:center; vertical-align:middle; }
   </div>
 </div>
 
+
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ── CONFIG ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════════════
 const BACKEND = (window.PF_BACKEND_URL || 'https://polizza-facile-production.up.railway.app').replace(/\/$/, '');
 
-// ── STATE ─────────────────────────────────────────────────────────
-let files = [];
+// ── QUESTIONNAIRE CONFIG ───────────────────────────────────────────────
+// Agenzie possono modificare questo oggetto per personalizzare il questionario
+const QUESTIONNAIRE_CONFIG = {
+  sezioni: [
+    {
+      id: "anagrafica",
+      titolo: "Informazioni personali",
+      icona: "👤",
+      domande: [
+        { id: "nome", tipo: "testo", label: "Nome e cognome del cliente", placeholder: "es. Mario Rossi" },
+        { id: "eta", tipo: "scelta_singola", label: "Fascia d'età", opzioni: ["18–30", "31–45", "46–60", "Oltre 60"] },
+        { id: "stato_civile", tipo: "scelta_singola", label: "Stato civile", opzioni: ["Celibe/Nubile", "Coniugato/a", "Convivente", "Separato/Divorziato", "Vedovo/a"] },
+        { id: "persone_a_carico", tipo: "scelta_singola", label: "Persone a carico", opzioni: ["Nessuna", "1", "2", "3 o più"] }
+      ]
+    },
+    {
+      id: "professione",
+      titolo: "Situazione lavorativa",
+      icona: "💼",
+      domande: [
+        { id: "tipo_lavoro", tipo: "scelta_singola", label: "Tipo di lavoro", opzioni: ["Dipendente privato", "Dipendente pubblico", "Libero professionista", "Imprenditore/Artigiano", "Pensionato", "Studente/Non occupato"] },
+        { id: "settore", tipo: "scelta_singola", label: "Settore lavorativo", opzioni: ["Sanità / Salute", "Edilizia / Costruzioni", "Trasporti / Logistica", "Commercio / Retail", "Professionisti (legale, contabile, tecnico)", "Industria / Manifattura", "Agricoltura", "Altro"] },
+        { id: "reddito", tipo: "scelta_singola", label: "Reddito annuo lordo indicativo", opzioni: ["Fino a 20.000 €", "20.000–40.000 €", "40.000–80.000 €", "Oltre 80.000 €", "Preferisco non indicarlo"] },
+        { id: "stabilita", tipo: "scelta_singola", label: "Stabilità lavorativa percepita", opzioni: ["Molto stabile", "Abbastanza stabile", "Incerta", "In transizione"] }
+      ]
+    },
+    {
+      id: "patrimonio",
+      titolo: "Patrimonio e beni",
+      icona: "🏠",
+      domande: [
+        { id: "abitazione", tipo: "scelta_singola", label: "Abitazione principale", opzioni: ["Di proprietà (con mutuo)", "Di proprietà (senza mutuo)", "In affitto", "Altra situazione"] },
+        { id: "altri_immobili", tipo: "scelta_singola", label: "Altri immobili di proprietà", opzioni: ["Nessuno", "1 immobile", "2 o più immobili"] },
+        { id: "veicoli", tipo: "scelta_multipla", label: "Veicoli posseduti", opzioni: ["Automobile", "Moto / Scooter", "Furgone / Veicolo commerciale", "Nessuno"] },
+        { id: "attivita_propria", tipo: "scelta_singola", label: "Gestisce un'attività propria?", opzioni: ["No", "Sì, piccola attività / lavoro autonomo", "Sì, azienda strutturata"] }
+      ]
+    },
+    {
+      id: "coperture",
+      titolo: "Coperture esistenti",
+      icona: "🛡️",
+      domande: [
+        { id: "polizze_attive", tipo: "scelta_multipla", label: "Polizze attualmente attive", opzioni: ["RC Auto", "Kasko / Furto auto", "Casa (incendio & contenuto)", "Vita", "Infortuni", "Salute / Sanitaria integrativa", "RC Professionale", "Nessuna"] },
+        { id: "ultima_revisione", tipo: "scelta_singola", label: "Ultima revisione del portafoglio assicurativo", opzioni: ["Meno di 1 anno fa", "1–3 anni fa", "Più di 3 anni fa", "Non ho mai fatto una revisione"] }
+      ]
+    },
+    {
+      id: "priorita",
+      titolo: "Priorità e obiettivi",
+      icona: "🎯",
+      domande: [
+        { id: "preoccupazioni", tipo: "scelta_multipla", max: 3, label: "Principali preoccupazioni (max 3)", opzioni: ["Perdita di reddito per malattia o infortunio", "Danni alla casa o agli oggetti", "Responsabilità verso terzi", "Spese mediche non coperte dal SSN", "Protezione del nucleo familiare", "Protezione dell'attività lavorativa", "Risparmio e previdenza complementare", "Furto o danni ai veicoli"] },
+        { id: "budget", tipo: "scelta_singola", label: "Budget mensile per assicurazioni", opzioni: ["Fino a 50 €/mese", "50–100 €/mese", "100–200 €/mese", "Oltre 200 €/mese", "Da valutare insieme"] },
+        { id: "note", tipo: "testo_lungo", label: "Note aggiuntive o situazioni particolari", placeholder: "es. lavoro spesso all'estero, ho un figlio disabile, gestisco un magazzino...", obbligatoria: false }
+      ]
+    }
+  ]
+};
 
-// ── BACKEND CALLS ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════
+let files = [];
+let currentSectionIdx = 0;
+let clientAnswers = {};   // { questionId: string | string[] }
+let clientRecs = null;    // recommendations response from backend
+let fromQuestionnaire = false;
+
+// ═══════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════
+const ALL_PAGES = ['pagHome','pagQuestionario','pagRaccomandazioni','pagUpload','pagLoading','pagResults'];
+
+function show(id) {
+  ALL_PAGES.forEach(p => document.getElementById(p).style.display = p === id ? 'block' : 'none');
+  const labels = {
+    pagHome: '',
+    pagQuestionario: 'Questionario',
+    pagRaccomandazioni: 'Raccomandazioni',
+    pagUpload: 'Confronto polizze',
+    pagLoading: '',
+    pagResults: 'Risultati confronto'
+  };
+  document.getElementById('headerStep').textContent = labels[id] || '';
+}
+
+function goHome() {
+  files = [];
+  renderChips();
+  document.getElementById('aiSummary').style.display = 'none';
+  show('pagHome');
+}
+
+function startQuestionnaire() {
+  currentSectionIdx = 0;
+  clientAnswers = {};
+  renderSection(0);
+  show('pagQuestionario');
+}
+
+function startDirectComparison() {
+  fromQuestionnaire = !!Object.keys(clientAnswers).length;
+  // Show upload context if coming from questionnaire
+  const ctx = document.getElementById('uploadContext');
+  const ctxTxt = document.getElementById('uploadContextText');
+  const nome = clientAnswers['nome'];
+  if (fromQuestionnaire && nome) {
+    ctxTxt.textContent = `Confronto per: ${nome} — le raccomandazioni AI sono già state generate`;
+    ctx.style.display = 'flex';
+  } else {
+    ctx.style.display = 'none';
+  }
+  show('pagUpload');
+}
+
+function editQuestionnaire() {
+  renderSection(currentSectionIdx);
+  show('pagQuestionario');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// QUESTIONNAIRE RENDERING
+// ═══════════════════════════════════════════════════════════════════════
+function renderSection(idx) {
+  const sezioni = QUESTIONNAIRE_CONFIG.sezioni;
+  const sez = sezioni[idx];
+  const total = sezioni.length;
+
+  document.getElementById('sezLabel').textContent = `Sezione ${idx + 1} di ${total}`;
+  document.getElementById('sezCount').textContent = sez.titolo;
+  document.getElementById('sezIcon').textContent = sez.icona;
+  document.getElementById('sezTitle').textContent = sez.titolo;
+  document.getElementById('progressFill').style.width = `${((idx) / total) * 100}%`;
+
+  // Back button
+  document.getElementById('btnBack').style.visibility = idx === 0 ? 'hidden' : 'visible';
+
+  // Next button label
+  const isLast = idx === total - 1;
+  document.getElementById('btnNext').textContent = isLast ? 'Genera raccomandazioni ✦' : 'Continua →';
+
+  // Render questions
+  const container = document.getElementById('questionsContainer');
+  container.innerHTML = sez.domande.map(q => renderQuestion(q)).join('');
+
+  // Restore saved answers
+  sez.domande.forEach(q => restoreAnswer(q));
+}
+
+function renderQuestion(q) {
+  const isRequired = q.obbligatoria !== false;
+  const labelHtml = `<div class="question-label">
+    ${esc(q.label)}
+    ${isRequired ? '<span class="required-star">*</span>' : '<span class="optional-tag">facoltativo</span>'}
+  </div>`;
+
+  let inputHtml = '';
+  if (q.tipo === 'scelta_singola') {
+    inputHtml = `<div class="option-cards" id="q_${q.id}">
+      ${q.opzioni.map(o => `<div class="option-card" data-qid="${esc(q.id)}" data-val="${esc(o)}" onclick="selectSingle(this)">${esc(o)}</div>`).join('')}
+    </div>`;
+  } else if (q.tipo === 'scelta_multipla') {
+    const maxAttr = q.max ? `data-max="${q.max}"` : '';
+    inputHtml = `<div class="option-cards" id="q_${q.id}" ${maxAttr}>
+      ${q.opzioni.map(o => `<div class="option-card" data-qid="${esc(q.id)}" data-val="${esc(o)}" onclick="selectMulti(this)">${esc(o)}</div>`).join('')}
+    </div>`;
+  } else if (q.tipo === 'testo') {
+    inputHtml = `<input class="q-input" id="q_${q.id}" type="text" placeholder="${esc(q.placeholder||'')}" oninput="saveTextAnswer('${q.id}', this.value)">`;
+  } else if (q.tipo === 'testo_lungo') {
+    inputHtml = `<textarea class="q-input q-textarea" id="q_${q.id}" placeholder="${esc(q.placeholder||'')}" oninput="saveTextAnswer('${q.id}', this.value)"></textarea>`;
+  }
+
+  return `<div class="question-block">${labelHtml}${inputHtml}</div>`;
+}
+
+function restoreAnswer(q) {
+  const val = clientAnswers[q.id];
+  if (!val) return;
+  if (q.tipo === 'scelta_singola') {
+    document.querySelectorAll(`#q_${q.id} .option-card`).forEach(c => {
+      if (c.dataset.val === val) c.classList.add('selected');
+    });
+  } else if (q.tipo === 'scelta_multipla') {
+    const vals = Array.isArray(val) ? val : [val];
+    document.querySelectorAll(`#q_${q.id} .option-card`).forEach(c => {
+      if (vals.includes(c.dataset.val)) c.classList.add('selected');
+    });
+    updateMultiDisabled(q.id, q.max);
+  } else if (q.tipo === 'testo' || q.tipo === 'testo_lungo') {
+    const el = document.getElementById(`q_${q.id}`);
+    if (el) el.value = val;
+  }
+}
+
+function selectSingle(el) {
+  const qid = el.dataset.qid;
+  document.querySelectorAll(`#q_${qid} .option-card`).forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  clientAnswers[qid] = el.dataset.val;
+}
+
+function selectMulti(el) {
+  if (el.classList.contains('disabled')) return;
+  const qid = el.dataset.qid;
+  const container = document.getElementById(`q_${qid}`);
+  const maxVal = container ? parseInt(container.dataset.max) : 0;
+
+  el.classList.toggle('selected');
+
+  // Collect selected
+  const selected = [...document.querySelectorAll(`#q_${qid} .option-card.selected`)].map(c => c.dataset.val);
+  clientAnswers[qid] = selected;
+
+  updateMultiDisabled(qid, maxVal);
+}
+
+function updateMultiDisabled(qid, maxVal) {
+  if (!maxVal) return;
+  const container = document.getElementById(`q_${qid}`);
+  if (!container) return;
+  const selected = container.querySelectorAll('.option-card.selected').length;
+  container.querySelectorAll('.option-card:not(.selected)').forEach(c => {
+    if (selected >= maxVal) c.classList.add('disabled');
+    else c.classList.remove('disabled');
+  });
+}
+
+function saveTextAnswer(qid, val) {
+  clientAnswers[qid] = val;
+}
+
+function validateSection() {
+  const sez = QUESTIONNAIRE_CONFIG.sezioni[currentSectionIdx];
+  for (const q of sez.domande) {
+    if (q.obbligatoria === false) continue;
+    const val = clientAnswers[q.id];
+    if (!val || (Array.isArray(val) && val.length === 0) || String(val).trim() === '') {
+      toast(`Compila: "${q.label}"`, 3000);
+      return false;
+    }
+  }
+  return true;
+}
+
+function prevSection() {
+  if (currentSectionIdx > 0) {
+    currentSectionIdx--;
+    renderSection(currentSectionIdx);
+  } else {
+    goHome();
+  }
+}
+
+async function nextSection() {
+  if (!validateSection()) return;
+  const total = QUESTIONNAIRE_CONFIG.sezioni.length;
+  if (currentSectionIdx < total - 1) {
+    currentSectionIdx++;
+    renderSection(currentSectionIdx);
+  } else {
+    await submitQuestionnaire();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// QUESTIONNAIRE SUBMISSION → RECOMMENDATIONS
+// ═══════════════════════════════════════════════════════════════════════
+async function submitQuestionnaire() {
+  // Build human-readable answers for AI
+  const risposte = buildProfilePayload();
+
+  show('pagLoading');
+  document.getElementById('loadingTitle').textContent = 'Analisi del profilo';
+  document.getElementById('loadingSubtitle').textContent = "L'AI sta elaborando le raccomandazioni personalizzate...";
+  document.getElementById('progressSteps').innerHTML = `
+    <li class="active"><span class="step-dot"></span>→ Elaborazione profilo cliente</li>
+    <li><span class="step-dot"></span>Generazione raccomandazioni</li>
+  `;
+
+  try {
+    const res = await fetch(`${BACKEND}/api/raccomanda`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ risposte, agenzia: 'default' })
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.detail || `Errore server (${res.status})`);
+    }
+    clientRecs = await res.json();
+    renderRecs(clientRecs);
+    show('pagRaccomandazioni');
+  } catch(e) {
+    show('pagQuestionario');
+    renderSection(currentSectionIdx);
+    toast('Errore: ' + (e.message || 'Riprova'), 5000);
+  }
+}
+
+function buildProfilePayload() {
+  const out = {};
+  QUESTIONNAIRE_CONFIG.sezioni.forEach(sez => {
+    sez.domande.forEach(q => {
+      const val = clientAnswers[q.id];
+      if (!val || (Array.isArray(val) && val.length === 0)) return;
+      const label = `[${sez.titolo}] ${q.label}`;
+      out[label] = Array.isArray(val) ? val.join(', ') : val;
+    });
+  });
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// RENDER RECOMMENDATIONS
+// ═══════════════════════════════════════════════════════════════════════
+function renderRecs(data) {
+  // Client name in heading
+  const nome = clientAnswers['nome'] || 'il cliente';
+  document.getElementById('recsClientName').textContent = nome;
+
+  // Profile summary
+  document.getElementById('profileSummary').textContent = data.sintesi_profilo || '';
+
+  // Recommendation cards
+  const container = document.getElementById('recCards');
+  container.innerHTML = (data.raccomandazioni || []).map(r => {
+    const urg = r.urgenza || 'media';
+    const urgLabel = { alta: 'Priorità alta', media: 'Priorità media', bassa: 'Priorità bassa' }[urg] || urg;
+    return `<div class="rec-card urgenza-${esc(urg)}">
+      <div class="rec-priority">${r.priorita}</div>
+      <div class="rec-body">
+        <div class="rec-header">
+          <span class="rec-tipo">${esc(r.tipo)}</span>
+          <span class="urgency-badge">${esc(urgLabel)}</span>
+        </div>
+        <div class="rec-motivo">${esc(r.motivo)}</div>
+        ${r.cosa_cercare && r.cosa_cercare.length ? `
+          <div class="rec-cercare-title">Cosa cercare nella polizza</div>
+          <div class="rec-cercare-list">${r.cosa_cercare.map(c => `<span class="rec-cercare-tag">✓ ${esc(c)}</span>`).join('')}</div>
+        ` : ''}
+        ${r.budget_indicativo ? `
+          <div class="rec-budget">💶 Budget indicativo: <strong>${esc(r.budget_indicativo)}</strong></div>
+        ` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Gap card
+  if (data.gap_principali && data.gap_principali.length) {
+    document.getElementById('gapList').innerHTML = data.gap_principali
+      .map(g => `<div class="gap-item">${esc(g)}</div>`).join('');
+    document.getElementById('gapCard').style.display = 'block';
+  } else {
+    document.getElementById('gapCard').style.display = 'none';
+  }
+
+  // Consultant note
+  if (data.nota_consulente) {
+    document.getElementById('notaText').textContent = data.nota_consulente;
+    document.getElementById('notaCard').style.display = 'flex';
+  } else {
+    document.getElementById('notaCard').style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// BACKEND CALLS — COMPARISON
+// ═══════════════════════════════════════════════════════════════════════
 async function extractPolicy(text, filename) {
   const res = await fetch(`${BACKEND}/api/extract`, {
     method: 'POST',
@@ -428,7 +1061,9 @@ async function generateSummary(policies) {
   }
 }
 
-// ── DRAG & DROP ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// DRAG & DROP
+// ═══════════════════════════════════════════════════════════════════════
 function dragOver(e)  { e.preventDefault(); document.getElementById('dropZone').classList.add('over'); }
 function dragLeave()  { document.getElementById('dropZone').classList.remove('over'); }
 function onDrop(e)    { e.preventDefault(); dragLeave(); addFiles([...e.dataTransfer.files]); }
@@ -444,7 +1079,9 @@ function addFiles(list) {
   extractAll();
 }
 
-// ── CHIPS ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// CHIPS
+// ═══════════════════════════════════════════════════════════════════════
 function renderChips() {
   const row = document.getElementById('chipsRow');
   row.innerHTML = files.map((f,i) => `
@@ -461,7 +1098,9 @@ function renderChips() {
 
 function removeFile(i) { files.splice(i,1); renderChips(); }
 
-// ── PDF EXTRACTION ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// PDF EXTRACTION
+// ═══════════════════════════════════════════════════════════════════════
 async function extractAll() {
   for (let i=0; i<files.length; i++) {
     if (files[i].text !== null) continue;
@@ -486,12 +1125,16 @@ async function readPdf(file) {
   return out.slice(0, 28000);
 }
 
-// ── COMPARISON FLOW ───────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// COMPARISON FLOW
+// ═══════════════════════════════════════════════════════════════════════
 async function startComparison() {
   const ready = files.filter(f=>f.status==='ready');
   if (ready.length < 2) return;
 
   show('pagLoading');
+  document.getElementById('loadingTitle').textContent = 'Analisi polizze';
+  document.getElementById('loadingSubtitle').textContent = "L'AI sta leggendo e confrontando le polizze...";
   const steps = ready.map(f => ({ label: f.name, status:'pending' }));
   steps.push({ label: 'Generazione analisi comparativa', status:'pending' });
   renderSteps(steps);
@@ -506,9 +1149,15 @@ async function startComparison() {
     }
     steps[steps.length-1].status = 'active'; renderSteps(steps);
     renderResults(extracted);
-    // Chiama AI per summary (non bloccante)
     generateSummary(extracted).catch(() => {});
     steps[steps.length-1].status = 'done'; renderSteps(steps);
+
+    // Set title with client name if from questionnaire
+    const nome = clientAnswers['nome'];
+    document.getElementById('resultsTitle').textContent = nome
+      ? `Confronto polizze — ${nome}`
+      : 'Confronto polizze';
+
     show('pagResults');
   } catch(e) {
     show('pagUpload');
@@ -524,17 +1173,15 @@ function renderSteps(steps) {
     </li>`).join('');
 }
 
-
-// ── RENDER RESULTS ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// RENDER RESULTS
+// ═══════════════════════════════════════════════════════════════════════
 function renderResults(policies) {
-  // Calcola punteggi
   const scores = policies.map(p => calcScore(p, policies));
   const winnerIdx = scores.indexOf(Math.max(...scores));
-
-  // Score cards
   const cols = ['#2563EB','#7C3AED','#D97706','#DC2626'];
-  document.getElementById('scoreCards').style.gridTemplateColumns =
-    `repeat(${policies.length}, 1fr)`;
+
+  document.getElementById('scoreCards').style.gridTemplateColumns = `repeat(${policies.length}, 1fr)`;
   document.getElementById('scoreCards').innerHTML = policies.map((p,i) => {
     const s = scores[i];
     const circ = 2 * Math.PI * 26;
@@ -563,10 +1210,8 @@ function renderResults(policies) {
     </div>`;
   }).join('');
 
-  // Comparison table
   buildTable(policies, cols);
 
-  // Advice cards
   const adviceGrid = document.getElementById('adviceGrid');
   const icons = ['🛡️','🔵','🟡','🔴'];
   adviceGrid.innerHTML = policies.map((p,i) => p.consigliata_per ? `
@@ -580,7 +1225,6 @@ function renderResults(policies) {
     </div>` : '').join('');
   document.getElementById('adviceTitle').style.display = policies.some(p=>p.consigliata_per) ? 'block' : 'none';
 
-  // Exclusions
   const exclGrid = document.getElementById('exclGrid');
   const hasExcl = policies.some(p=>p.esclusioni&&p.esclusioni.length);
   exclGrid.innerHTML = hasExcl ? policies.map(p => p.esclusioni&&p.esclusioni.length ? `
@@ -589,17 +1233,16 @@ function renderResults(policies) {
         <span class="excl-company">${esc(p.compagnia||'')}</span>
         <span class="excl-product">${esc(p.prodotto||'')}</span>
       </div>
-      <div class="excl-list">
-        ${p.esclusioni.map(e=>`<div class="excl-item">${esc(e)}</div>`).join('')}
-      </div>
+      <div class="excl-list">${p.esclusioni.map(e=>`<div class="excl-item">${esc(e)}</div>`).join('')}</div>
     </div>` : '').join('') : '';
   document.getElementById('exclTitle').style.display = hasExcl ? 'block' : 'none';
   document.getElementById('exclGrid').style.gridTemplateColumns = `repeat(${Math.min(policies.length,2)}, 1fr)`;
 }
 
-// ── TABLE BUILDER ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// TABLE BUILDER
+// ═══════════════════════════════════════════════════════════════════════
 function buildTable(policies, cols) {
-  // Raccoglie tutte le garanzie per categoria
   const byCategory = {};
   policies.forEach(p => {
     (p.garanzie||[]).forEach(g => {
@@ -621,19 +1264,18 @@ function buildTable(policies, cols) {
   for (const [cat, names] of Object.entries(byCategory)) {
     html += `<tr class="group-row"><td colspan="${policies.length+1}">${esc(cat)}</td></tr>`;
     [...names].forEach(name => {
-      // Raccogli valori per colore comparativo
       const vals = policies.map(p => (p.garanzie||[]).find(g=>g.nome===name) || null);
       const nums = vals.map(g => g && g.presente ? (g.massimale_num||0) : -1);
       const maxNum = Math.max(...nums);
       const somePresent = vals.some(g => g && g.presente);
 
       html += `<tr><td class="row-label">${esc(name)}</td>`;
-      vals.forEach((g, i) => {
+      vals.forEach((g) => {
         if (!g || !g.presente) {
           html += `<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;
           return;
         }
-        const isBest = somePresent && nums[i] === maxNum && maxNum > 0;
+        const isBest = somePresent && nums[vals.indexOf(g)] === maxNum && maxNum > 0;
         const cls = isBest ? 'c-best' : 'c-mid';
         html += `<td class="cell ${cls}"><div class="cell-inner">`;
         if (g.massimale) html += `<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
@@ -653,8 +1295,10 @@ function buildTable(policies, cols) {
   document.getElementById('compTable').innerHTML = html;
 }
 
-// ── SCORE CALCULATOR ──────────────────────────────────────────────
-function calcScore(policy, allPolicies) {
+// ═══════════════════════════════════════════════════════════════════════
+// SCORE
+// ═══════════════════════════════════════════════════════════════════════
+function calcScore(policy) {
   const garanzie = policy.garanzie || [];
   if (!garanzie.length) return 0;
   let pts = 0, max = 0;
@@ -665,24 +1309,12 @@ function calcScore(policy, allPolicies) {
     if (!g.franchigia && !g.scoperto) pts += 0.5;
     else if (g.scoperto) pts -= 0.2;
   });
-  const raw = max > 0 ? Math.round((pts/max) * 100) : 0;
-  return Math.min(100, Math.max(10, raw));
+  return Math.min(100, Math.max(10, max > 0 ? Math.round((pts/max) * 100) : 0));
 }
 
-// ── NAVIGATION ────────────────────────────────────────────────────
-function show(id) {
-  ['pagUpload','pagLoading','pagResults'].forEach(p =>
-    document.getElementById(p).style.display = p===id ? 'block' : 'none');
-}
-
-function newComparison() {
-  files = [];
-  renderChips();
-  document.getElementById('aiSummary').style.display = 'none';
-  show('pagUpload');
-}
-
-// ── UTILS ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════════
 function esc(s) {
   return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
