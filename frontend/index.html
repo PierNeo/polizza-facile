@@ -3,626 +3,739 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Polizza Facile — Consulenza Assicurativa</title>
+<title>Polo Assicurativo Bassano — Consulenza</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root {
-  --blue:       #2563EB;
-  --blue-dark:  #1D4ED8;
-  --blue-soft:  #EFF6FF;
-  --blue-mid:   #BFDBFE;
-  --green:      #16A34A;
-  --green-soft: #DCFCE7;
-  --green-dark: #15803D;
-  --red:        #DC2626;
-  --red-soft:   #FEE2E2;
-  --amber:      #D97706;
-  --amber-soft: #FEF3C7;
-  --purple:     #7C3AED;
-  --purple-soft:#F5F3FF;
-  --gray-50:    #F9FAFB;
-  --gray-100:   #F3F4F6;
-  --gray-200:   #E5E7EB;
-  --gray-300:   #D1D5DB;
-  --gray-400:   #9CA3AF;
-  --gray-500:   #6B7280;
-  --gray-600:   #4B5563;
-  --gray-700:   #374151;
-  --gray-800:   #1F2937;
-  --gray-900:   #111827;
-  --white:      #FFFFFF;
-  --radius:     14px;
-  --shadow-sm:  0 1px 3px rgba(0,0,0,.06);
-  --shadow:     0 4px 16px rgba(0,0,0,.08);
-  --shadow-lg:  0 8px 32px rgba(0,0,0,.12);
+  /* Polo Bassano brand */
+  --polo:        #0F2741;
+  --polo-mid:    #1A3D60;
+  --polo-light:  #234E7A;
+  --polo-hover:  rgba(255,255,255,.07);
+  --gold:        #C8971C;
+  --gold-soft:   #FDF5DC;
+  --gold-mid:    #E8C050;
+  --gold-dark:   #A07810;
+  /* App palette */
+  --blue:        #2563EB;
+  --blue-dark:   #1D4ED8;
+  --blue-soft:   #EFF6FF;
+  --blue-mid:    #BFDBFE;
+  --green:       #16A34A;
+  --green-soft:  #DCFCE7;
+  --green-dark:  #15803D;
+  --red:         #DC2626;
+  --red-soft:    #FEE2E2;
+  --amber:       #D97706;
+  --amber-soft:  #FEF3C7;
+  --purple:      #7C3AED;
+  --purple-soft: #F5F3FF;
+  --gray-50:     #F9FAFB;
+  --gray-100:    #F3F4F6;
+  --gray-200:    #E5E7EB;
+  --gray-300:    #D1D5DB;
+  --gray-400:    #9CA3AF;
+  --gray-500:    #6B7280;
+  --gray-600:    #4B5563;
+  --gray-700:    #374151;
+  --gray-800:    #1F2937;
+  --gray-900:    #111827;
+  --white:       #FFFFFF;
+  --radius:      14px;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,.06);
+  --shadow:      0 4px 16px rgba(0,0,0,.08);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,.14);
+  --sidebar-w:   230px;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gray-800); min-height:100vh; }
+body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gray-800); min-height:100vh; display:flex; }
 
-/* ── HEADER ──────────────────────────────────────────────────────────── */
-.header {
-  background:var(--white); border-bottom:1px solid var(--gray-200);
-  padding:0 28px; height:56px; display:flex; align-items:center;
-  justify-content:space-between; position:sticky; top:0; z-index:100;
-  box-shadow:var(--shadow-sm);
+/* ═══ SIDEBAR ══════════════════════════════════════════════════════ */
+.sidebar {
+  width:var(--sidebar-w); min-height:100vh; background:var(--polo);
+  display:flex; flex-direction:column; position:fixed; left:0; top:0; bottom:0;
+  z-index:200; box-shadow:2px 0 12px rgba(0,0,0,.15);
 }
-.logo { font-size:19px; font-weight:700; color:var(--gray-900); letter-spacing:-0.4px; cursor:pointer; }
-.logo span { color:var(--blue); }
-.header-right { display:flex; align-items:center; gap:12px; }
-.header-step { font-size:12px; color:var(--gray-400); font-weight:500; }
+.sidebar-brand {
+  padding:24px 20px 20px; border-bottom:1px solid rgba(255,255,255,.08);
+}
+.sidebar-logo-img { height:36px; margin-bottom:10px; display:block; }
+.sidebar-tagline { font-size:10px; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.8px; font-weight:500; }
 
-/* ── BUTTONS ─────────────────────────────────────────────────────────── */
-.btn { padding:9px 20px; border-radius:9px; font-size:13px; font-weight:600;
-  cursor:pointer; font-family:inherit; border:none; transition:all .15s; }
-.btn-primary { background:var(--blue); color:#fff; }
-.btn-primary:hover { background:var(--blue-dark); }
+.sidebar-nav { flex:1; padding:16px 0; overflow-y:auto; }
+.nav-section-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,.3); padding:14px 20px 6px; }
+.nav-item {
+  display:flex; align-items:center; gap:11px; padding:10px 20px;
+  color:rgba(255,255,255,.65); font-size:13px; font-weight:500;
+  cursor:pointer; transition:all .15s; border-left:3px solid transparent;
+  user-select:none; text-decoration:none;
+}
+.nav-item:hover { background:var(--polo-hover); color:#fff; }
+.nav-item.active { background:rgba(200,151,28,.12); color:var(--gold-mid); border-left-color:var(--gold); }
+.nav-item .nav-icon { font-size:16px; width:20px; text-align:center; flex-shrink:0; }
+.nav-badge {
+  margin-left:auto; background:var(--gold); color:var(--polo); font-size:10px;
+  font-weight:700; padding:2px 7px; border-radius:20px; min-width:20px; text-align:center;
+}
+
+.sidebar-bottom {
+  padding:16px 20px; border-top:1px solid rgba(255,255,255,.08);
+  font-size:11px; color:rgba(255,255,255,.3); line-height:1.6;
+}
+.sidebar-bottom strong { color:rgba(255,255,255,.5); display:block; margin-bottom:2px; }
+
+/* Mobile sidebar toggle */
+.mob-bar {
+  display:none; position:fixed; top:0; left:0; right:0; height:52px;
+  background:var(--polo); z-index:300; align-items:center; padding:0 16px;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+.mob-bar .mob-logo { color:#fff; font-size:15px; font-weight:700; flex:1; letter-spacing:-.3px; }
+.mob-bar .mob-logo span { color:var(--gold-mid); }
+.mob-hamburger { background:none; border:none; cursor:pointer; color:#fff; font-size:22px; padding:4px; }
+.sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:199; }
+.sidebar-overlay.open { display:block; }
+
+@media(max-width:768px) {
+  .sidebar { transform:translateX(-100%); transition:transform .25s ease; }
+  .sidebar.open { transform:translateX(0); }
+  .mob-bar { display:flex; }
+  .main-content { margin-left:0 !important; padding-top:52px; }
+}
+
+/* ═══ MAIN CONTENT ══════════════════════════════════════════════════ */
+.main-content { margin-left:var(--sidebar-w); flex:1; min-height:100vh; display:flex; flex-direction:column; }
+
+/* ═══ BUTTONS ═══════════════════════════════════════════════════════ */
+.btn { padding:9px 20px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; border:none; transition:all .15s; }
+.btn-primary { background:var(--polo); color:#fff; }
+.btn-primary:hover { background:var(--polo-mid); }
+.btn-gold { background:var(--gold); color:#fff; }
+.btn-gold:hover { background:var(--gold-dark); }
 .btn-ghost { background:var(--white); border:1.5px solid var(--gray-200); color:var(--gray-600); }
 .btn-ghost:hover { border-color:var(--gray-400); }
-.btn-sm { padding:7px 16px; font-size:12px; }
-.btn-go {
-  background:var(--blue); color:#fff; border:none; padding:13px 32px;
-  border-radius:10px; font-size:15px; font-weight:700; cursor:pointer;
-  font-family:inherit; transition:background .15s; display:flex; align-items:center; gap:9px;
-}
-.btn-go:hover:not(:disabled) { background:var(--blue-dark); }
+.btn-danger { background:var(--red-soft); color:var(--red); border:1px solid var(--red-soft); }
+.btn-danger:hover { background:var(--red); color:#fff; }
+.btn-sm { padding:6px 14px; font-size:12px; }
+.btn-go { background:var(--polo); color:#fff; border:none; padding:13px 32px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; display:flex; align-items:center; gap:9px; }
+.btn-go:hover:not(:disabled) { background:var(--polo-mid); }
 .btn-go:disabled { background:var(--gray-200); color:var(--gray-400); cursor:not-allowed; }
 
-/* ── HOME PAGE ───────────────────────────────────────────────────────── */
-.home-page { max-width:760px; margin:0 auto; padding:64px 24px; }
-.home-hero { text-align:center; margin-bottom:52px; }
-.home-hero h1 {
-  font-size:36px; font-weight:700; letter-spacing:-0.8px; line-height:1.2;
-  margin-bottom:14px; color:var(--gray-900);
+/* ═══ PAGE SHELL ════════════════════════════════════════════════════ */
+.page { padding:32px 36px 72px; max-width:1100px; }
+.page-sm { max-width:720px; }
+.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
+.page-title { font-size:22px; font-weight:700; letter-spacing:-.4px; color:var(--gray-900); }
+.page-subtitle { font-size:13px; color:var(--gray-400); margin-top:3px; }
+
+/* ═══ DASHBOARD ═════════════════════════════════════════════════════ */
+.dash-hero {
+  background:linear-gradient(135deg, var(--polo) 0%, var(--polo-light) 100%);
+  border-radius:var(--radius); padding:28px 32px; margin-bottom:28px;
+  color:#fff; display:flex; align-items:center; justify-content:space-between;
+  gap:20px; flex-wrap:wrap; box-shadow:var(--shadow);
 }
-.home-hero h1 em { font-style:normal; color:var(--blue); }
-.home-hero p { font-size:16px; color:var(--gray-500); line-height:1.65; max-width:480px; margin:0 auto; }
+.dash-hero-text h2 { font-size:20px; font-weight:700; margin-bottom:6px; }
+.dash-hero-text p { font-size:13px; opacity:.7; max-width:360px; line-height:1.6; }
+.dash-hero-badge { background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:12px 20px; text-align:center; flex-shrink:0; }
+.dash-hero-badge .badge-num { font-size:28px; font-weight:700; color:var(--gold-mid); }
+.dash-hero-badge .badge-label { font-size:11px; opacity:.6; margin-top:2px; }
 
-.path-cards { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-@media(max-width:580px) { .path-cards { grid-template-columns:1fr; } }
+.stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; }
+@media(max-width:600px) { .stats-row { grid-template-columns:1fr 1fr; } }
+.stat-card { background:var(--white); border:1px solid var(--gray-200); border-radius:12px; padding:18px 20px; box-shadow:var(--shadow-sm); }
+.stat-num { font-size:28px; font-weight:700; color:var(--polo); }
+.stat-label { font-size:12px; color:var(--gray-400); margin-top:3px; }
 
-.path-card {
+.dash-section-title { font-size:14px; font-weight:700; color:var(--gray-700); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.dash-actions { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:28px; }
+@media(max-width:480px) { .dash-actions { grid-template-columns:1fr; } }
+.dash-action-card {
   background:var(--white); border:2px solid var(--gray-200); border-radius:var(--radius);
-  padding:32px 28px; cursor:pointer; transition:all .2s; box-shadow:var(--shadow-sm);
-  display:flex; flex-direction:column; align-items:flex-start; gap:12px;
+  padding:22px 20px; cursor:pointer; transition:all .2s; box-shadow:var(--shadow-sm);
 }
-.path-card:hover { border-color:var(--blue); box-shadow:var(--shadow), 0 0 0 4px var(--blue-soft); transform:translateY(-2px); }
-.path-card.featured { border-color:var(--blue); background:var(--blue-soft); }
-.path-card.featured:hover { box-shadow:var(--shadow), 0 0 0 4px #BFDBFE; }
-.path-icon { font-size:36px; }
-.path-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--blue); }
-.path-card.featured .path-label { color:var(--blue-dark); }
-.path-title { font-size:20px; font-weight:700; color:var(--gray-900); line-height:1.25; }
-.path-desc { font-size:13px; color:var(--gray-500); line-height:1.6; }
-.path-cta {
-  margin-top:4px; font-size:13px; font-weight:600; color:var(--blue);
-  display:flex; align-items:center; gap:5px;
-}
-.path-card.featured .path-cta { color:var(--blue-dark); }
+.dash-action-card:hover { border-color:var(--polo); box-shadow:var(--shadow); transform:translateY(-2px); }
+.dash-action-card.featured { border-color:var(--gold); background:var(--gold-soft); }
+.dash-action-card.featured:hover { border-color:var(--gold-dark); }
+.dac-icon { font-size:28px; margin-bottom:10px; }
+.dac-title { font-size:15px; font-weight:700; color:var(--gray-900); margin-bottom:4px; }
+.dac-desc { font-size:12px; color:var(--gray-400); line-height:1.55; }
 
-.home-features { margin-top:48px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-@media(max-width:580px) { .home-features { grid-template-columns:1fr; } }
-.home-feature {
-  background:var(--white); border:1px solid var(--gray-200); border-radius:12px;
-  padding:18px 16px; text-align:center; box-shadow:var(--shadow-sm);
+.recent-list { display:flex; flex-direction:column; gap:10px; }
+.recent-item {
+  background:var(--white); border:1px solid var(--gray-200); border-radius:10px;
+  padding:14px 16px; display:flex; align-items:center; gap:14px;
+  cursor:pointer; transition:border .15s; box-shadow:var(--shadow-sm);
 }
-.home-feature-icon { font-size:24px; margin-bottom:8px; }
-.home-feature-title { font-size:13px; font-weight:600; color:var(--gray-700); margin-bottom:4px; }
-.home-feature-desc { font-size:12px; color:var(--gray-400); line-height:1.5; }
+.recent-item:hover { border-color:var(--polo); }
+.recent-avatar {
+  width:38px; height:38px; border-radius:50%; background:var(--polo); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex-shrink:0;
+}
+.recent-name { font-size:14px; font-weight:600; color:var(--gray-900); }
+.recent-meta { font-size:11px; color:var(--gray-400); margin-top:2px; }
+.recent-chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.recent-chip { font-size:10px; font-weight:500; padding:2px 8px; border-radius:20px; background:var(--blue-soft); color:var(--blue); }
+.recent-arrow { margin-left:auto; color:var(--gray-300); font-size:18px; flex-shrink:0; }
+.empty-state { text-align:center; padding:40px 20px; color:var(--gray-400); }
+.empty-state .empty-icon { font-size:40px; margin-bottom:12px; }
+.empty-state p { font-size:14px; line-height:1.6; }
 
-/* ── QUESTIONNAIRE PAGE ──────────────────────────────────────────────── */
-.questionnaire-page { max-width:680px; margin:0 auto; padding:40px 24px 80px; }
+/* ═══ CLIENT LIST ═══════════════════════════════════════════════════ */
+.search-bar {
+  display:flex; gap:10px; margin-bottom:20px;
+}
+.search-input {
+  flex:1; padding:10px 14px; border:1.5px solid var(--gray-200); border-radius:10px;
+  font-size:14px; font-family:inherit; outline:none; transition:border .15s;
+}
+.search-input:focus { border-color:var(--polo); }
+.client-list { display:flex; flex-direction:column; gap:10px; }
+.client-row {
+  background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius);
+  padding:16px 20px; display:flex; align-items:center; gap:16px;
+  cursor:pointer; transition:all .15s; box-shadow:var(--shadow-sm);
+}
+.client-row:hover { border-color:var(--polo); box-shadow:var(--shadow); }
+.client-avatar { width:42px; height:42px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; flex-shrink:0; }
+.client-info { flex:1; min-width:0; }
+.client-name { font-size:15px; font-weight:700; color:var(--gray-900); }
+.client-date { font-size:11px; color:var(--gray-400); margin-top:2px; }
+.client-recs { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+.client-rec-tag { font-size:10px; font-weight:600; padding:2px 9px; border-radius:20px; }
+.rec-alta { background:var(--red-soft); color:var(--red); }
+.rec-media { background:var(--amber-soft); color:var(--amber); }
+.rec-bassa { background:var(--green-soft); color:var(--green-dark); }
+.client-actions { display:flex; gap:6px; flex-shrink:0; }
 
-.section-progress-bar {
-  margin-bottom:36px;
+/* ═══ CLIENT DETAIL ═════════════════════════════════════════════════ */
+.detail-header { display:flex; align-items:flex-start; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+.detail-avatar { width:56px; height:56px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; flex-shrink:0; }
+.detail-name { font-size:22px; font-weight:700; color:var(--gray-900); letter-spacing:-.3px; }
+.detail-meta { font-size:12px; color:var(--gray-400); margin-top:4px; }
+.detail-actions { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
+
+/* ═══ LIBRARY ════════════════════════════════════════════════════════ */
+.library-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+.library-card {
+  background:var(--white); border:2px solid var(--gray-200); border-radius:var(--radius);
+  padding:18px 18px; box-shadow:var(--shadow-sm); transition:all .15s; cursor:pointer;
+  position:relative;
 }
-.section-progress-info {
-  display:flex; justify-content:space-between; align-items:center;
-  margin-bottom:10px;
-}
+.library-card:hover { border-color:var(--polo-light); box-shadow:var(--shadow); }
+.library-card.selected { border-color:var(--polo); background:var(--blue-soft); box-shadow:0 0 0 3px rgba(15,39,65,.08); }
+.lib-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:4px; }
+.lib-product { font-size:15px; font-weight:700; color:var(--gray-900); margin-bottom:6px; line-height:1.3; }
+.lib-tipo { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--blue-soft); color:var(--blue); margin-bottom:10px; }
+.lib-date { font-size:11px; color:var(--gray-400); }
+.lib-check { position:absolute; top:12px; right:12px; width:22px; height:22px; border-radius:50%; border:2px solid var(--gray-300); display:flex; align-items:center; justify-content:center; font-size:12px; transition:all .15s; }
+.library-card.selected .lib-check { border-color:var(--polo); background:var(--polo); color:#fff; }
+.lib-del { position:absolute; bottom:10px; right:12px; background:none; border:none; cursor:pointer; color:var(--gray-300); font-size:14px; transition:color .15s; }
+.lib-del:hover { color:var(--red); }
+.library-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+.selected-count { font-size:13px; color:var(--polo); font-weight:600; }
+
+/* ═══ QUESTIONNAIRE ══════════════════════════════════════════════════ */
+.questionnaire-page { max-width:680px; padding:40px 36px 80px; }
+.section-progress-bar { margin-bottom:36px; }
+.section-progress-info { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
 .section-progress-label { font-size:13px; font-weight:600; color:var(--gray-700); }
 .section-progress-count { font-size:12px; color:var(--gray-400); }
-.progress-track {
-  height:4px; background:var(--gray-200); border-radius:4px; overflow:hidden;
-}
-.progress-fill {
-  height:100%; background:var(--blue); border-radius:4px; transition:width .4s ease;
-}
-
+.progress-track { height:4px; background:var(--gray-200); border-radius:4px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--polo); border-radius:4px; transition:width .4s ease; }
 .section-header { display:flex; align-items:center; gap:12px; margin-bottom:32px; }
 .section-icon { font-size:28px; }
-.section-title-text { font-size:22px; font-weight:700; letter-spacing:-0.3px; }
-
+.section-title-text { font-size:22px; font-weight:700; letter-spacing:-.3px; }
 .question-block { margin-bottom:28px; }
-.question-label {
-  font-size:14px; font-weight:600; color:var(--gray-700);
-  margin-bottom:12px; display:flex; align-items:center; gap:6px;
-}
+.question-label { font-size:14px; font-weight:600; color:var(--gray-700); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
 .required-star { color:var(--red); font-size:12px; }
 .optional-tag { font-size:11px; font-weight:400; color:var(--gray-400); background:var(--gray-100); padding:2px 8px; border-radius:20px; }
-
-/* Option cards */
 .option-cards { display:flex; flex-wrap:wrap; gap:8px; }
-.option-card {
-  padding:9px 16px; border:1.5px solid var(--gray-200); border-radius:9px;
-  font-size:13px; font-weight:500; cursor:pointer; transition:all .15s;
-  background:var(--white); color:var(--gray-700); user-select:none;
-}
-.option-card:hover { border-color:var(--blue); color:var(--blue); background:var(--blue-soft); }
-.option-card.selected { border-color:var(--blue); background:var(--blue); color:#fff; }
+.option-card { padding:9px 16px; border:1.5px solid var(--gray-200); border-radius:9px; font-size:13px; font-weight:500; cursor:pointer; transition:all .15s; background:var(--white); color:var(--gray-700); user-select:none; }
+.option-card:hover { border-color:var(--polo); color:var(--polo); background:var(--blue-soft); }
+.option-card.selected { border-color:var(--polo); background:var(--polo); color:#fff; }
 .option-card.disabled { opacity:.4; cursor:not-allowed; }
 .option-card.disabled:hover { border-color:var(--gray-200); color:var(--gray-700); background:var(--white); }
-
-/* Text inputs */
-.q-input {
-  width:100%; padding:11px 14px; border:1.5px solid var(--gray-200);
-  border-radius:10px; font-size:14px; font-family:inherit; outline:none;
-  transition:border .15s; color:var(--gray-800); background:var(--white);
-}
-.q-input:focus { border-color:var(--blue); }
+.q-input { width:100%; padding:11px 14px; border:1.5px solid var(--gray-200); border-radius:10px; font-size:14px; font-family:inherit; outline:none; transition:border .15s; color:var(--gray-800); background:var(--white); }
+.q-input:focus { border-color:var(--polo); }
 .q-textarea { resize:vertical; min-height:90px; }
-
-.questionnaire-nav {
-  display:flex; justify-content:space-between; align-items:center;
-  margin-top:36px; padding-top:24px; border-top:1px solid var(--gray-200);
-}
-.btn-next {
-  background:var(--blue); color:#fff; border:none; padding:12px 28px;
-  border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;
-  font-family:inherit; transition:background .15s; display:flex; align-items:center; gap:8px;
-}
-.btn-next:hover { background:var(--blue-dark); }
-.btn-back {
-  background:none; border:none; color:var(--gray-400); font-size:13px; font-weight:500;
-  cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:5px;
-  padding:8px 4px; transition:color .15s;
-}
+.questionnaire-nav { display:flex; justify-content:space-between; align-items:center; margin-top:36px; padding-top:24px; border-top:1px solid var(--gray-200); }
+.btn-next { background:var(--polo); color:#fff; border:none; padding:12px 28px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; display:flex; align-items:center; gap:8px; }
+.btn-next:hover { background:var(--polo-mid); }
+.btn-back { background:none; border:none; color:var(--gray-400); font-size:13px; font-weight:500; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:5px; padding:8px 4px; transition:color .15s; }
 .btn-back:hover { color:var(--gray-700); }
 
-/* ── LOADING PAGE ────────────────────────────────────────────────────── */
-.loading-page { max-width:480px; margin:0 auto; padding:80px 24px; text-align:center; }
-.big-spinner {
-  width:52px; height:52px; border:4px solid var(--gray-200);
-  border-top-color:var(--blue); border-radius:50%;
-  animation:spin .75s linear infinite; margin:0 auto 24px;
-}
-@keyframes spin { to { transform:rotate(360deg); } }
-.loading-page h2 { font-size:20px; font-weight:700; margin-bottom:8px; }
-.loading-page p { font-size:14px; color:var(--gray-500); margin-bottom:24px; }
-.progress-steps { list-style:none; display:inline-flex; flex-direction:column; gap:8px; text-align:left; }
-.progress-steps li { font-size:13px; color:var(--gray-400); display:flex; align-items:center; gap:10px; }
-.progress-steps li.active { color:var(--blue); font-weight:500; }
-.progress-steps li.done { color:var(--green); }
-.step-dot { width:7px; height:7px; border-radius:50%; background:var(--gray-300); flex-shrink:0; }
-.progress-steps li.active .step-dot { background:var(--blue); }
-.progress-steps li.done .step-dot { background:var(--green); }
-
-/* ── RECOMMENDATIONS PAGE ────────────────────────────────────────────── */
-.recs-page { max-width:800px; margin:0 auto; padding:36px 24px 72px; }
-
-.recs-topbar {
-  display:flex; align-items:center; justify-content:space-between;
-  margin-bottom:28px; flex-wrap:wrap; gap:12px;
-}
-.recs-topbar h1 { font-size:22px; font-weight:700; letter-spacing:-0.3px; }
-.recs-actions { display:flex; gap:8px; }
-
-.profile-box {
-  background:linear-gradient(135deg, var(--blue-soft) 0%, var(--purple-soft) 100%);
-  border:1px solid var(--blue-mid); border-radius:var(--radius);
-  padding:20px 22px; margin-bottom:28px;
-  display:flex; gap:12px; align-items:flex-start;
-}
+/* ═══ RECOMMENDATIONS ════════════════════════════════════════════════ */
+.recs-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+.recs-topbar h1 { font-size:21px; font-weight:700; letter-spacing:-.3px; }
+.profile-box { background:linear-gradient(135deg, var(--blue-soft) 0%, var(--purple-soft) 100%); border:1px solid var(--blue-mid); border-radius:var(--radius); padding:20px 22px; margin-bottom:24px; display:flex; gap:12px; align-items:flex-start; }
 .profile-box-icon { font-size:22px; flex-shrink:0; margin-top:1px; }
 .profile-box-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--blue); margin-bottom:5px; }
 .profile-box-text { font-size:14px; color:var(--gray-700); line-height:1.65; }
-
-.recs-section-title { font-size:15px; font-weight:700; color:var(--gray-700); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
-
-.rec-cards { display:flex; flex-direction:column; gap:14px; margin-bottom:32px; }
-
-.rec-card {
-  background:var(--white); border:1.5px solid var(--gray-200);
-  border-radius:var(--radius); padding:22px 22px;
-  box-shadow:var(--shadow-sm); display:flex; gap:18px; align-items:flex-start;
-  transition:border .2s;
-}
-.rec-card:hover { border-color:var(--blue-mid); }
+.recs-section-title { font-size:14px; font-weight:700; color:var(--gray-700); margin-bottom:14px; }
+.rec-cards { display:flex; flex-direction:column; gap:13px; margin-bottom:24px; }
+.rec-card { background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius); padding:20px 20px; box-shadow:var(--shadow-sm); display:flex; gap:16px; align-items:flex-start; transition:border .2s; }
 .rec-card.urgenza-alta { border-left:4px solid var(--red); }
 .rec-card.urgenza-media { border-left:4px solid var(--amber); }
 .rec-card.urgenza-bassa { border-left:4px solid var(--green); }
-
-.rec-priority {
-  width:36px; height:36px; border-radius:50%; display:flex; align-items:center;
-  justify-content:center; font-size:15px; font-weight:800; flex-shrink:0;
-  color:#fff; margin-top:1px;
-}
+.rec-priority { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0; color:#fff; margin-top:1px; }
 .urgenza-alta .rec-priority { background:var(--red); }
 .urgenza-media .rec-priority { background:var(--amber); }
 .urgenza-bassa .rec-priority { background:var(--green); }
-
 .rec-body { flex:1; min-width:0; }
-.rec-header { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
-.rec-tipo { font-size:16px; font-weight:700; color:var(--gray-900); }
-.urgency-badge {
-  font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px;
-  text-transform:uppercase; letter-spacing:.4px; flex-shrink:0;
-}
+.rec-header { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:7px; }
+.rec-tipo { font-size:15px; font-weight:700; color:var(--gray-900); }
+.urgency-badge { font-size:10px; font-weight:700; padding:2px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; flex-shrink:0; }
 .urgenza-alta .urgency-badge { background:var(--red-soft); color:var(--red); }
 .urgenza-media .urgency-badge { background:var(--amber-soft); color:var(--amber); }
 .urgenza-bassa .urgency-badge { background:var(--green-soft); color:var(--green-dark); }
-
-.rec-motivo { font-size:13px; color:var(--gray-600); line-height:1.65; margin-bottom:10px; }
-
-.rec-cercare-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--gray-400); margin-bottom:6px; }
-.rec-cercare-list { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
-.rec-cercare-tag {
-  font-size:11px; font-weight:500; padding:3px 10px; border-radius:20px;
-  background:var(--gray-100); color:var(--gray-600); border:1px solid var(--gray-200);
-}
-
-.rec-budget {
-  font-size:12px; color:var(--gray-400);
-  display:flex; align-items:center; gap:5px;
-}
+.rec-motivo { font-size:13px; color:var(--gray-600); line-height:1.65; margin-bottom:9px; }
+.rec-cercare-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--gray-400); margin-bottom:5px; }
+.rec-cercare-list { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:9px; }
+.rec-cercare-tag { font-size:11px; font-weight:500; padding:2px 9px; border-radius:20px; background:var(--gray-100); color:var(--gray-600); border:1px solid var(--gray-200); }
+.rec-budget { font-size:12px; color:var(--gray-400); }
 .rec-budget strong { color:var(--gray-700); }
-
-/* Gap section */
-.gap-card {
-  background:var(--white); border:1px solid var(--amber-soft);
-  border-radius:var(--radius); padding:18px 20px; margin-bottom:28px;
-  box-shadow:var(--shadow-sm);
-}
-.gap-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
-.gap-header-icon { font-size:18px; }
+.gap-card { background:var(--white); border:1px solid var(--amber-soft); border-radius:var(--radius); padding:16px 18px; margin-bottom:20px; box-shadow:var(--shadow-sm); }
+.gap-header { display:flex; align-items:center; gap:7px; margin-bottom:10px; }
 .gap-header-title { font-size:13px; font-weight:700; color:var(--amber); }
-.gap-list { display:flex; flex-direction:column; gap:6px; }
+.gap-list { display:flex; flex-direction:column; gap:5px; }
 .gap-item { font-size:13px; color:var(--gray-700); display:flex; gap:8px; align-items:flex-start; line-height:1.5; }
 .gap-item::before { content:"△"; color:var(--amber); font-size:11px; flex-shrink:0; margin-top:2px; }
-
-/* Consultant note */
-.nota-card {
-  background:linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%);
-  border:1px solid #BBF7D0; border-radius:var(--radius);
-  padding:18px 20px; margin-bottom:28px; box-shadow:var(--shadow-sm);
-  display:flex; gap:10px; align-items:flex-start;
-}
-.nota-icon { font-size:18px; flex-shrink:0; }
-.nota-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--green-dark); margin-bottom:5px; }
+.nota-card { background:linear-gradient(135deg,#F0FDF4 0%,#EFF6FF 100%); border:1px solid #BBF7D0; border-radius:var(--radius); padding:16px 18px; margin-bottom:20px; box-shadow:var(--shadow-sm); display:flex; gap:10px; align-items:flex-start; }
+.nota-icon { font-size:17px; flex-shrink:0; }
+.nota-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--green-dark); margin-bottom:4px; }
 .nota-text { font-size:13px; color:var(--gray-700); line-height:1.65; }
+.recs-cta { display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:20px; background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius); box-shadow:var(--shadow-sm); }
+.recs-cta p { font-size:13px; color:var(--gray-500); flex:1; min-width:180px; line-height:1.5; }
 
-.recs-cta {
-  display:flex; gap:12px; align-items:center; flex-wrap:wrap;
-  padding:24px; background:var(--white); border:1.5px solid var(--gray-200);
-  border-radius:var(--radius); box-shadow:var(--shadow-sm);
-}
-.recs-cta p { font-size:13px; color:var(--gray-500); flex:1; min-width:200px; line-height:1.5; }
+/* ═══ UPLOAD / LIBRARY SELECT ════════════════════════════════════════ */
+.upload-page { max-width:720px; padding:40px 36px; }
+.upload-hero { margin-bottom:24px; }
+.upload-hero h1 { font-size:24px; font-weight:700; letter-spacing:-.4px; margin-bottom:6px; }
+.upload-hero p { font-size:14px; color:var(--gray-500); }
+.upload-context { background:var(--blue-soft); border:1px solid var(--blue-mid); border-radius:10px; padding:11px 15px; margin-bottom:20px; font-size:13px; color:var(--blue-dark); display:flex; align-items:center; gap:8px; }
 
-/* ── UPLOAD AREA ─────────────────────────────────────────────────────── */
-.upload-page { max-width:680px; margin:0 auto; padding:52px 24px; }
-.upload-hero { text-align:center; margin-bottom:36px; }
-.upload-hero h1 { font-size:28px; font-weight:700; letter-spacing:-0.5px; line-height:1.2; margin-bottom:10px; }
-.upload-hero h1 em { font-style:normal; color:var(--blue); }
-.upload-hero p { font-size:15px; color:var(--gray-500); }
-.upload-context {
-  background:var(--blue-soft); border:1px solid var(--blue-mid); border-radius:10px;
-  padding:12px 16px; margin-bottom:24px; font-size:13px; color:var(--blue-dark);
-  display:flex; align-items:center; gap:8px;
+.lib-select-section { margin-bottom:24px; }
+.lib-select-title { font-size:14px; font-weight:700; color:var(--gray-700); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.lib-select-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+.lib-select-card {
+  border:1.5px solid var(--gray-200); border-radius:10px; padding:13px 14px;
+  cursor:pointer; transition:all .15s; background:var(--white);
 }
+.lib-select-card:hover { border-color:var(--polo); }
+.lib-select-card.sel { border-color:var(--polo); background:var(--blue-soft); }
+.lsc-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); margin-bottom:3px; }
+.lsc-product { font-size:13px; font-weight:700; color:var(--gray-800); margin-bottom:4px; }
+.lsc-tipo { font-size:11px; color:var(--blue); }
+.lsc-check { float:right; margin-top:-24px; font-size:16px; color:var(--polo); opacity:0; transition:opacity .15s; }
+.lib-select-card.sel .lsc-check { opacity:1; }
 
-.drop-zone {
-  border:2px dashed var(--gray-200); border-radius:var(--radius);
-  padding:52px 32px; text-align:center; cursor:pointer;
-  background:var(--white); transition:all .2s; box-shadow:var(--shadow-sm);
-}
-.drop-zone:hover, .drop-zone.over { border-color:var(--blue); background:var(--blue-soft); }
-.drop-icon { font-size:44px; margin-bottom:14px; }
-.drop-zone h3 { font-size:17px; font-weight:600; margin-bottom:6px; }
+.divider-or { display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--gray-400); font-size:12px; }
+.divider-or::before, .divider-or::after { content:''; flex:1; height:1px; background:var(--gray-200); }
+
+.drop-zone { border:2px dashed var(--gray-200); border-radius:var(--radius); padding:44px 32px; text-align:center; cursor:pointer; background:var(--white); transition:all .2s; box-shadow:var(--shadow-sm); }
+.drop-zone:hover, .drop-zone.over { border-color:var(--polo); background:var(--blue-soft); }
+.drop-icon { font-size:40px; margin-bottom:12px; }
+.drop-zone h3 { font-size:16px; font-weight:600; margin-bottom:5px; }
 .drop-zone p { font-size:13px; color:var(--gray-400); }
-.drop-zone small { font-size:11px; color:var(--gray-300); margin-top:8px; display:block; }
+.drop-zone small { font-size:11px; color:var(--gray-300); margin-top:6px; display:block; }
 #fileInput { display:none; }
-
-.chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
-.chip {
-  display:flex; align-items:center; gap:7px; padding:7px 12px;
-  background:var(--white); border:1.5px solid var(--gray-200); border-radius:8px;
-  font-size:12px; font-weight:500; box-shadow:var(--shadow-sm); transition:border .2s;
-}
+.chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.chip { display:flex; align-items:center; gap:7px; padding:6px 12px; background:var(--white); border:1.5px solid var(--gray-200); border-radius:8px; font-size:12px; font-weight:500; box-shadow:var(--shadow-sm); transition:border .2s; }
 .chip.ready { border-color:var(--green); }
 .chip.loading { border-color:var(--blue-mid); }
 .chip.error { border-color:var(--red); }
 .chip-name { max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.chip-x { background:none; border:none; cursor:pointer; color:var(--gray-400);
-  font-size:15px; line-height:1; padding:0 2px; margin-left:2px; }
+.chip-x { background:none; border:none; cursor:pointer; color:var(--gray-400); font-size:15px; line-height:1; padding:0 2px; margin-left:2px; }
 .chip-x:hover { color:var(--red); }
-.upload-action { margin-top:24px; display:flex; align-items:center; gap:14px; }
+.upload-action { margin-top:22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
 .upload-hint { font-size:12px; color:var(--gray-400); }
+.save-to-lib { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--gray-500); cursor:pointer; margin-top:12px; }
+.save-to-lib input { accent-color:var(--polo); width:14px; height:14px; }
 
-/* ── RESULTS PAGE ────────────────────────────────────────────────────── */
-.results-page { max-width:1100px; margin:0 auto; padding:32px 24px 60px; }
-.results-topbar {
-  display:flex; align-items:center; justify-content:space-between;
-  margin-bottom:28px; flex-wrap:wrap; gap:12px;
-}
-.results-topbar h1 { font-size:22px; font-weight:700; letter-spacing:-0.3px; }
-.results-topbar-actions { display:flex; gap:8px; }
-.btn-print {
-  background:var(--blue); color:#fff; border:none; padding:9px 20px;
-  border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
-}
-.btn-print:hover { background:var(--blue-dark); }
-.btn-new {
-  background:var(--white); border:1.5px solid var(--gray-200); color:var(--gray-600);
-  padding:9px 18px; border-radius:9px; font-size:13px; font-weight:500;
-  cursor:pointer; font-family:inherit;
-}
-.btn-new:hover { border-color:var(--gray-400); }
+/* ═══ LOADING ════════════════════════════════════════════════════════ */
+.loading-page { max-width:440px; margin:0 auto; padding:80px 24px; text-align:center; }
+.big-spinner { width:50px; height:50px; border:4px solid var(--gray-200); border-top-color:var(--polo); border-radius:50%; animation:spin .75s linear infinite; margin:0 auto 22px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-page h2 { font-size:20px; font-weight:700; margin-bottom:7px; }
+.loading-page p { font-size:14px; color:var(--gray-500); margin-bottom:22px; }
+.progress-steps { list-style:none; display:inline-flex; flex-direction:column; gap:8px; text-align:left; }
+.progress-steps li { font-size:13px; color:var(--gray-400); display:flex; align-items:center; gap:10px; }
+.progress-steps li.active { color:var(--polo); font-weight:500; }
+.progress-steps li.done { color:var(--green); }
+.step-dot { width:7px; height:7px; border-radius:50%; background:var(--gray-300); flex-shrink:0; }
+.progress-steps li.active .step-dot { background:var(--polo); }
+.progress-steps li.done .step-dot { background:var(--green); }
 
-/* Score cards */
-.score-cards { display:grid; gap:16px; margin-bottom:28px; }
-.score-card {
-  background:var(--white); border:1.5px solid var(--gray-200);
-  border-radius:var(--radius); padding:22px 24px;
-  box-shadow:var(--shadow-sm); display:flex; align-items:center; gap:20px; transition:border .2s;
-}
+/* ═══ RESULTS ════════════════════════════════════════════════════════ */
+.results-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+.results-topbar h1 { font-size:21px; font-weight:700; letter-spacing:-.3px; }
+.results-topbar-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.btn-print { background:var(--polo); color:#fff; border:none; padding:9px 18px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+.btn-print:hover { background:var(--polo-mid); }
+.score-cards { display:grid; gap:14px; margin-bottom:24px; }
+.score-card { background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius); padding:20px 22px; box-shadow:var(--shadow-sm); display:flex; align-items:center; gap:18px; transition:border .2s; }
 .score-card.winner { border-color:var(--green); box-shadow:0 0 0 3px rgba(22,163,74,.08); }
-.score-ring { flex-shrink:0; position:relative; width:64px; height:64px; }
+.score-ring { flex-shrink:0; position:relative; width:60px; height:60px; }
 .score-ring svg { transform:rotate(-90deg); }
 .score-ring .track { fill:none; stroke:var(--gray-100); stroke-width:6; }
 .score-ring .fill { fill:none; stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset .8s ease; }
-.score-ring .score-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; }
+.score-ring .score-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; }
 .score-body { flex:1; min-width:0; }
-.score-company { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:3px; }
-.score-product { font-size:16px; font-weight:700; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.score-tipo { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--blue-soft); color:var(--blue); }
-.score-premio { font-size:12px; color:var(--gray-500); margin-top:6px; }
+.score-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:2px; }
+.score-product { font-size:15px; font-weight:700; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.score-tipo { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; background:var(--blue-soft); color:var(--blue); }
+.score-premio { font-size:11px; color:var(--gray-500); margin-top:5px; }
 .score-premio strong { color:var(--gray-700); }
-.score-badges { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-.score-badge { font-size:11px; font-weight:500; padding:3px 9px; border-radius:20px; background:var(--gray-100); color:var(--gray-600); }
+.score-badges { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+.score-badge { font-size:10px; font-weight:500; padding:2px 8px; border-radius:20px; background:var(--gray-100); color:var(--gray-600); }
 .score-badge.best { background:var(--green-soft); color:var(--green-dark); }
-.winner-tag { flex-shrink:0; background:var(--green); color:#fff; font-size:11px; font-weight:700; padding:4px 12px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; align-self:flex-start; }
-
-/* AI Summary */
-.ai-summary {
-  background:linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%);
-  border:1px solid var(--blue-mid); border-radius:var(--radius);
-  padding:22px 24px; margin-bottom:28px;
-}
-.ai-summary-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--blue); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.winner-tag { flex-shrink:0; background:var(--green); color:#fff; font-size:10px; font-weight:700; padding:3px 11px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; align-self:flex-start; }
+.ai-summary { background:linear-gradient(135deg,#EFF6FF 0%,#F5F3FF 100%); border:1px solid var(--blue-mid); border-radius:var(--radius); padding:20px 22px; margin-bottom:24px; }
+.ai-summary-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--blue); margin-bottom:7px; display:flex; align-items:center; gap:6px; }
 .ai-summary-text { font-size:14px; line-height:1.7; color:var(--gray-700); }
-
-/* Comparison table */
-.section-title { font-size:16px; font-weight:700; margin-bottom:14px; color:var(--gray-800); }
-.table-outer { border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); margin-bottom:32px; }
+.section-title { font-size:15px; font-weight:700; margin-bottom:12px; color:var(--gray-800); }
+.table-outer { border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); margin-bottom:28px; }
 .table-scroll { overflow-x:auto; }
 table { width:100%; border-collapse:collapse; background:var(--white); font-size:13px; }
-thead th { background:var(--gray-900); color:#fff; padding:14px 16px; font-size:12px; font-weight:600; text-align:center; border-right:1px solid rgba(255,255,255,.08); }
-thead th:first-child { text-align:left; min-width:200px; background:var(--gray-800); }
-thead th:not(:first-child) { min-width:175px; }
-thead .th-company { display:block; font-size:11px; opacity:.6; font-weight:400; margin-bottom:2px; }
-thead .th-product { display:block; font-size:13px; font-weight:700; }
-.group-row td { background:var(--gray-100); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gray-400); padding:7px 16px; border-bottom:1px solid var(--gray-200); }
+thead th { background:var(--gray-900); color:#fff; padding:13px 14px; font-size:11px; font-weight:600; text-align:center; border-right:1px solid rgba(255,255,255,.08); }
+thead th:first-child { text-align:left; min-width:190px; background:var(--gray-800); }
+thead th:not(:first-child) { min-width:165px; }
+thead .th-company { display:block; font-size:10px; opacity:.6; font-weight:400; margin-bottom:1px; }
+thead .th-product { display:block; font-size:12px; font-weight:700; }
+.group-row td { background:var(--gray-100); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gray-400); padding:6px 14px; border-bottom:1px solid var(--gray-200); }
 tbody tr td { border-bottom:1px solid var(--gray-100); }
 tbody tr:last-child td { border-bottom:none; }
 tbody tr:hover td { background:var(--blue-soft) !important; }
-td.row-label { padding:13px 16px; font-weight:500; color:var(--gray-700); background:var(--white); font-size:13px; }
-td.cell { padding:10px 14px; text-align:center; vertical-align:middle; }
+td.row-label { padding:12px 14px; font-weight:500; color:var(--gray-700); background:var(--white); font-size:12px; }
+td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 .cell.c-best { background:var(--green-soft); }
 .cell.c-mid { background:var(--white); }
 .cell.c-absent { background:var(--gray-50); }
 .cell-inner { display:flex; flex-direction:column; align-items:center; gap:3px; }
-.c-absent .absent-x { font-size:18px; color:var(--gray-300); }
-.massimale { font-size:14px; font-weight:700; color:var(--gray-900); }
+.c-absent .absent-x { font-size:16px; color:var(--gray-300); }
+.massimale { font-size:13px; font-weight:700; color:var(--gray-900); }
 .massimale.best-val { color:var(--green-dark); }
-.detail-row { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
-.detail-tag { font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; }
+.detail-row { display:flex; gap:5px; flex-wrap:wrap; justify-content:center; }
+.detail-tag { font-size:10px; font-weight:600; padding:2px 6px; border-radius:20px; }
 .detail-tag.franchigia { background:var(--amber-soft); color:var(--amber); }
 .detail-tag.scoperto { background:var(--red-soft); color:var(--red); }
 .detail-tag.niente { background:var(--green-soft); color:var(--green-dark); }
-.note-text { font-size:10px; color:var(--gray-400); font-style:italic; margin-top:2px; }
-.best-pill { font-size:9px; font-weight:700; background:var(--green); color:#fff; padding:1px 7px; border-radius:20px; text-transform:uppercase; letter-spacing:.3px; }
-
-/* Exclusions */
-.excl-grid { display:grid; gap:14px; }
-.excl-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow-sm); }
-.excl-header { display:flex; gap:8px; align-items:baseline; margin-bottom:12px; }
-.excl-company { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); }
+.note-text { font-size:10px; color:var(--gray-400); font-style:italic; margin-top:1px; }
+.best-pill { font-size:9px; font-weight:700; background:var(--green); color:#fff; padding:1px 6px; border-radius:20px; text-transform:uppercase; letter-spacing:.3px; }
+.excl-grid { display:grid; gap:12px; }
+.excl-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow-sm); }
+.excl-header { display:flex; gap:8px; align-items:baseline; margin-bottom:10px; }
+.excl-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); }
 .excl-product { font-size:13px; font-weight:600; color:var(--gray-800); }
-.excl-list { display:flex; flex-direction:column; gap:5px; }
-.excl-item { font-size:12px; color:var(--gray-600); display:flex; gap:8px; align-items:flex-start; line-height:1.5; }
+.excl-list { display:flex; flex-direction:column; gap:4px; }
+.excl-item { font-size:12px; color:var(--gray-600); display:flex; gap:7px; align-items:flex-start; line-height:1.5; }
 .excl-item::before { content:"×"; color:var(--red); font-weight:700; font-size:11px; flex-shrink:0; margin-top:1px; }
-
-/* Advice */
-.advice-grid { display:grid; gap:12px; margin-bottom:32px; }
-.advice-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow-sm); display:flex; gap:14px; }
-.advice-icon { font-size:28px; flex-shrink:0; }
-.advice-company { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); margin-bottom:2px; }
-.advice-for { font-size:13px; font-weight:600; color:var(--gray-800); margin-bottom:4px; }
+.advice-grid { display:grid; gap:10px; margin-bottom:28px; }
+.advice-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow-sm); display:flex; gap:12px; }
+.advice-icon { font-size:26px; flex-shrink:0; }
+.advice-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); margin-bottom:2px; }
+.advice-for { font-size:13px; font-weight:600; color:var(--gray-800); margin-bottom:3px; }
 .advice-text { font-size:12px; color:var(--gray-500); line-height:1.55; }
 
-/* ── PRINT ───────────────────────────────────────────────────────────── */
+/* ═══ PRINT — CLIENT PROFILE ════════════════════════════════════════ */
+.print-profile { display:none; }
 @media print {
-  .header, .results-topbar-actions, .upload-page, .loading-page,
-  .home-page, .questionnaire-page, .recs-page { display:none !important; }
-  .results-page { padding:0; }
+  .sidebar, .mob-bar, .results-topbar-actions,
+  .upload-page, .loading-page, .questionnaire-page,
+  .recs-topbar .recs-actions, .dash-actions,
+  .client-actions, .library-toolbar .btn,
+  .page-header .btn, .detail-actions { display:none !important; }
+  .print-profile { display:block; }
+  .main-content { margin-left:0 !important; }
   body { background:#fff; }
-  .score-card, .ai-summary, .excl-card, .advice-card { box-shadow:none !important; break-inside:avoid; }
+  .score-card, .ai-summary, .excl-card, .advice-card, .rec-card { box-shadow:none !important; break-inside:avoid; }
   .table-outer { box-shadow:none !important; }
 }
+.print-profile { padding:40px; font-family:'Inter',sans-serif; }
+.pp-header { display:flex; align-items:center; justify-content:space-between; padding-bottom:20px; border-bottom:3px solid var(--polo); margin-bottom:28px; }
+.pp-brand { font-size:18px; font-weight:700; color:var(--polo); }
+.pp-brand span { color:var(--gold); }
+.pp-tagline { font-size:11px; color:var(--gray-400); margin-top:2px; }
+.pp-client { font-size:11px; color:var(--gray-500); text-align:right; }
+.pp-client strong { font-size:20px; color:var(--gray-900); display:block; font-weight:700; }
+.pp-section { margin-bottom:22px; }
+.pp-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--polo); border-bottom:1px solid var(--gray-200); padding-bottom:6px; margin-bottom:12px; }
+.pp-summary { font-size:13px; color:var(--gray-700); line-height:1.65; padding:12px; background:var(--gray-50); border-radius:8px; }
+.pp-rec { display:flex; gap:12px; margin-bottom:12px; padding:10px 14px; background:var(--gray-50); border-radius:8px; break-inside:avoid; }
+.pp-rec-num { width:28px; height:28px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+.pp-rec-tipo { font-size:13px; font-weight:700; color:var(--gray-900); margin-bottom:3px; }
+.pp-rec-motivo { font-size:12px; color:var(--gray-600); line-height:1.55; }
+.pp-rec-budget { font-size:11px; color:var(--gray-400); margin-top:4px; }
+.pp-footer { margin-top:36px; padding-top:16px; border-top:1px solid var(--gray-200); font-size:10px; color:var(--gray-400); display:flex; justify-content:space-between; }
 
 @media(max-width:600px) {
-  .upload-hero h1, .home-hero h1 { font-size:24px; }
+  .page { padding:20px 16px 60px; }
+  .stats-row { grid-template-columns:1fr 1fr; }
   .score-card { flex-wrap:wrap; }
+  .library-grid { grid-template-columns:1fr; }
+  .results-topbar { flex-direction:column; align-items:flex-start; }
 }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<header class="header">
-  <div class="logo" onclick="goHome()">Polizza<span>Facile</span></div>
-  <div class="header-right">
-    <span class="header-step" id="headerStep"></span>
-    <span style="font-size:12px; color:var(--gray-400);">Beta</span>
+<!-- Mobile top bar -->
+<div class="mob-bar">
+  <span class="mob-logo">Polo<span>Assicurativo</span></span>
+  <button class="mob-hamburger" onclick="toggleSidebar()">☰</button>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <img class="sidebar-logo-img"
+      src="https://www.polobassano.it/wp-content/uploads/2023/04/Polo_-Assicurativo_Bassano_logo_white.png"
+      onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"
+      alt="Polo Assicurativo Bassano">
+    <div style="display:none;color:#fff;font-size:16px;font-weight:700;margin-bottom:8px">Polo<span style="color:var(--gold-mid)">Assicurativo</span></div>
+    <div class="sidebar-tagline">Progettiamo la tua protezione</div>
   </div>
-</header>
 
-
-<!-- ══ HOME PAGE ══════════════════════════════════════════════════════════ -->
-<div id="pagHome">
-  <div class="home-page">
-    <div class="home-hero">
-      <h1>Strumenti AI per<br><em>agenti assicurativi</em></h1>
-      <p>Questionario cliente, raccomandazioni personalizzate e confronto polizze — tutto in un flusso guidato.</p>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Principale</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="navTo('pagDashboard')">
+      <span class="nav-icon">🏠</span> Dashboard
+    </div>
+    <div class="nav-item" id="nav-clienti" onclick="navTo('pagClienti')">
+      <span class="nav-icon">👥</span> Clienti
+      <span class="nav-badge" id="badgeClienti">0</span>
+    </div>
+    <div class="nav-item" id="nav-libreria" onclick="navTo('pagLibreria')">
+      <span class="nav-icon">📚</span> Libreria polizze
+      <span class="nav-badge" id="badgeLibreria">0</span>
     </div>
 
-    <div class="path-cards">
-      <div class="path-card featured" onclick="startQuestionnaire()">
-        <div class="path-icon">📋</div>
-        <div class="path-label">Flusso completo</div>
-        <div class="path-title">Questionario + Raccomandazioni</div>
-        <div class="path-desc">Compila il profilo del cliente, ottieni raccomandazioni AI personalizzate e poi confronta le polizze concrete.</div>
-        <div class="path-cta">Inizia il questionario →</div>
-      </div>
-      <div class="path-card" onclick="startDirectComparison()">
-        <div class="path-icon">📑</div>
-        <div class="path-label">Accesso rapido</div>
-        <div class="path-title">Confronto polizze diretto</div>
-        <div class="path-desc">Hai già i PDF? Caricali e ottieni un confronto dettagliato di garanzie, franchigie e scoperti.</div>
-        <div class="path-cta">Carica i PDF →</div>
-      </div>
+    <div class="nav-section-label" style="margin-top:8px">Azioni</div>
+    <div class="nav-item" onclick="startQuestionnaire()">
+      <span class="nav-icon">📋</span> Nuovo questionario
     </div>
+    <div class="nav-item" onclick="startDirectComparison()">
+      <span class="nav-icon">📑</span> Confronto rapido
+    </div>
+  </div>
 
-    <div class="home-features">
-      <div class="home-feature">
-        <div class="home-feature-icon">🤖</div>
-        <div class="home-feature-title">Analisi AI</div>
-        <div class="home-feature-desc">Claude analizza ogni polizza e genera raccomandazioni contestuali al profilo del cliente</div>
-      </div>
-      <div class="home-feature">
-        <div class="home-feature-icon">📊</div>
-        <div class="home-feature-title">Confronto visuale</div>
-        <div class="home-feature-desc">Tabella comparativa con colori, massimali e franchigie in una sola schermata</div>
-      </div>
-      <div class="home-feature">
-        <div class="home-feature-icon">🎯</div>
-        <div class="home-feature-title">Orientamento commerciale</div>
-        <div class="home-feature-desc">Priorità di vendita e suggerimenti operativi basati sulle esigenze reali del cliente</div>
-      </div>
+  <div class="sidebar-bottom">
+    <strong>Polo Assicurativo Bassano</strong>
+    Via S. Pio X 58/3 · Cassola (VI)<br>
+    info@polobassano.it
+  </div>
+</nav>
+
+<!-- ═══ MAIN CONTENT ═══════════════════════════════════════════════ -->
+<div class="main-content">
+
+<!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
+<div id="pagDashboard">
+<div class="page">
+  <div class="dash-hero">
+    <div class="dash-hero-text">
+      <h2>Benvenuto nel tuo spazio di lavoro</h2>
+      <p>Gestisci i profili clienti, la libreria di polizze e genera raccomandazioni personalizzate con l'AI.</p>
+    </div>
+    <div class="dash-hero-badge">
+      <div class="badge-num" id="dashTotalClients">0</div>
+      <div class="badge-label">clienti profilati</div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num" id="statClienti">0</div>
+      <div class="stat-label">Clienti in archivio</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statPolizze">0</div>
+      <div class="stat-label">Polizze in libreria</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statUltimo">—</div>
+      <div class="stat-label">Ultima attività</div>
+    </div>
+  </div>
+
+  <div class="dash-section-title">⚡ Azioni rapide</div>
+  <div class="dash-actions">
+    <div class="dash-action-card featured" onclick="startQuestionnaire()">
+      <div class="dac-icon">📋</div>
+      <div class="dac-title">Nuovo questionario</div>
+      <div class="dac-desc">Profila un cliente e ottieni raccomandazioni AI personalizzate in 3 minuti.</div>
+    </div>
+    <div class="dash-action-card" onclick="startDirectComparison()">
+      <div class="dac-icon">📑</div>
+      <div class="dac-title">Confronto polizze</div>
+      <div class="dac-desc">Carica 2–4 PDF o seleziona dalla libreria per un confronto garanzie dettagliato.</div>
+    </div>
+  </div>
+
+  <div class="dash-section-title">🕐 Ultimi clienti</div>
+  <div class="recent-list" id="recentList">
+    <div class="empty-state">
+      <div class="empty-icon">👥</div>
+      <p>Nessun cliente ancora.<br>Inizia con un questionario.</p>
     </div>
   </div>
 </div>
+</div>
 
+<!-- ══ CLIENTI ═══════════════════════════════════════════════════════ -->
+<div id="pagClienti" style="display:none">
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Clienti</div>
+      <div class="page-subtitle">Profili salvati e raccomandazioni generate</div>
+    </div>
+    <button class="btn btn-gold" onclick="startQuestionnaire()">+ Nuovo cliente</button>
+  </div>
+  <div class="search-bar">
+    <input class="search-input" id="clientSearch" placeholder="Cerca per nome..." oninput="renderClientList()">
+  </div>
+  <div class="client-list" id="clientList"></div>
+</div>
+</div>
 
-<!-- ══ QUESTIONNAIRE PAGE ══════════════════════════════════════════════ -->
+<!-- ══ CLIENTE DETAIL ════════════════════════════════════════════════ -->
+<div id="pagClienteDetail" style="display:none">
+<div class="page page-sm">
+  <div class="page-header" style="margin-bottom:8px">
+    <button class="btn btn-ghost btn-sm" onclick="navTo('pagClienti')">← Clienti</button>
+    <div class="detail-actions" id="detailActions"></div>
+  </div>
+  <div class="detail-header" id="detailHeader"></div>
+  <div id="detailContent"></div>
+</div>
+</div>
+
+<!-- ══ LIBRERIA ═══════════════════════════════════════════════════════ -->
+<div id="pagLibreria" style="display:none">
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Libreria polizze</div>
+      <div class="page-subtitle">Polizze estratte e pronte per il confronto</div>
+    </div>
+    <button class="btn btn-gold" onclick="startDirectComparison()">+ Aggiungi polizza</button>
+  </div>
+  <div class="library-toolbar">
+    <div class="selected-count" id="libSelectedCount"></div>
+    <button class="btn btn-primary" id="btnConfrontaLib" style="display:none" onclick="confrontaFromLibrary()">Confronta selezionate →</button>
+  </div>
+  <div class="library-grid" id="libraryGrid"></div>
+</div>
+</div>
+
+<!-- ══ QUESTIONARIO ══════════════════════════════════════════════════ -->
 <div id="pagQuestionario" style="display:none">
-  <div class="questionnaire-page">
-    <div class="section-progress-bar">
-      <div class="section-progress-info">
-        <span class="section-progress-label" id="sezLabel">Sezione 1 di 5</span>
-        <span class="section-progress-count" id="sezCount"></span>
-      </div>
-      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+<div class="questionnaire-page">
+  <div class="section-progress-bar">
+    <div class="section-progress-info">
+      <span class="section-progress-label" id="sezLabel">Sezione 1 di 5</span>
+      <span class="section-progress-count" id="sezCount"></span>
     </div>
-
-    <div class="section-header">
-      <span class="section-icon" id="sezIcon"></span>
-      <span class="section-title-text" id="sezTitle"></span>
-    </div>
-
-    <div id="questionsContainer"></div>
-
-    <div class="questionnaire-nav">
-      <button class="btn-back" id="btnBack" onclick="prevSection()">← Indietro</button>
-      <button class="btn-next" id="btnNext" onclick="nextSection()">Continua →</button>
-    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+  <div class="section-header">
+    <span class="section-icon" id="sezIcon"></span>
+    <span class="section-title-text" id="sezTitle"></span>
+  </div>
+  <div id="questionsContainer"></div>
+  <div class="questionnaire-nav">
+    <button class="btn-back" id="btnBack" onclick="prevSection()">← Indietro</button>
+    <button class="btn-next" id="btnNext" onclick="nextSection()">Continua →</button>
   </div>
 </div>
+</div>
 
-
-<!-- ══ RECOMMENDATIONS PAGE ════════════════════════════════════════════ -->
+<!-- ══ RACCOMANDAZIONI ═══════════════════════════════════════════════ -->
 <div id="pagRaccomandazioni" style="display:none">
-  <div class="recs-page">
-    <div class="recs-topbar">
-      <h1>Raccomandazioni per <span id="recsClientName">il cliente</span></h1>
-      <div class="recs-actions">
-        <button class="btn btn-ghost btn-sm" onclick="editQuestionnaire()">← Modifica profilo</button>
-        <button class="btn btn-primary btn-sm" onclick="startDirectComparison()">Confronta polizze →</button>
-      </div>
-    </div>
-
-    <div class="profile-box">
-      <div class="profile-box-icon">✦</div>
-      <div>
-        <div class="profile-box-label">Profilo cliente</div>
-        <div class="profile-box-text" id="profileSummary"></div>
-      </div>
-    </div>
-
-    <div class="recs-section-title">📌 Coperture raccomandate</div>
-    <div class="rec-cards" id="recCards"></div>
-
-    <div class="gap-card" id="gapCard" style="display:none">
-      <div class="gap-header">
-        <span class="gap-header-icon">⚠️</span>
-        <span class="gap-header-title">Gap di copertura principali</span>
-      </div>
-      <div class="gap-list" id="gapList"></div>
-    </div>
-
-    <div class="nota-card" id="notaCard" style="display:none">
-      <div class="nota-icon">💡</div>
-      <div>
-        <div class="nota-label">Nota per il consulente</div>
-        <div class="nota-text" id="notaText"></div>
-      </div>
-    </div>
-
-    <div class="recs-cta">
-      <p>Hai le Condizioni Generali delle polizze in PDF? Caricale per un confronto dettagliato su garanzie, franchigie e scoperti.</p>
-      <button class="btn btn-primary" onclick="startDirectComparison()">Confronta polizze PDF →</button>
+<div class="page page-sm">
+  <div class="recs-topbar">
+    <h1>Raccomandazioni per <span id="recsClientName">il cliente</span></h1>
+    <div class="recs-actions" style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="editQuestionnaire()">← Modifica profilo</button>
+      <button class="btn btn-sm" style="background:var(--gold);color:#fff" onclick="exportClientPDF()">Esporta PDF</button>
+      <button class="btn btn-primary btn-sm" onclick="startDirectComparison()">Confronta polizze →</button>
     </div>
   </div>
+  <div class="profile-box">
+    <div class="profile-box-icon">✦</div>
+    <div>
+      <div class="profile-box-label">Profilo cliente</div>
+      <div class="profile-box-text" id="profileSummary"></div>
+    </div>
+  </div>
+  <div class="recs-section-title">📌 Coperture raccomandate</div>
+  <div class="rec-cards" id="recCards"></div>
+  <div class="gap-card" id="gapCard" style="display:none">
+    <div class="gap-header"><span>⚠️</span><span class="gap-header-title">Gap di copertura principali</span></div>
+    <div class="gap-list" id="gapList"></div>
+  </div>
+  <div class="nota-card" id="notaCard" style="display:none">
+    <div class="nota-icon">💡</div>
+    <div>
+      <div class="nota-label">Nota per il consulente</div>
+      <div class="nota-text" id="notaText"></div>
+    </div>
+  </div>
+  <div class="recs-cta">
+    <p>Hai le Condizioni Generali in PDF? Caricale per confrontare garanzie, franchigie e scoperti.</p>
+    <button class="btn btn-primary" onclick="startDirectComparison()">Confronta polizze PDF →</button>
+  </div>
+</div>
 </div>
 
-
-<!-- ══ UPLOAD PAGE ═════════════════════════════════════════════════════ -->
+<!-- ══ UPLOAD ════════════════════════════════════════════════════════ -->
 <div id="pagUpload" style="display:none">
-  <div class="upload-page">
-    <div class="upload-hero">
-      <h1>Confronta le polizze<br><em>in pochi secondi</em></h1>
-      <p>Carica 2–4 PDF — l'AI estrae garanzie, franchigie e scoperti e li confronta per te</p>
-    </div>
+<div class="upload-page">
+  <div class="page-header" style="margin-bottom:8px">
+    <button class="btn btn-ghost btn-sm" onclick="navTo('pagDashboard')">← Dashboard</button>
+  </div>
+  <div class="upload-hero">
+    <h1>Confronto polizze</h1>
+    <p>Seleziona dalla libreria o carica nuovi PDF — l'AI estrae e confronta garanzie, franchigie e scoperti</p>
+  </div>
+  <div class="upload-context" id="uploadContext" style="display:none">
+    <span>📋</span><span id="uploadContextText"></span>
+  </div>
 
-    <div class="upload-context" id="uploadContext" style="display:none">
-      <span>📋</span>
-      <span id="uploadContextText"></span>
-    </div>
+  <!-- Library selection (if any saved) -->
+  <div class="lib-select-section" id="libSelectSection" style="display:none">
+    <div class="lib-select-title">📚 Dalla libreria <span style="font-size:12px;color:var(--gray-400);font-weight:400">(seleziona fino a 4)</span></div>
+    <div class="lib-select-grid" id="libSelectGrid"></div>
+  </div>
 
-    <div class="drop-zone" id="dropZone"
-      ondragover="dragOver(event)" ondragleave="dragLeave()" ondrop="onDrop(event)"
-      onclick="document.getElementById('fileInput').click()">
-      <div class="drop-icon">📑</div>
-      <h3>Trascina i PDF delle polizze qui</h3>
-      <p>oppure clicca per selezionarli dal computer</p>
-      <small>Massimo 4 polizze · Solo PDF</small>
-    </div>
-    <input type="file" id="fileInput" multiple accept=".pdf" onchange="filesSelected(event)">
+  <div class="divider-or" id="dividerOr">oppure carica un nuovo PDF</div>
 
-    <div class="chips" id="chipsRow"></div>
-
-    <div class="upload-action">
-      <button class="btn-go" id="btnGo" onclick="startComparison()" disabled>
-        Confronta polizze →
-      </button>
-      <span class="upload-hint" id="uploadHint"></span>
-    </div>
+  <div class="drop-zone" id="dropZone"
+    ondragover="dragOver(event)" ondragleave="dragLeave()" ondrop="onDrop(event)"
+    onclick="document.getElementById('fileInput').click()">
+    <div class="drop-icon">📑</div>
+    <h3>Trascina i PDF delle polizze qui</h3>
+    <p>oppure clicca per selezionarli</p>
+    <small>Massimo 4 polizze totali (libreria + nuovi) · Solo PDF</small>
+  </div>
+  <input type="file" id="fileInput" multiple accept=".pdf" onchange="filesSelected(event)">
+  <div class="chips" id="chipsRow"></div>
+  <label class="save-to-lib" id="saveToLibLabel" style="display:none">
+    <input type="checkbox" id="saveToLibCheck" checked> Salva le nuove polizze nella libreria dopo il confronto
+  </label>
+  <div class="upload-action">
+    <button class="btn-go" id="btnGo" onclick="startComparison()" disabled>Confronta polizze →</button>
+    <span class="upload-hint" id="uploadHint"></span>
   </div>
 </div>
+</div>
 
-
-<!-- ══ LOADING PAGE ════════════════════════════════════════════════════ -->
+<!-- ══ LOADING ═══════════════════════════════════════════════════════ -->
 <div id="pagLoading" style="display:none">
   <div class="loading-page">
     <div class="big-spinner"></div>
@@ -632,700 +745,741 @@ td.cell { padding:10px 14px; text-align:center; vertical-align:middle; }
   </div>
 </div>
 
-
-<!-- ══ RESULTS PAGE ════════════════════════════════════════════════════ -->
+<!-- ══ RESULTS ═══════════════════════════════════════════════════════ -->
 <div id="pagResults" style="display:none">
-  <div class="results-page">
-    <div class="results-topbar">
-      <h1 id="resultsTitle">Confronto polizze</h1>
-      <div class="results-topbar-actions">
-        <button class="btn-print" onclick="window.print()">Stampa / Salva PDF</button>
-        <button class="btn-new" onclick="goHome()">↩ Home</button>
-      </div>
+<div class="page">
+  <div class="results-topbar">
+    <h1 id="resultsTitle">Confronto polizze</h1>
+    <div class="results-topbar-actions">
+      <button class="btn-print" onclick="window.print()">🖨 Stampa / PDF</button>
+      <button class="btn btn-ghost btn-sm" onclick="navTo('pagDashboard')">↩ Dashboard</button>
     </div>
-    <div id="scoreCards" class="score-cards"></div>
-    <div id="aiSummary" class="ai-summary" style="display:none">
-      <div class="ai-summary-label">✦ Analisi AI</div>
-      <div class="ai-summary-text" id="aiSummaryText"></div>
-    </div>
-    <div class="section-title">Confronto garanzie</div>
-    <div class="table-outer"><div class="table-scroll"><table id="compTable"></table></div></div>
-    <div class="section-title" id="adviceTitle" style="display:none">Consigliata per chi...</div>
-    <div class="advice-grid" id="adviceGrid"></div>
-    <div class="section-title" id="exclTitle" style="display:none">Principali esclusioni</div>
-    <div class="excl-grid" id="exclGrid"></div>
   </div>
+  <div id="scoreCards" class="score-cards"></div>
+  <div id="aiSummary" class="ai-summary" style="display:none">
+    <div class="ai-summary-label">✦ Analisi AI</div>
+    <div class="ai-summary-text" id="aiSummaryText"></div>
+  </div>
+  <div class="section-title">Confronto garanzie</div>
+  <div class="table-outer"><div class="table-scroll"><table id="compTable"></table></div></div>
+  <div class="section-title" id="adviceTitle" style="display:none">Consigliata per chi...</div>
+  <div class="advice-grid" id="adviceGrid"></div>
+  <div class="section-title" id="exclTitle" style="display:none">Principali esclusioni</div>
+  <div class="excl-grid" id="exclGrid"></div>
+</div>
 </div>
 
+</div><!-- end .main-content -->
+
+<!-- ══ PRINT-ONLY CLIENT PROFILE ═══════════════════════════════════ -->
+<div class="print-profile" id="printProfile">
+  <div class="pp-header">
+    <div>
+      <div class="pp-brand">Polo<span>Assicurativo</span> Bassano</div>
+      <div class="pp-tagline">Progettiamo la tua protezione · polobassano.it</div>
+    </div>
+    <div class="pp-client">
+      Profilo cliente<br>
+      <strong id="pp-nome"></strong>
+      <span id="pp-data"></span>
+    </div>
+  </div>
+  <div class="pp-section">
+    <div class="pp-section-title">Sintesi profilo</div>
+    <div class="pp-summary" id="pp-summary"></div>
+  </div>
+  <div class="pp-section">
+    <div class="pp-section-title">Raccomandazioni personalizzate</div>
+    <div id="pp-recs"></div>
+  </div>
+  <div class="pp-section" id="pp-gap-section" style="display:none">
+    <div class="pp-section-title">Gap di copertura</div>
+    <div id="pp-gaps"></div>
+  </div>
+  <div class="pp-footer">
+    <span>Documento generato con Polizza Facile · Polo Assicurativo Bassano SRL</span>
+    <span id="pp-footer-date"></span>
+  </div>
+</div>
 
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // CONFIG
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 const BACKEND = (window.PF_BACKEND_URL || 'https://polizza-facile-production.up.railway.app').replace(/\/$/, '');
 
-// ── QUESTIONNAIRE CONFIG ───────────────────────────────────────────────
-// Agenzie possono modificare questo oggetto per personalizzare il questionario
 const QUESTIONNAIRE_CONFIG = {
   sezioni: [
-    {
-      id: "anagrafica",
-      titolo: "Informazioni personali",
-      icona: "👤",
-      domande: [
-        { id: "nome", tipo: "testo", label: "Nome e cognome del cliente", placeholder: "es. Mario Rossi" },
-        { id: "eta", tipo: "scelta_singola", label: "Fascia d'età", opzioni: ["18–30", "31–45", "46–60", "Oltre 60"] },
-        { id: "stato_civile", tipo: "scelta_singola", label: "Stato civile", opzioni: ["Celibe/Nubile", "Coniugato/a", "Convivente", "Separato/Divorziato", "Vedovo/a"] },
-        { id: "persone_a_carico", tipo: "scelta_singola", label: "Persone a carico", opzioni: ["Nessuna", "1", "2", "3 o più"] }
-      ]
-    },
-    {
-      id: "professione",
-      titolo: "Situazione lavorativa",
-      icona: "💼",
-      domande: [
-        { id: "tipo_lavoro", tipo: "scelta_singola", label: "Tipo di lavoro", opzioni: ["Dipendente privato", "Dipendente pubblico", "Libero professionista", "Imprenditore/Artigiano", "Pensionato", "Studente/Non occupato"] },
-        { id: "settore", tipo: "scelta_singola", label: "Settore lavorativo", opzioni: ["Sanità / Salute", "Edilizia / Costruzioni", "Trasporti / Logistica", "Commercio / Retail", "Professionisti (legale, contabile, tecnico)", "Industria / Manifattura", "Agricoltura", "Altro"] },
-        { id: "reddito", tipo: "scelta_singola", label: "Reddito annuo lordo indicativo", opzioni: ["Fino a 20.000 €", "20.000–40.000 €", "40.000–80.000 €", "Oltre 80.000 €", "Preferisco non indicarlo"] },
-        { id: "stabilita", tipo: "scelta_singola", label: "Stabilità lavorativa percepita", opzioni: ["Molto stabile", "Abbastanza stabile", "Incerta", "In transizione"] }
-      ]
-    },
-    {
-      id: "patrimonio",
-      titolo: "Patrimonio e beni",
-      icona: "🏠",
-      domande: [
-        { id: "abitazione", tipo: "scelta_singola", label: "Abitazione principale", opzioni: ["Di proprietà (con mutuo)", "Di proprietà (senza mutuo)", "In affitto", "Altra situazione"] },
-        { id: "altri_immobili", tipo: "scelta_singola", label: "Altri immobili di proprietà", opzioni: ["Nessuno", "1 immobile", "2 o più immobili"] },
-        { id: "veicoli", tipo: "scelta_multipla", label: "Veicoli posseduti", opzioni: ["Automobile", "Moto / Scooter", "Furgone / Veicolo commerciale", "Nessuno"] },
-        { id: "attivita_propria", tipo: "scelta_singola", label: "Gestisce un'attività propria?", opzioni: ["No", "Sì, piccola attività / lavoro autonomo", "Sì, azienda strutturata"] }
-      ]
-    },
-    {
-      id: "coperture",
-      titolo: "Coperture esistenti",
-      icona: "🛡️",
-      domande: [
-        { id: "polizze_attive", tipo: "scelta_multipla", label: "Polizze attualmente attive", opzioni: ["RC Auto", "Kasko / Furto auto", "Casa (incendio & contenuto)", "Vita", "Infortuni", "Salute / Sanitaria integrativa", "RC Professionale", "Nessuna"] },
-        { id: "ultima_revisione", tipo: "scelta_singola", label: "Ultima revisione del portafoglio assicurativo", opzioni: ["Meno di 1 anno fa", "1–3 anni fa", "Più di 3 anni fa", "Non ho mai fatto una revisione"] }
-      ]
-    },
-    {
-      id: "priorita",
-      titolo: "Priorità e obiettivi",
-      icona: "🎯",
-      domande: [
-        { id: "preoccupazioni", tipo: "scelta_multipla", max: 3, label: "Principali preoccupazioni (max 3)", opzioni: ["Perdita di reddito per malattia o infortunio", "Danni alla casa o agli oggetti", "Responsabilità verso terzi", "Spese mediche non coperte dal SSN", "Protezione del nucleo familiare", "Protezione dell'attività lavorativa", "Risparmio e previdenza complementare", "Furto o danni ai veicoli"] },
-        { id: "budget", tipo: "scelta_singola", label: "Budget mensile per assicurazioni", opzioni: ["Fino a 50 €/mese", "50–100 €/mese", "100–200 €/mese", "Oltre 200 €/mese", "Da valutare insieme"] },
-        { id: "note", tipo: "testo_lungo", label: "Note aggiuntive o situazioni particolari", placeholder: "es. lavoro spesso all'estero, ho un figlio disabile, gestisco un magazzino...", obbligatoria: false }
-      ]
-    }
+    { id:"anagrafica", titolo:"Informazioni personali", icona:"👤", domande:[
+      { id:"nome", tipo:"testo", label:"Nome e cognome del cliente", placeholder:"es. Mario Rossi" },
+      { id:"eta", tipo:"scelta_singola", label:"Fascia d'età", opzioni:["18–30","31–45","46–60","Oltre 60"] },
+      { id:"stato_civile", tipo:"scelta_singola", label:"Stato civile", opzioni:["Celibe/Nubile","Coniugato/a","Convivente","Separato/Divorziato","Vedovo/a"] },
+      { id:"persone_a_carico", tipo:"scelta_singola", label:"Persone a carico", opzioni:["Nessuna","1","2","3 o più"] }
+    ]},
+    { id:"professione", titolo:"Situazione lavorativa", icona:"💼", domande:[
+      { id:"tipo_lavoro", tipo:"scelta_singola", label:"Tipo di lavoro", opzioni:["Dipendente privato","Dipendente pubblico","Libero professionista","Imprenditore/Artigiano","Pensionato","Studente/Non occupato"] },
+      { id:"settore", tipo:"scelta_singola", label:"Settore lavorativo", opzioni:["Sanità / Salute","Edilizia / Costruzioni","Trasporti / Logistica","Commercio / Retail","Professionisti (legale, contabile, tecnico)","Industria / Manifattura","Agricoltura","Altro"] },
+      { id:"reddito", tipo:"scelta_singola", label:"Reddito annuo lordo indicativo", opzioni:["Fino a 20.000 €","20.000–40.000 €","40.000–80.000 €","Oltre 80.000 €","Preferisco non indicarlo"] },
+      { id:"stabilita", tipo:"scelta_singola", label:"Stabilità lavorativa percepita", opzioni:["Molto stabile","Abbastanza stabile","Incerta","In transizione"] }
+    ]},
+    { id:"patrimonio", titolo:"Patrimonio e beni", icona:"🏠", domande:[
+      { id:"abitazione", tipo:"scelta_singola", label:"Abitazione principale", opzioni:["Di proprietà (con mutuo)","Di proprietà (senza mutuo)","In affitto","Altra situazione"] },
+      { id:"altri_immobili", tipo:"scelta_singola", label:"Altri immobili di proprietà", opzioni:["Nessuno","1 immobile","2 o più immobili"] },
+      { id:"veicoli", tipo:"scelta_multipla", label:"Veicoli posseduti", opzioni:["Automobile","Moto / Scooter","Furgone / Veicolo commerciale","Nessuno"] },
+      { id:"attivita_propria", tipo:"scelta_singola", label:"Gestisce un'attività propria?", opzioni:["No","Sì, piccola attività / lavoro autonomo","Sì, azienda strutturata"] }
+    ]},
+    { id:"coperture", titolo:"Coperture esistenti", icona:"🛡️", domande:[
+      { id:"polizze_attive", tipo:"scelta_multipla", label:"Polizze attualmente attive", opzioni:["RC Auto","Kasko / Furto auto","Casa (incendio & contenuto)","Vita","Infortuni","Salute / Sanitaria integrativa","RC Professionale","Nessuna"] },
+      { id:"ultima_revisione", tipo:"scelta_singola", label:"Ultima revisione del portafoglio", opzioni:["Meno di 1 anno fa","1–3 anni fa","Più di 3 anni fa","Non ho mai fatto una revisione"] }
+    ]},
+    { id:"priorita", titolo:"Priorità e obiettivi", icona:"🎯", domande:[
+      { id:"preoccupazioni", tipo:"scelta_multipla", max:3, label:"Principali preoccupazioni (max 3)", opzioni:["Perdita di reddito per malattia o infortunio","Danni alla casa o agli oggetti","Responsabilità verso terzi","Spese mediche non coperte dal SSN","Protezione del nucleo familiare","Protezione dell'attività lavorativa","Risparmio e previdenza complementare","Furto o danni ai veicoli"] },
+      { id:"budget", tipo:"scelta_singola", label:"Budget mensile per assicurazioni", opzioni:["Fino a 50 €/mese","50–100 €/mese","100–200 €/mese","Oltre 200 €/mese","Da valutare insieme"] },
+      { id:"note", tipo:"testo_lungo", label:"Note aggiuntive o situazioni particolari", placeholder:"es. lavoro spesso all'estero, ho un figlio disabile, gestisco un magazzino...", obbligatoria:false }
+    ]}
   ]
 };
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 let files = [];
 let currentSectionIdx = 0;
-let clientAnswers = {};   // { questionId: string | string[] }
-let clientRecs = null;    // recommendations response from backend
-let fromQuestionnaire = false;
+let clientAnswers = {};
+let clientRecs = null;
+let currentClientId = null;
+let libSelected = new Set(); // IDs selected from library for comparison
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// LOCALSTORAGE
+// ═══════════════════════════════════════════════════════════════════
+function getClients() { try { return JSON.parse(localStorage.getItem('pf_clients')||'[]'); } catch { return []; } }
+function saveClients(arr) { localStorage.setItem('pf_clients', JSON.stringify(arr)); }
+function getPolizze() { try { return JSON.parse(localStorage.getItem('pf_polizze')||'[]'); } catch { return []; } }
+function savePolizze(arr) { localStorage.setItem('pf_polizze', JSON.stringify(arr)); }
+
+function saveClient(answers, recs) {
+  const clients = getClients();
+  const id = Date.now().toString();
+  const client = { id, nome: answers['nome']||'Cliente senza nome', data: new Date().toISOString(), answers, raccomandazioni: recs };
+  clients.unshift(client);
+  saveClients(clients.slice(0, 200));
+  updateBadges();
+  return id;
+}
+
+function deleteClient(id) {
+  saveClients(getClients().filter(c => c.id !== id));
+  updateBadges();
+}
+
+function savePolizzaToLib(extracted, filename) {
+  const polizze = getPolizze();
+  const id = Date.now().toString() + Math.random().toString(36).slice(2,6);
+  polizze.unshift({ id, filename, compagnia: extracted.compagnia||'', prodotto: extracted.prodotto||'', tipo: extracted.tipo||'', data: new Date().toISOString(), extracted });
+  savePolizze(polizze.slice(0, 80));
+  updateBadges();
+  return id;
+}
+
+function deletePolizza(id) {
+  savePolizze(getPolizze().filter(p => p.id !== id));
+  updateBadges();
+  renderLibreria();
+}
+
+function updateBadges() {
+  const nc = getClients().length, np = getPolizze().length;
+  document.getElementById('badgeClienti').textContent = nc;
+  document.getElementById('badgeLibreria').textContent = np;
+  document.getElementById('statClienti').textContent = nc;
+  document.getElementById('statPolizze').textContent = np;
+  document.getElementById('dashTotalClients').textContent = nc;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // NAVIGATION
-// ═══════════════════════════════════════════════════════════════════════
-const ALL_PAGES = ['pagHome','pagQuestionario','pagRaccomandazioni','pagUpload','pagLoading','pagResults'];
+// ═══════════════════════════════════════════════════════════════════
+const ALL_PAGES = ['pagDashboard','pagClienti','pagClienteDetail','pagLibreria','pagQuestionario','pagRaccomandazioni','pagUpload','pagLoading','pagResults'];
 
-function show(id) {
-  ALL_PAGES.forEach(p => document.getElementById(p).style.display = p === id ? 'block' : 'none');
-  const labels = {
-    pagHome: '',
-    pagQuestionario: 'Questionario',
-    pagRaccomandazioni: 'Raccomandazioni',
-    pagUpload: 'Confronto polizze',
-    pagLoading: '',
-    pagResults: 'Risultati confronto'
-  };
-  document.getElementById('headerStep').textContent = labels[id] || '';
+function navTo(id) {
+  ALL_PAGES.forEach(p => document.getElementById(p).style.display = p===id ? 'block' : 'none');
+  const navMap = { pagDashboard:'nav-dashboard', pagClienti:'nav-clienti', pagLibreria:'nav-libreria' };
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  if (navMap[id]) document.getElementById(navMap[id])?.classList.add('active');
+  window.scrollTo(0,0);
+  closeSidebar();
+  if (id === 'pagDashboard') renderDashboard();
+  if (id === 'pagClienti') renderClientList();
+  if (id === 'pagLibreria') renderLibreria();
 }
 
-function goHome() {
-  files = [];
-  renderChips();
-  document.getElementById('aiSummary').style.display = 'none';
-  show('pagHome');
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════════
+function renderDashboard() {
+  updateBadges();
+  const clients = getClients();
+  // Last activity
+  if (clients.length) {
+    const d = new Date(clients[0].data);
+    document.getElementById('statUltimo').textContent = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+  }
+  // Recent list
+  const list = document.getElementById('recentList');
+  if (!clients.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><p>Nessun cliente ancora.<br>Inizia con un nuovo questionario.</p></div>`;
+    return;
+  }
+  list.innerHTML = clients.slice(0,5).map(c => {
+    const initials = c.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const date = new Date(c.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+    const recs = (c.raccomandazioni?.raccomandazioni||[]).slice(0,3);
+    const chips = recs.map(r => `<span class="recent-chip">${esc(r.tipo)}</span>`).join('');
+    return `<div class="recent-item" onclick="openClient('${c.id}')">
+      <div class="recent-avatar">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div class="recent-name">${esc(c.nome)}</div>
+        <div class="recent-meta">${date}</div>
+        ${chips ? `<div class="recent-chips">${chips}</div>` : ''}
+      </div>
+      <div class="recent-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CLIENT LIST
+// ═══════════════════════════════════════════════════════════════════
+function renderClientList() {
+  const q = (document.getElementById('clientSearch')?.value||'').toLowerCase();
+  const clients = getClients().filter(c => !q || c.nome.toLowerCase().includes(q));
+  const list = document.getElementById('clientList');
+  if (!clients.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><p>${q ? 'Nessun risultato per "'+esc(q)+'"' : 'Nessun cliente salvato.'}</p></div>`;
+    return;
+  }
+  list.innerHTML = clients.map(c => {
+    const initials = c.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const date = new Date(c.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+    const recs = c.raccomandazioni?.raccomandazioni||[];
+    const tags = recs.slice(0,3).map(r => `<span class="client-rec-tag rec-${r.urgenza||'media'}">${esc(r.tipo)}</span>`).join('');
+    return `<div class="client-row" onclick="openClient('${c.id}')">
+      <div class="client-avatar">${initials}</div>
+      <div class="client-info">
+        <div class="client-name">${esc(c.nome)}</div>
+        <div class="client-date">${date}</div>
+        <div class="client-recs">${tags}</div>
+      </div>
+      <div class="client-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm" onclick="openClient('${c.id}')">Apri</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDeleteClient('${c.id}','${esc(c.nome)}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function confirmDeleteClient(id, nome) {
+  if (confirm(`Eliminare il profilo di ${nome}?`)) {
+    deleteClient(id);
+    renderClientList();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CLIENT DETAIL
+// ═══════════════════════════════════════════════════════════════════
+function openClient(id) {
+  const client = getClients().find(c => c.id === id);
+  if (!client) return;
+  currentClientId = id;
+  const initials = client.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const date = new Date(client.data).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+
+  document.getElementById('detailHeader').innerHTML = `
+    <div class="detail-avatar">${initials}</div>
+    <div><div class="detail-name">${esc(client.nome)}</div><div class="detail-meta">Profilato il ${date}</div></div>`;
+
+  document.getElementById('detailActions').innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="loadAndEditClient('${id}')">✏️ Modifica profilo</button>
+    <button class="btn btn-sm" style="background:var(--gold);color:#fff" onclick="exportSavedClientPDF('${id}')">📄 Esporta PDF</button>
+    <button class="btn btn-primary btn-sm" onclick="startDirectComparison()">📑 Confronta polizze</button>
+    <button class="btn btn-danger btn-sm" onclick="confirmDeleteClient('${id}','${esc(client.nome)}');navTo('pagClienti')">✕</button>`;
+
+  // Re-use recommendation rendering
+  const recs = client.raccomandazioni;
+  let html = '';
+  if (recs) {
+    html += `<div class="profile-box"><div class="profile-box-icon">✦</div><div><div class="profile-box-label">Profilo cliente</div><div class="profile-box-text">${esc(recs.sintesi_profilo||'')}</div></div></div>`;
+    html += `<div class="recs-section-title">📌 Coperture raccomandate</div>`;
+    html += `<div class="rec-cards">${(recs.raccomandazioni||[]).map(r => buildRecCardHTML(r)).join('')}</div>`;
+    if (recs.gap_principali?.length) {
+      html += `<div class="gap-card"><div class="gap-header"><span>⚠️</span><span class="gap-header-title">Gap di copertura principali</span></div><div class="gap-list">${recs.gap_principali.map(g=>`<div class="gap-item">${esc(g)}</div>`).join('')}</div></div>`;
+    }
+    if (recs.nota_consulente) {
+      html += `<div class="nota-card"><div class="nota-icon">💡</div><div><div class="nota-label">Nota per il consulente</div><div class="nota-text">${esc(recs.nota_consulente)}</div></div></div>`;
+    }
+  }
+  document.getElementById('detailContent').innerHTML = html;
+  navTo('pagClienteDetail');
+}
+
+function loadAndEditClient(id) {
+  const client = getClients().find(c => c.id === id);
+  if (!client) return;
+  clientAnswers = { ...client.answers };
+  currentClientId = id;
+  currentSectionIdx = 0;
+  renderSection(0);
+  navTo('pagQuestionario');
+}
+
+function buildRecCardHTML(r) {
+  const urg = r.urgenza||'media';
+  const urgLabel = {alta:'Priorità alta',media:'Priorità media',bassa:'Priorità bassa'}[urg]||urg;
+  return `<div class="rec-card urgenza-${esc(urg)}">
+    <div class="rec-priority">${r.priorita}</div>
+    <div class="rec-body">
+      <div class="rec-header"><span class="rec-tipo">${esc(r.tipo)}</span><span class="urgency-badge">${esc(urgLabel)}</span></div>
+      <div class="rec-motivo">${esc(r.motivo)}</div>
+      ${r.cosa_cercare?.length ? `<div class="rec-cercare-title">Cosa cercare</div><div class="rec-cercare-list">${r.cosa_cercare.map(c=>`<span class="rec-cercare-tag">✓ ${esc(c)}</span>`).join('')}</div>` : ''}
+      ${r.budget_indicativo ? `<div class="rec-budget">💶 Budget: <strong>${esc(r.budget_indicativo)}</strong></div>` : ''}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LIBRARY PAGE
+// ═══════════════════════════════════════════════════════════════════
+function renderLibreria() {
+  const polizze = getPolizze();
+  const grid = document.getElementById('libraryGrid');
+  const countEl = document.getElementById('libSelectedCount');
+  const btnCfr = document.getElementById('btnConfrontaLib');
+
+  const selCount = libSelected.size;
+  countEl.textContent = selCount > 0 ? `${selCount} selezionate` : '';
+  btnCfr.style.display = selCount >= 2 ? 'block' : 'none';
+
+  if (!polizze.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📚</div><p>Nessuna polizza salvata ancora.<br>Aggiungile durante un confronto PDF.</p></div>`;
+    return;
+  }
+  grid.innerHTML = polizze.map(p => {
+    const sel = libSelected.has(p.id);
+    const date = new Date(p.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+    return `<div class="library-card ${sel?'selected':''}" onclick="toggleLibSel('${p.id}')">
+      <div class="lib-check">${sel?'✓':''}</div>
+      <div class="lib-company">${esc(p.compagnia)}</div>
+      <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
+      <span class="lib-tipo">${esc(p.tipo)}</span>
+      <div class="lib-date" style="margin-top:8px">Aggiunta il ${date}</div>
+      <button class="lib-del" onclick="event.stopPropagation();deletePolizza('${p.id}')" title="Elimina">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleLibSel(id) {
+  if (libSelected.has(id)) libSelected.delete(id);
+  else if (libSelected.size < 4) libSelected.add(id);
+  else { toast('Massimo 4 polizze'); return; }
+  renderLibreria();
+}
+
+function confrontaFromLibrary() {
+  if (libSelected.size < 2) { toast('Seleziona almeno 2 polizze'); return; }
+  startDirectComparison();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// QUESTIONNAIRE
+// ═══════════════════════════════════════════════════════════════════
 function startQuestionnaire() {
   currentSectionIdx = 0;
   clientAnswers = {};
+  currentClientId = null;
   renderSection(0);
-  show('pagQuestionario');
+  navTo('pagQuestionario');
 }
 
 function startDirectComparison() {
-  fromQuestionnaire = !!Object.keys(clientAnswers).length;
-  // Show upload context if coming from questionnaire
-  const ctx = document.getElementById('uploadContext');
-  const ctxTxt = document.getElementById('uploadContextText');
   const nome = clientAnswers['nome'];
-  if (fromQuestionnaire && nome) {
-    ctxTxt.textContent = `Confronto per: ${nome} — le raccomandazioni AI sono già state generate`;
+  const ctx = document.getElementById('uploadContext');
+  if (nome) {
+    document.getElementById('uploadContextText').textContent = `Profilo attivo: ${nome}`;
     ctx.style.display = 'flex';
-  } else {
-    ctx.style.display = 'none';
-  }
-  show('pagUpload');
+  } else { ctx.style.display = 'none'; }
+  renderLibSelectSection();
+  navTo('pagUpload');
 }
 
-function editQuestionnaire() {
-  renderSection(currentSectionIdx);
-  show('pagQuestionario');
+function editQuestionnaire() { renderSection(currentSectionIdx); navTo('pagQuestionario'); }
+
+function renderLibSelectSection() {
+  const polizze = getPolizze();
+  const section = document.getElementById('libSelectSection');
+  const grid = document.getElementById('libSelectGrid');
+  const divider = document.getElementById('dividerOr');
+  if (!polizze.length) { section.style.display='none'; divider.textContent='Carica un PDF'; return; }
+  section.style.display = 'block';
+  divider.textContent = 'oppure carica un nuovo PDF';
+  grid.innerHTML = polizze.map(p => {
+    const sel = libSelected.has(p.id);
+    return `<div class="lib-select-card ${sel?'sel':''}" onclick="toggleLibSelUpload('${p.id}')">
+      <div class="lsc-check">✓</div>
+      <div class="lsc-company">${esc(p.compagnia)}</div>
+      <div class="lsc-product">${esc(p.prodotto||p.filename)}</div>
+      <div class="lsc-tipo">${esc(p.tipo)}</div>
+    </div>`;
+  }).join('');
+  updateUploadButton();
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// QUESTIONNAIRE RENDERING
-// ═══════════════════════════════════════════════════════════════════════
+function toggleLibSelUpload(id) {
+  if (libSelected.has(id)) libSelected.delete(id);
+  else if (libSelected.size + files.filter(f=>f.status==='ready').length < 4) libSelected.add(id);
+  else { toast('Massimo 4 polizze totali'); return; }
+  renderLibSelectSection();
+}
+
+function updateUploadButton() {
+  const libReady = libSelected.size;
+  const fileReady = files.filter(f=>f.status==='ready').length;
+  const fileTotal = files.length;
+  const total = libReady + fileReady;
+  const allFilesDone = fileTotal === 0 || fileReady === fileTotal;
+  document.getElementById('btnGo').disabled = total < 2 || !allFilesDone;
+  document.getElementById('uploadHint').textContent = total > 0 ? `${total} polizze pronte` : '';
+  const saveLabel = document.getElementById('saveToLibLabel');
+  saveLabel.style.display = fileTotal > 0 ? 'flex' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER SECTION
+// ═══════════════════════════════════════════════════════════════════
 function renderSection(idx) {
   const sezioni = QUESTIONNAIRE_CONFIG.sezioni;
   const sez = sezioni[idx];
   const total = sezioni.length;
-
-  document.getElementById('sezLabel').textContent = `Sezione ${idx + 1} di ${total}`;
+  document.getElementById('sezLabel').textContent = `Sezione ${idx+1} di ${total}`;
   document.getElementById('sezCount').textContent = sez.titolo;
   document.getElementById('sezIcon').textContent = sez.icona;
   document.getElementById('sezTitle').textContent = sez.titolo;
-  document.getElementById('progressFill').style.width = `${((idx) / total) * 100}%`;
-
-  // Back button
-  document.getElementById('btnBack').style.visibility = idx === 0 ? 'hidden' : 'visible';
-
-  // Next button label
-  const isLast = idx === total - 1;
+  document.getElementById('progressFill').style.width = `${(idx/total)*100}%`;
+  document.getElementById('btnBack').style.visibility = idx===0 ? 'hidden' : 'visible';
+  const isLast = idx === total-1;
   document.getElementById('btnNext').textContent = isLast ? 'Genera raccomandazioni ✦' : 'Continua →';
-
-  // Render questions
   const container = document.getElementById('questionsContainer');
   container.innerHTML = sez.domande.map(q => renderQuestion(q)).join('');
-
-  // Restore saved answers
   sez.domande.forEach(q => restoreAnswer(q));
 }
 
 function renderQuestion(q) {
-  const isRequired = q.obbligatoria !== false;
-  const labelHtml = `<div class="question-label">
-    ${esc(q.label)}
-    ${isRequired ? '<span class="required-star">*</span>' : '<span class="optional-tag">facoltativo</span>'}
-  </div>`;
-
-  let inputHtml = '';
-  if (q.tipo === 'scelta_singola') {
-    inputHtml = `<div class="option-cards" id="q_${q.id}">
-      ${q.opzioni.map(o => `<div class="option-card" data-qid="${esc(q.id)}" data-val="${esc(o)}" onclick="selectSingle(this)">${esc(o)}</div>`).join('')}
-    </div>`;
-  } else if (q.tipo === 'scelta_multipla') {
-    const maxAttr = q.max ? `data-max="${q.max}"` : '';
-    inputHtml = `<div class="option-cards" id="q_${q.id}" ${maxAttr}>
-      ${q.opzioni.map(o => `<div class="option-card" data-qid="${esc(q.id)}" data-val="${esc(o)}" onclick="selectMulti(this)">${esc(o)}</div>`).join('')}
-    </div>`;
-  } else if (q.tipo === 'testo') {
-    inputHtml = `<input class="q-input" id="q_${q.id}" type="text" placeholder="${esc(q.placeholder||'')}" oninput="saveTextAnswer('${q.id}', this.value)">`;
-  } else if (q.tipo === 'testo_lungo') {
-    inputHtml = `<textarea class="q-input q-textarea" id="q_${q.id}" placeholder="${esc(q.placeholder||'')}" oninput="saveTextAnswer('${q.id}', this.value)"></textarea>`;
+  const req = q.obbligatoria !== false;
+  const labelHtml = `<div class="question-label">${esc(q.label)} ${req?'<span class="required-star">*</span>':'<span class="optional-tag">facoltativo</span>'}</div>`;
+  let inp = '';
+  if (q.tipo==='scelta_singola') {
+    inp = `<div class="option-cards" id="q_${q.id}">${q.opzioni.map(o=>`<div class="option-card" data-qid="${esc(q.id)}" data-val="${esc(o)}" onclick="selectSingle(this)">${esc(o)}</div>`).join('')}</div>`;
+  } else if (q.tipo==='scelta_multipla') {
+    const mx = q.max ? `data-max="${q.max}"` : '';
+    inp = `<div class="option-cards" id="q_${q.id}" ${mx}>${q.opzioni.map(o=>`<div class="option-card" data-qid="${esc(q.id)}" data-val="${esc(o)}" onclick="selectMulti(this)">${esc(o)}</div>`).join('')}</div>`;
+  } else if (q.tipo==='testo') {
+    inp = `<input class="q-input" id="q_${q.id}" type="text" placeholder="${esc(q.placeholder||'')}" oninput="saveTextAnswer('${q.id}',this.value)">`;
+  } else if (q.tipo==='testo_lungo') {
+    inp = `<textarea class="q-input q-textarea" id="q_${q.id}" placeholder="${esc(q.placeholder||'')}" oninput="saveTextAnswer('${q.id}',this.value)"></textarea>`;
   }
-
-  return `<div class="question-block">${labelHtml}${inputHtml}</div>`;
+  return `<div class="question-block">${labelHtml}${inp}</div>`;
 }
 
 function restoreAnswer(q) {
-  const val = clientAnswers[q.id];
-  if (!val) return;
-  if (q.tipo === 'scelta_singola') {
-    document.querySelectorAll(`#q_${q.id} .option-card`).forEach(c => {
-      if (c.dataset.val === val) c.classList.add('selected');
-    });
-  } else if (q.tipo === 'scelta_multipla') {
-    const vals = Array.isArray(val) ? val : [val];
-    document.querySelectorAll(`#q_${q.id} .option-card`).forEach(c => {
-      if (vals.includes(c.dataset.val)) c.classList.add('selected');
-    });
-    updateMultiDisabled(q.id, q.max);
-  } else if (q.tipo === 'testo' || q.tipo === 'testo_lungo') {
-    const el = document.getElementById(`q_${q.id}`);
-    if (el) el.value = val;
-  }
+  const val = clientAnswers[q.id]; if (!val) return;
+  if (q.tipo==='scelta_singola') { document.querySelectorAll(`#q_${q.id} .option-card`).forEach(c => { if (c.dataset.val===val) c.classList.add('selected'); }); }
+  else if (q.tipo==='scelta_multipla') { const vals=Array.isArray(val)?val:[val]; document.querySelectorAll(`#q_${q.id} .option-card`).forEach(c => { if (vals.includes(c.dataset.val)) c.classList.add('selected'); }); updateMultiDisabled(q.id,q.max); }
+  else { const el=document.getElementById(`q_${q.id}`); if(el) el.value=val; }
 }
 
-function selectSingle(el) {
-  const qid = el.dataset.qid;
-  document.querySelectorAll(`#q_${qid} .option-card`).forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  clientAnswers[qid] = el.dataset.val;
-}
-
-function selectMulti(el) {
-  if (el.classList.contains('disabled')) return;
-  const qid = el.dataset.qid;
-  const container = document.getElementById(`q_${qid}`);
-  const maxVal = container ? parseInt(container.dataset.max) : 0;
-
-  el.classList.toggle('selected');
-
-  // Collect selected
-  const selected = [...document.querySelectorAll(`#q_${qid} .option-card.selected`)].map(c => c.dataset.val);
-  clientAnswers[qid] = selected;
-
-  updateMultiDisabled(qid, maxVal);
-}
-
-function updateMultiDisabled(qid, maxVal) {
-  if (!maxVal) return;
-  const container = document.getElementById(`q_${qid}`);
-  if (!container) return;
-  const selected = container.querySelectorAll('.option-card.selected').length;
-  container.querySelectorAll('.option-card:not(.selected)').forEach(c => {
-    if (selected >= maxVal) c.classList.add('disabled');
-    else c.classList.remove('disabled');
-  });
-}
-
-function saveTextAnswer(qid, val) {
-  clientAnswers[qid] = val;
-}
+function selectSingle(el) { const qid=el.dataset.qid; document.querySelectorAll(`#q_${qid} .option-card`).forEach(c=>c.classList.remove('selected')); el.classList.add('selected'); clientAnswers[qid]=el.dataset.val; }
+function selectMulti(el) { if(el.classList.contains('disabled')) return; const qid=el.dataset.qid; const container=document.getElementById(`q_${qid}`); const maxVal=container?parseInt(container.dataset.max):0; el.classList.toggle('selected'); clientAnswers[qid]=[...document.querySelectorAll(`#q_${qid} .option-card.selected`)].map(c=>c.dataset.val); updateMultiDisabled(qid,maxVal); }
+function updateMultiDisabled(qid,maxVal) { if(!maxVal) return; const c=document.getElementById(`q_${qid}`); if(!c) return; const sel=c.querySelectorAll('.option-card.selected').length; c.querySelectorAll('.option-card:not(.selected)').forEach(x => { if(sel>=maxVal) x.classList.add('disabled'); else x.classList.remove('disabled'); }); }
+function saveTextAnswer(qid,val) { clientAnswers[qid]=val; }
 
 function validateSection() {
   const sez = QUESTIONNAIRE_CONFIG.sezioni[currentSectionIdx];
   for (const q of sez.domande) {
-    if (q.obbligatoria === false) continue;
+    if (q.obbligatoria===false) continue;
     const val = clientAnswers[q.id];
-    if (!val || (Array.isArray(val) && val.length === 0) || String(val).trim() === '') {
-      toast(`Compila: "${q.label}"`, 3000);
-      return false;
-    }
+    if (!val || (Array.isArray(val)&&val.length===0) || String(val).trim()==='') { toast(`Compila: "${q.label}"`,3000); return false; }
   }
   return true;
 }
 
-function prevSection() {
-  if (currentSectionIdx > 0) {
-    currentSectionIdx--;
-    renderSection(currentSectionIdx);
-  } else {
-    goHome();
-  }
-}
+function prevSection() { if(currentSectionIdx>0){currentSectionIdx--;renderSection(currentSectionIdx);}else{navTo('pagDashboard');} }
+async function nextSection() { if(!validateSection()) return; const total=QUESTIONNAIRE_CONFIG.sezioni.length; if(currentSectionIdx<total-1){currentSectionIdx++;renderSection(currentSectionIdx);}else{await submitQuestionnaire();} }
 
-async function nextSection() {
-  if (!validateSection()) return;
-  const total = QUESTIONNAIRE_CONFIG.sezioni.length;
-  if (currentSectionIdx < total - 1) {
-    currentSectionIdx++;
-    renderSection(currentSectionIdx);
-  } else {
-    await submitQuestionnaire();
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// QUESTIONNAIRE SUBMISSION → RECOMMENDATIONS
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// SUBMIT QUESTIONNAIRE → RECOMMENDATIONS
+// ═══════════════════════════════════════════════════════════════════
 async function submitQuestionnaire() {
-  // Build human-readable answers for AI
   const risposte = buildProfilePayload();
-
-  show('pagLoading');
+  navTo('pagLoading');
   document.getElementById('loadingTitle').textContent = 'Analisi del profilo';
   document.getElementById('loadingSubtitle').textContent = "L'AI sta elaborando le raccomandazioni personalizzate...";
-  document.getElementById('progressSteps').innerHTML = `
-    <li class="active"><span class="step-dot"></span>→ Elaborazione profilo cliente</li>
-    <li><span class="step-dot"></span>Generazione raccomandazioni</li>
-  `;
-
+  document.getElementById('progressSteps').innerHTML = `<li class="active"><span class="step-dot"></span>→ Elaborazione profilo cliente</li><li><span class="step-dot"></span>Generazione raccomandazioni</li>`;
   try {
-    const res = await fetch(`${BACKEND}/api/raccomanda`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ risposte, agenzia: 'default' })
-    });
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error(e.detail || `Errore server (${res.status})`);
-    }
+    const res = await fetch(`${BACKEND}/api/raccomanda`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({risposte,agenzia:'polo-bassano'})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.detail||`Errore server (${res.status})`);}
     clientRecs = await res.json();
+    currentClientId = saveClient(clientAnswers, clientRecs);
     renderRecs(clientRecs);
-    show('pagRaccomandazioni');
-  } catch(e) {
-    show('pagQuestionario');
-    renderSection(currentSectionIdx);
-    toast('Errore: ' + (e.message || 'Riprova'), 5000);
-  }
+    navTo('pagRaccomandazioni');
+  } catch(e) { renderSection(currentSectionIdx); navTo('pagQuestionario'); toast('Errore: '+(e.message||'Riprova'),5000); }
 }
 
 function buildProfilePayload() {
   const out = {};
-  QUESTIONNAIRE_CONFIG.sezioni.forEach(sez => {
-    sez.domande.forEach(q => {
-      const val = clientAnswers[q.id];
-      if (!val || (Array.isArray(val) && val.length === 0)) return;
-      const label = `[${sez.titolo}] ${q.label}`;
-      out[label] = Array.isArray(val) ? val.join(', ') : val;
-    });
-  });
+  QUESTIONNAIRE_CONFIG.sezioni.forEach(sez => { sez.domande.forEach(q => { const val=clientAnswers[q.id]; if(!val||(Array.isArray(val)&&val.length===0)) return; out[`[${sez.titolo}] ${q.label}`]=Array.isArray(val)?val.join(', '):val; }); });
   return out;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // RENDER RECOMMENDATIONS
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 function renderRecs(data) {
-  // Client name in heading
-  const nome = clientAnswers['nome'] || 'il cliente';
-  document.getElementById('recsClientName').textContent = nome;
+  document.getElementById('recsClientName').textContent = clientAnswers['nome']||'il cliente';
+  document.getElementById('profileSummary').textContent = data.sintesi_profilo||'';
+  document.getElementById('recCards').innerHTML = (data.raccomandazioni||[]).map(r => buildRecCardHTML(r)).join('');
+  if (data.gap_principali?.length) { document.getElementById('gapList').innerHTML=data.gap_principali.map(g=>`<div class="gap-item">${esc(g)}</div>`).join(''); document.getElementById('gapCard').style.display='block'; } else { document.getElementById('gapCard').style.display='none'; }
+  if (data.nota_consulente) { document.getElementById('notaText').textContent=data.nota_consulente; document.getElementById('notaCard').style.display='flex'; } else { document.getElementById('notaCard').style.display='none'; }
+}
 
-  // Profile summary
-  document.getElementById('profileSummary').textContent = data.sintesi_profilo || '';
-
-  // Recommendation cards
-  const container = document.getElementById('recCards');
-  container.innerHTML = (data.raccomandazioni || []).map(r => {
-    const urg = r.urgenza || 'media';
-    const urgLabel = { alta: 'Priorità alta', media: 'Priorità media', bassa: 'Priorità bassa' }[urg] || urg;
-    return `<div class="rec-card urgenza-${esc(urg)}">
-      <div class="rec-priority">${r.priorita}</div>
-      <div class="rec-body">
-        <div class="rec-header">
-          <span class="rec-tipo">${esc(r.tipo)}</span>
-          <span class="urgency-badge">${esc(urgLabel)}</span>
-        </div>
-        <div class="rec-motivo">${esc(r.motivo)}</div>
-        ${r.cosa_cercare && r.cosa_cercare.length ? `
-          <div class="rec-cercare-title">Cosa cercare nella polizza</div>
-          <div class="rec-cercare-list">${r.cosa_cercare.map(c => `<span class="rec-cercare-tag">✓ ${esc(c)}</span>`).join('')}</div>
-        ` : ''}
-        ${r.budget_indicativo ? `
-          <div class="rec-budget">💶 Budget indicativo: <strong>${esc(r.budget_indicativo)}</strong></div>
-        ` : ''}
+// ═══════════════════════════════════════════════════════════════════
+// PDF EXPORT
+// ═══════════════════════════════════════════════════════════════════
+function populatePrintProfile(client) {
+  const recs = client.raccomandazioni;
+  const date = new Date(client.data).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('pp-nome').textContent = client.nome;
+  document.getElementById('pp-data').textContent = date;
+  document.getElementById('pp-summary').textContent = recs?.sintesi_profilo||'';
+  document.getElementById('pp-recs').innerHTML = (recs?.raccomandazioni||[]).map(r => `
+    <div class="pp-rec">
+      <div class="pp-rec-num">${r.priorita}</div>
+      <div>
+        <div class="pp-rec-tipo">${esc(r.tipo)} — ${({alta:'Alta priorità',media:'Media priorità',bassa:'Bassa priorità'})[r.urgenza]||''}</div>
+        <div class="pp-rec-motivo">${esc(r.motivo)}</div>
+        ${r.budget_indicativo ? `<div class="pp-rec-budget">Budget indicativo: ${esc(r.budget_indicativo)}</div>` : ''}
       </div>
-    </div>`;
-  }).join('');
-
-  // Gap card
-  if (data.gap_principali && data.gap_principali.length) {
-    document.getElementById('gapList').innerHTML = data.gap_principali
-      .map(g => `<div class="gap-item">${esc(g)}</div>`).join('');
-    document.getElementById('gapCard').style.display = 'block';
-  } else {
-    document.getElementById('gapCard').style.display = 'none';
-  }
-
-  // Consultant note
-  if (data.nota_consulente) {
-    document.getElementById('notaText').textContent = data.nota_consulente;
-    document.getElementById('notaCard').style.display = 'flex';
-  } else {
-    document.getElementById('notaCard').style.display = 'none';
-  }
+    </div>`).join('');
+  const gaps = recs?.gap_principali||[];
+  if (gaps.length) { document.getElementById('pp-gaps').innerHTML=gaps.map(g=>`<div style="font-size:12px;color:#4B5563;margin-bottom:4px">△ ${esc(g)}</div>`).join(''); document.getElementById('pp-gap-section').style.display='block'; } else { document.getElementById('pp-gap-section').style.display='none'; }
+  document.getElementById('pp-footer-date').textContent = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// BACKEND CALLS — COMPARISON
-// ═══════════════════════════════════════════════════════════════════════
-async function extractPolicy(text, filename) {
-  const res = await fetch(`${BACKEND}/api/extract`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, filename })
-  });
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    throw new Error(e.detail || `Errore server (${res.status})`);
-  }
-  return res.json();
+function exportClientPDF() {
+  if (!currentClientId) return;
+  const client = getClients().find(c=>c.id===currentClientId) || {nome:clientAnswers['nome']||'Cliente',data:new Date().toISOString(),raccomandazioni:clientRecs};
+  populatePrintProfile(client);
+  window.print();
 }
 
-async function generateSummary(policies) {
-  const res = await fetch(`${BACKEND}/api/summary`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ policies })
-  });
-  if (!res.ok) return;
-  const d = await res.json();
-  if (d.summary) {
-    document.getElementById('aiSummaryText').textContent = d.summary;
-    document.getElementById('aiSummary').style.display = 'block';
-  }
+function exportSavedClientPDF(id) {
+  const client = getClients().find(c=>c.id===id);
+  if(!client) return;
+  populatePrintProfile(client);
+  window.print();
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// DRAG & DROP
-// ═══════════════════════════════════════════════════════════════════════
-function dragOver(e)  { e.preventDefault(); document.getElementById('dropZone').classList.add('over'); }
-function dragLeave()  { document.getElementById('dropZone').classList.remove('over'); }
-function onDrop(e)    { e.preventDefault(); dragLeave(); addFiles([...e.dataTransfer.files]); }
-function filesSelected(e) { addFiles([...e.target.files]); e.target.value = ''; }
+// ═══════════════════════════════════════════════════════════════════
+// DRAG & DROP / FILE UPLOAD
+// ═══════════════════════════════════════════════════════════════════
+function dragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('over'); }
+function dragLeave() { document.getElementById('dropZone').classList.remove('over'); }
+function onDrop(e) { e.preventDefault(); dragLeave(); addFiles([...e.dataTransfer.files]); }
+function filesSelected(e) { addFiles([...e.target.files]); e.target.value=''; }
 
 function addFiles(list) {
-  const pdfs = list.filter(f => f.name.toLowerCase().endsWith('.pdf'));
-  if (!pdfs.length) { toast('Solo file PDF supportati'); return; }
-  const free = 4 - files.length;
-  if (free <= 0) { toast('Massimo 4 polizze'); return; }
-  pdfs.slice(0, free).forEach(f => files.push({ file:f, name:f.name, text:null, status:'loading' }));
-  renderChips();
-  extractAll();
+  const pdfs = list.filter(f=>f.name.toLowerCase().endsWith('.pdf'));
+  if(!pdfs.length) { toast('Solo file PDF supportati'); return; }
+  const free = 4 - files.length - libSelected.size;
+  if(free<=0) { toast('Massimo 4 polizze totali (libreria + nuovi)'); return; }
+  pdfs.slice(0,free).forEach(f=>files.push({file:f,name:f.name,text:null,status:'loading',extracted:null}));
+  renderChips(); extractAll();
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// CHIPS
-// ═══════════════════════════════════════════════════════════════════════
 function renderChips() {
-  const row = document.getElementById('chipsRow');
-  row.innerHTML = files.map((f,i) => `
+  document.getElementById('chipsRow').innerHTML = files.map((f,i)=>`
     <div class="chip ${f.status}">
       <span>${f.status==='loading'?'⏳':f.status==='ready'?'✅':'❌'}</span>
       <span class="chip-name" title="${esc(f.name)}">${esc(f.name)}</span>
-      ${f.status!=='loading' ? `<button class="chip-x" onclick="removeFile(${i})">×</button>` : ''}
+      ${f.status!=='loading'?`<button class="chip-x" onclick="removeFile(${i})">×</button>`:''}
     </div>`).join('');
-  const ready = files.filter(f=>f.status==='ready').length;
-  const total = files.length;
-  document.getElementById('btnGo').disabled = ready < 2 || ready < total;
-  document.getElementById('uploadHint').textContent = total > 0 ? `${ready} di ${total} pronte` : '';
+  updateUploadButton();
 }
 
 function removeFile(i) { files.splice(i,1); renderChips(); }
 
-// ═══════════════════════════════════════════════════════════════════════
-// PDF EXTRACTION
-// ═══════════════════════════════════════════════════════════════════════
 async function extractAll() {
-  for (let i=0; i<files.length; i++) {
-    if (files[i].text !== null) continue;
-    try {
-      files[i].text = await readPdf(files[i].file);
-      files[i].status = 'ready';
-    } catch { files[i].status = 'error'; }
+  for(let i=0;i<files.length;i++) {
+    if(files[i].text!==null) continue;
+    try { files[i].text=await readPdf(files[i].file); files[i].status='ready'; }
+    catch { files[i].status='error'; }
     renderChips();
   }
 }
 
 async function readPdf(file) {
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-  let out = '';
-  const pages = Math.min(pdf.numPages, 45);
-  for (let p=1; p<=pages; p++) {
-    const pg = await pdf.getPage(p);
-    const ct = await pg.getTextContent();
-    out += ct.items.map(i=>i.str).join(' ') + '\n';
-  }
-  return out.slice(0, 28000);
+  const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let out=''; const pages=Math.min(pdf.numPages,45);
+  for(let p=1;p<=pages;p++){const pg=await pdf.getPage(p);const ct=await pg.getTextContent();out+=ct.items.map(i=>i.str).join(' ')+'\n';}
+  return out.slice(0,28000);
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // COMPARISON FLOW
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 async function startComparison() {
-  const ready = files.filter(f=>f.status==='ready');
-  if (ready.length < 2) return;
+  const libPolicies = getPolizze().filter(p=>libSelected.has(p.id)).map(p=>p.extracted);
+  const newFiles = files.filter(f=>f.status==='ready');
+  if(libPolicies.length + newFiles.length < 2) return;
 
-  show('pagLoading');
-  document.getElementById('loadingTitle').textContent = 'Analisi polizze';
-  document.getElementById('loadingSubtitle').textContent = "L'AI sta leggendo e confrontando le polizze...";
-  const steps = ready.map(f => ({ label: f.name, status:'pending' }));
-  steps.push({ label: 'Generazione analisi comparativa', status:'pending' });
+  navTo('pagLoading');
+  document.getElementById('loadingTitle').textContent='Analisi polizze';
+  document.getElementById('loadingSubtitle').textContent="L'AI sta leggendo e confrontando le polizze...";
+  const steps=[...newFiles.map(f=>({label:f.name,status:'pending'})),{label:'Generazione analisi comparativa',status:'pending'}];
   renderSteps(steps);
 
   try {
-    const extracted = [];
-    for (let i=0; i<ready.length; i++) {
-      steps[i].status = 'active'; renderSteps(steps);
-      const data = await extractPolicy(ready[i].text, ready[i].name);
-      extracted.push(data);
-      steps[i].status = 'done'; renderSteps(steps);
+    const extracted = [...libPolicies];
+    for(let i=0;i<newFiles.length;i++){
+      steps[i].status='active'; renderSteps(steps);
+      const data=await callExtract(newFiles[i].text,newFiles[i].name);
+      newFiles[i].extracted=data; extracted.push(data);
+      steps[i].status='done'; renderSteps(steps);
     }
-    steps[steps.length-1].status = 'active'; renderSteps(steps);
+    steps[steps.length-1].status='active'; renderSteps(steps);
+
+    // Save new to library if checkbox checked
+    if(document.getElementById('saveToLibCheck')?.checked) {
+      newFiles.forEach(f=>{ if(f.extracted) savePolizzaToLib(f.extracted,f.name); });
+    }
+
     renderResults(extracted);
-    generateSummary(extracted).catch(() => {});
-    steps[steps.length-1].status = 'done'; renderSteps(steps);
+    callSummary(extracted).catch(()=>{});
+    steps[steps.length-1].status='done'; renderSteps(steps);
+    const nome=clientAnswers['nome'];
+    document.getElementById('resultsTitle').textContent=nome?`Confronto polizze — ${nome}`:'Confronto polizze';
+    navTo('pagResults');
+  } catch(e) { navTo('pagUpload'); toast('Errore: '+(e.message||'Riprova'),6000); }
+}
 
-    // Set title with client name if from questionnaire
-    const nome = clientAnswers['nome'];
-    document.getElementById('resultsTitle').textContent = nome
-      ? `Confronto polizze — ${nome}`
-      : 'Confronto polizze';
+async function callExtract(text,filename) {
+  const res=await fetch(`${BACKEND}/api/extract`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,filename})});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.detail||`Errore server (${res.status})`);}
+  return res.json();
+}
 
-    show('pagResults');
-  } catch(e) {
-    show('pagUpload');
-    toast('Errore: ' + (e.message || 'Riprova'), 6000);
-  }
+async function callSummary(policies) {
+  const res=await fetch(`${BACKEND}/api/summary`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({policies})});
+  if(!res.ok) return; const d=await res.json();
+  if(d.summary){document.getElementById('aiSummaryText').textContent=d.summary;document.getElementById('aiSummary').style.display='block';}
 }
 
 function renderSteps(steps) {
-  document.getElementById('progressSteps').innerHTML = steps.map(s => `
-    <li class="${s.status}">
-      <span class="step-dot"></span>
-      ${s.status==='done'?'✓ ':s.status==='active'?'→ ':''}${esc(s.label)}
-    </li>`).join('');
+  document.getElementById('progressSteps').innerHTML=steps.map(s=>`<li class="${s.status}"><span class="step-dot"></span>${s.status==='done'?'✓ ':s.status==='active'?'→ ':''}${esc(s.label)}</li>`).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // RENDER RESULTS
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 function renderResults(policies) {
-  const scores = policies.map(p => calcScore(p, policies));
-  const winnerIdx = scores.indexOf(Math.max(...scores));
-  const cols = ['#2563EB','#7C3AED','#D97706','#DC2626'];
-
-  document.getElementById('scoreCards').style.gridTemplateColumns = `repeat(${policies.length}, 1fr)`;
-  document.getElementById('scoreCards').innerHTML = policies.map((p,i) => {
-    const s = scores[i];
-    const circ = 2 * Math.PI * 26;
-    const offset = circ * (1 - s/100);
+  const scores=policies.map(p=>calcScore(p)); const winnerIdx=scores.indexOf(Math.max(...scores));
+  const cols=['#0F2741','#7C3AED','#C8971C','#DC2626'];
+  document.getElementById('scoreCards').style.gridTemplateColumns=`repeat(${policies.length},1fr)`;
+  document.getElementById('scoreCards').innerHTML=policies.map((p,i)=>{
+    const s=scores[i]; const circ=2*Math.PI*25; const offset=circ*(1-s/100);
     return `<div class="score-card ${i===winnerIdx?'winner':''}">
-      <div class="score-ring">
-        <svg width="64" height="64" viewBox="0 0 64 64">
-          <circle class="track" cx="32" cy="32" r="26"/>
-          <circle class="fill" cx="32" cy="32" r="26"
-            stroke="${i===winnerIdx?'#16A34A':cols[i]}"
-            stroke-dasharray="${circ}"
-            stroke-dashoffset="${offset}"/>
-        </svg>
-        <div class="score-num" style="color:${i===winnerIdx?'#16A34A':cols[i]}">${s}</div>
-      </div>
-      <div class="score-body">
-        <div class="score-company">${esc(p.compagnia||'—')}</div>
-        <div class="score-product">${esc(p.prodotto||'—')}</div>
-        <span class="score-tipo">${esc(p.tipo||'—')}</span>
-        ${p.premio ? `<div class="score-premio">Premio: <strong>${esc(p.premio)}</strong></div>` : ''}
-        <div class="score-badges">
-          ${(p.punti_di_forza||[]).slice(0,2).map(b=>`<span class="score-badge best">${esc(b)}</span>`).join('')}
-        </div>
-      </div>
-      ${i===winnerIdx ? '<div class="winner-tag">Migliore</div>' : ''}
+      <div class="score-ring"><svg width="60" height="60" viewBox="0 0 60 60"><circle class="track" cx="30" cy="30" r="25"/><circle class="fill" cx="30" cy="30" r="25" stroke="${i===winnerIdx?'#16A34A':cols[i]}" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/></svg><div class="score-num" style="color:${i===winnerIdx?'#16A34A':cols[i]}">${s}</div></div>
+      <div class="score-body"><div class="score-company">${esc(p.compagnia||'—')}</div><div class="score-product">${esc(p.prodotto||'—')}</div><span class="score-tipo">${esc(p.tipo||'—')}</span>${p.premio?`<div class="score-premio">Premio: <strong>${esc(p.premio)}</strong></div>`:''}<div class="score-badges">${(p.punti_di_forza||[]).slice(0,2).map(b=>`<span class="score-badge best">${esc(b)}</span>`).join('')}</div></div>
+      ${i===winnerIdx?'<div class="winner-tag">Migliore</div>':''}
     </div>`;
   }).join('');
 
-  buildTable(policies, cols);
+  buildTable(policies,cols);
 
-  const adviceGrid = document.getElementById('adviceGrid');
-  const icons = ['🛡️','🔵','🟡','🔴'];
-  adviceGrid.innerHTML = policies.map((p,i) => p.consigliata_per ? `
-    <div class="advice-card">
-      <div class="advice-icon">${icons[i]}</div>
-      <div>
-        <div class="advice-company">${esc(p.compagnia||'')}</div>
-        <div class="advice-for">${esc(p.prodotto||'')}</div>
-        <div class="advice-text">${esc(p.consigliata_per)}</div>
-      </div>
-    </div>` : '').join('');
-  document.getElementById('adviceTitle').style.display = policies.some(p=>p.consigliata_per) ? 'block' : 'none';
-
-  const exclGrid = document.getElementById('exclGrid');
-  const hasExcl = policies.some(p=>p.esclusioni&&p.esclusioni.length);
-  exclGrid.innerHTML = hasExcl ? policies.map(p => p.esclusioni&&p.esclusioni.length ? `
-    <div class="excl-card">
-      <div class="excl-header">
-        <span class="excl-company">${esc(p.compagnia||'')}</span>
-        <span class="excl-product">${esc(p.prodotto||'')}</span>
-      </div>
-      <div class="excl-list">${p.esclusioni.map(e=>`<div class="excl-item">${esc(e)}</div>`).join('')}</div>
-    </div>` : '').join('') : '';
-  document.getElementById('exclTitle').style.display = hasExcl ? 'block' : 'none';
-  document.getElementById('exclGrid').style.gridTemplateColumns = `repeat(${Math.min(policies.length,2)}, 1fr)`;
+  document.getElementById('adviceGrid').innerHTML=policies.map((p,i)=>p.consigliata_per?`<div class="advice-card"><div class="advice-icon">${['🛡️','🔵','🟡','🔴'][i]}</div><div><div class="advice-company">${esc(p.compagnia||'')}</div><div class="advice-for">${esc(p.prodotto||'')}</div><div class="advice-text">${esc(p.consigliata_per)}</div></div></div>`:'').join('');
+  document.getElementById('adviceTitle').style.display=policies.some(p=>p.consigliata_per)?'block':'none';
+  const hasExcl=policies.some(p=>p.esclusioni?.length);
+  document.getElementById('exclGrid').innerHTML=hasExcl?policies.map(p=>p.esclusioni?.length?`<div class="excl-card"><div class="excl-header"><span class="excl-company">${esc(p.compagnia||'')}</span><span class="excl-product"> ${esc(p.prodotto||'')}</span></div><div class="excl-list">${p.esclusioni.map(e=>`<div class="excl-item">${esc(e)}</div>`).join('')}</div></div>`:'').join(''):'';
+  document.getElementById('exclTitle').style.display=hasExcl?'block':'none';
+  document.getElementById('exclGrid').style.gridTemplateColumns=`repeat(${Math.min(policies.length,2)},1fr)`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// TABLE BUILDER
-// ═══════════════════════════════════════════════════════════════════════
-function buildTable(policies, cols) {
-  const byCategory = {};
-  policies.forEach(p => {
-    (p.garanzie||[]).forEach(g => {
-      if (!byCategory[g.categoria]) byCategory[g.categoria] = new Set();
-      byCategory[g.categoria].add(g.nome);
-    });
-  });
-
-  let html = '<thead><tr>';
-  html += '<th style="text-align:left">Garanzia</th>';
-  policies.forEach((p,i) => {
-    html += `<th style="border-top:3px solid ${cols[i]}">
-      <span class="th-company">${esc(p.compagnia||'')}</span>
-      <span class="th-product">${esc(p.prodotto||'')}</span>
-    </th>`;
-  });
-  html += '</tr></thead><tbody>';
-
-  for (const [cat, names] of Object.entries(byCategory)) {
-    html += `<tr class="group-row"><td colspan="${policies.length+1}">${esc(cat)}</td></tr>`;
-    [...names].forEach(name => {
-      const vals = policies.map(p => (p.garanzie||[]).find(g=>g.nome===name) || null);
-      const nums = vals.map(g => g && g.presente ? (g.massimale_num||0) : -1);
-      const maxNum = Math.max(...nums);
-      const somePresent = vals.some(g => g && g.presente);
-
-      html += `<tr><td class="row-label">${esc(name)}</td>`;
-      vals.forEach((g) => {
-        if (!g || !g.presente) {
-          html += `<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;
-          return;
-        }
-        const isBest = somePresent && nums[vals.indexOf(g)] === maxNum && maxNum > 0;
-        const cls = isBest ? 'c-best' : 'c-mid';
-        html += `<td class="cell ${cls}"><div class="cell-inner">`;
-        if (g.massimale) html += `<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
-        const details = [];
-        if (g.franchigia) details.push(`<span class="detail-tag franchigia">Fr. ${esc(g.franchigia)}</span>`);
-        if (g.scoperto)   details.push(`<span class="detail-tag scoperto">Sc. ${esc(g.scoperto)}</span>`);
-        if (!g.franchigia && !g.scoperto) details.push(`<span class="detail-tag niente">Senza franchigia</span>`);
-        if (details.length) html += `<div class="detail-row">${details.join('')}</div>`;
-        if (isBest) html += `<span class="best-pill">migliore</span>`;
-        if (g.note) html += `<div class="note-text">${esc(g.note)}</div>`;
-        html += '</div></td>';
+function buildTable(policies,cols) {
+  const byCategory={};
+  policies.forEach(p=>{(p.garanzie||[]).forEach(g=>{if(!byCategory[g.categoria])byCategory[g.categoria]=new Set();byCategory[g.categoria].add(g.nome);});});
+  let html='<thead><tr><th style="text-align:left">Garanzia</th>';
+  policies.forEach((p,i)=>html+=`<th style="border-top:3px solid ${cols[i]}"><span class="th-company">${esc(p.compagnia||'')}</span><span class="th-product">${esc(p.prodotto||'')}</span></th>`);
+  html+='</tr></thead><tbody>';
+  for(const [cat,names] of Object.entries(byCategory)){
+    html+=`<tr class="group-row"><td colspan="${policies.length+1}">${esc(cat)}</td></tr>`;
+    [...names].forEach(name=>{
+      const vals=policies.map(p=>(p.garanzie||[]).find(g=>g.nome===name)||null);
+      const nums=vals.map(g=>g&&g.presente?(g.massimale_num||0):-1); const maxNum=Math.max(...nums);
+      html+=`<tr><td class="row-label">${esc(name)}</td>`;
+      vals.forEach((g,i)=>{
+        if(!g||!g.presente){html+=`<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;return;}
+        const isBest=nums[i]===maxNum&&maxNum>0;
+        html+=`<td class="cell ${isBest?'c-best':'c-mid'}"><div class="cell-inner">`;
+        if(g.massimale) html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
+        const det=[];
+        if(g.franchigia) det.push(`<span class="detail-tag franchigia">Fr. ${esc(g.franchigia)}</span>`);
+        if(g.scoperto) det.push(`<span class="detail-tag scoperto">Sc. ${esc(g.scoperto)}</span>`);
+        if(!g.franchigia&&!g.scoperto) det.push(`<span class="detail-tag niente">Senza franchigia</span>`);
+        if(det.length) html+=`<div class="detail-row">${det.join('')}</div>`;
+        if(isBest) html+=`<span class="best-pill">migliore</span>`;
+        if(g.note) html+=`<div class="note-text">${esc(g.note)}</div>`;
+        html+='</div></td>';
       });
-      html += '</tr>';
+      html+='</tr>';
     });
   }
-  html += '</tbody>';
-  document.getElementById('compTable').innerHTML = html;
+  html+='</tbody>';
+  document.getElementById('compTable').innerHTML=html;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// SCORE
-// ═══════════════════════════════════════════════════════════════════════
 function calcScore(policy) {
-  const garanzie = policy.garanzie || [];
-  if (!garanzie.length) return 0;
-  let pts = 0, max = 0;
-  garanzie.forEach(g => {
-    max += 3;
-    if (!g.presente) return;
-    pts += 2;
-    if (!g.franchigia && !g.scoperto) pts += 0.5;
-    else if (g.scoperto) pts -= 0.2;
-  });
-  return Math.min(100, Math.max(10, max > 0 ? Math.round((pts/max) * 100) : 0));
+  const g=policy.garanzie||[]; if(!g.length) return 0;
+  let pts=0,max=0;
+  g.forEach(x=>{max+=3;if(!x.presente) return;pts+=2;if(!x.franchigia&&!x.scoperto) pts+=.5;else if(x.scoperto) pts-=.2;});
+  return Math.min(100,Math.max(10,max>0?Math.round((pts/max)*100):0));
 }
 
-// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
 // UTILS
-// ═══════════════════════════════════════════════════════════════════════
-function esc(s) {
-  return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+// ═══════════════════════════════════════════════════════════════════
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function toast(msg,dur=3000) {
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F2741;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+  t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),dur);
 }
 
-function toast(msg, dur=3000) {
-  const t = document.createElement('div');
-  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.2)';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(), dur);
-}
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+renderDashboard();
 </script>
 </body>
 </html>
