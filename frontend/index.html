@@ -555,7 +555,7 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
     </div>
 
     <div class="nav-section-label" style="margin-top:8px">Configura</div>
-    <div class="nav-item" id="nav-impostazioni" onclick="navTo('pagImpostazioni');renderImpostazioni()">
+    <div class="nav-item" id="nav-impostazioni" onclick="navTo('pagImpostazioni')">
       <span class="nav-icon">⚙️</span> Questionario
     </div>
   </div>
@@ -974,7 +974,7 @@ function updateBadges() {
 // ═══════════════════════════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════════════
-const ALL_PAGES = ['pagDashboard','pagClienti','pagClienteDetail','pagLibreria','pagQuestionario','pagRaccomandazioni','pagUpload','pagLoading','pagResults'];
+const ALL_PAGES = ['pagDashboard','pagClienti','pagClienteDetail','pagLibreria','pagQuestionario','pagRaccomandazioni','pagUpload','pagLoading','pagResults','pagImpostazioni'];
 
 function navTo(id) {
   ALL_PAGES.forEach(p => document.getElementById(p).style.display = p===id ? 'block' : 'none');
@@ -986,6 +986,7 @@ function navTo(id) {
   if (id === 'pagDashboard') renderDashboard();
   if (id === 'pagClienti') renderClientList();
   if (id === 'pagLibreria') renderLibreria();
+  if (id === 'pagImpostazioni') renderImpostazioni();
 }
 
 function toggleSidebar() {
