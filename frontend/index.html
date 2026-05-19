@@ -478,6 +478,38 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
   .library-grid { grid-template-columns:1fr; }
   .results-topbar { flex-direction:column; align-items:flex-start; }
 }
+
+/* ═══ QUESTIONNAIRE EDITOR ══════════════════════════════════════════ */
+.qed-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:10px; }
+.qed-section { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg); padding:20px 22px; margin-bottom:16px; box-shadow:var(--shadow-sm); }
+.qed-sez-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--gray-100); }
+.qed-sez-num { width:26px; height:26px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+.qed-input { border:1px solid var(--gray-200); border-radius:8px; padding:7px 10px; font-size:13px; font-family:inherit; color:var(--gray-800); background:var(--gray-50); transition:border-color .15s; outline:none; }
+.qed-input:focus { border-color:var(--polo); background:#fff; }
+.qed-title-input { flex:1; font-weight:600; font-size:15px; }
+.qed-icon-input { width:48px; text-align:center; font-size:18px; }
+.qed-domanda { background:var(--gray-50); border:1px solid var(--gray-100); border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+.qed-dom-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.qed-dom-label { flex:1; }
+.qed-select { border:1px solid var(--gray-200); border-radius:8px; padding:7px 10px; font-size:12px; font-family:inherit; color:var(--gray-700); background:var(--gray-50); cursor:pointer; outline:none; }
+.qed-select:focus { border-color:var(--polo); }
+.qed-options { padding:8px 0 4px; display:flex; flex-direction:column; gap:6px; }
+.qed-opt-row { display:flex; align-items:center; gap:6px; }
+.qed-opt-input { flex:1; font-size:12px; }
+.btn-icon-sm { background:none; border:none; cursor:pointer; color:var(--gray-400); font-size:14px; padding:4px 6px; border-radius:6px; transition:color .15s,background .15s; }
+.btn-icon-sm:hover { color:var(--red); background:rgba(239,68,68,.08); }
+.btn-icon-sm.del-sez:hover { color:var(--red); }
+.qed-add-opt { font-size:11px; color:var(--polo); background:none; border:1px dashed var(--gray-300); border-radius:6px; padding:5px 10px; cursor:pointer; margin-top:2px; width:fit-content; transition:border-color .15s,color .15s; }
+.qed-add-opt:hover { border-color:var(--polo); }
+.qed-add-dom { font-size:12px; color:var(--polo); background:none; border:1px dashed var(--gray-300); border-radius:8px; padding:8px 14px; cursor:pointer; margin-top:6px; width:100%; text-align:center; transition:border-color .15s; }
+.qed-add-dom:hover { border-color:var(--polo); background:rgba(15,39,65,.03); }
+.qed-add-sez { font-size:13px; color:var(--polo); background:none; border:2px dashed var(--gray-200); border-radius:12px; padding:14px; cursor:pointer; width:100%; text-align:center; margin-top:8px; transition:border-color .15s,background .15s; }
+.qed-add-sez:hover { border-color:var(--polo); background:rgba(15,39,65,.03); }
+.qed-empty { text-align:center; color:var(--gray-400); padding:20px 0 10px; font-size:13px; }
+.qed-obblig { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--gray-500); margin-left:auto; }
+.qed-obblig input[type=checkbox] { accent-color:var(--polo); }
+.qed-max-row { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--gray-500); margin-top:4px; }
+.qed-max-row input[type=number] { width:50px; }
 </style>
 </head>
 <body>
@@ -520,6 +552,11 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
     </div>
     <div class="nav-item" onclick="startDirectComparison()">
       <span class="nav-icon">📑</span> Confronto rapido
+    </div>
+
+    <div class="nav-section-label" style="margin-top:8px">Configura</div>
+    <div class="nav-item" id="nav-impostazioni" onclick="navTo('pagImpostazioni');renderImpostazioni()">
+      <span class="nav-icon">⚙️</span> Questionario
     </div>
   </div>
 
@@ -769,6 +806,24 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 </div>
 </div>
 
+<!-- ══ IMPOSTAZIONI QUESTIONARIO ═════════════════════════════════════ -->
+<div id="pagImpostazioni" style="display:none">
+<div class="page">
+  <div class="page-header qed-toolbar">
+    <div>
+      <div class="page-title">⚙️ Modifica questionario</div>
+      <div class="page-subtitle">Aggiungi, rimuovi o modifica sezioni e domande. Le modifiche sono salvate localmente.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="resetQConfigUI()">↩ Ripristina default</button>
+      <button class="btn btn-primary" onclick="applyQConfig()">💾 Salva modifiche</button>
+    </div>
+  </div>
+  <div id="qeditor"></div>
+  <button class="qed-add-sez" onclick="qcfgAddSez()">＋ Aggiungi sezione</button>
+</div>
+</div>
+
 </div><!-- end .main-content -->
 
 <!-- ══ PRINT-ONLY CLIENT PROFILE ═══════════════════════════════════ -->
@@ -810,7 +865,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 // ═══════════════════════════════════════════════════════════════════
 const BACKEND = (window.PF_BACKEND_URL || 'https://polizza-facile-production.up.railway.app').replace(/\/$/, '');
 
-const QUESTIONNAIRE_CONFIG = {
+const DEFAULT_QUESTIONNAIRE_CONFIG = {
   sezioni: [
     { id:"anagrafica", titolo:"Informazioni personali", icona:"👤", domande:[
       { id:"nome", tipo:"testo", label:"Nome e cognome del cliente", placeholder:"es. Mario Rossi" },
@@ -841,6 +896,23 @@ const QUESTIONNAIRE_CONFIG = {
     ]}
   ]
 };
+
+// ── QUESTIONNAIRE CONFIG (localStorage-backed) ────────────────────
+let QUESTIONNAIRE_CONFIG = (function() {
+  try {
+    const s = localStorage.getItem('pf_qconfig');
+    if (s) return JSON.parse(s);
+  } catch {}
+  return JSON.parse(JSON.stringify(DEFAULT_QUESTIONNAIRE_CONFIG));
+})();
+
+function saveQConfig() {
+  localStorage.setItem('pf_qconfig', JSON.stringify(QUESTIONNAIRE_CONFIG));
+}
+function resetQConfig() {
+  QUESTIONNAIRE_CONFIG = JSON.parse(JSON.stringify(DEFAULT_QUESTIONNAIRE_CONFIG));
+  localStorage.removeItem('pf_qconfig');
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // STATE
@@ -1463,6 +1535,136 @@ function calcScore(policy) {
   let pts=0,max=0;
   g.forEach(x=>{max+=3;if(!x.presente) return;pts+=2;if(!x.franchigia&&!x.scoperto) pts+=.5;else if(x.scoperto) pts-=.2;});
   return Math.min(100,Math.max(10,max>0?Math.round((pts/max)*100):0));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// QUESTIONNAIRE EDITOR
+// ═══════════════════════════════════════════════════════════════════
+
+function renderImpostazioni() {
+  const cfg = QUESTIONNAIRE_CONFIG;
+  let html = '';
+  cfg.sezioni.forEach((sez, si) => {
+    const hasMultiple = cfg.sezioni.length > 1;
+    html += `<div class="qed-section">
+      <div class="qed-sez-header">
+        <div class="qed-sez-num">${si+1}</div>
+        <input class="qed-input qed-icon-input" value="${esc(sez.icona)}" oninput="qcfgSetSez(${si},'icona',this.value)" title="Emoji icona" />
+        <input class="qed-input qed-title-input" value="${esc(sez.titolo)}" oninput="qcfgSetSez(${si},'titolo',this.value)" placeholder="Titolo sezione" />
+        ${hasMultiple ? `<button class="btn-icon-sm del-sez" onclick="qcfgDelSez(${si})" title="Elimina sezione">🗑</button>` : ''}
+      </div>`;
+    if (!sez.domande.length) html += `<div class="qed-empty">Nessuna domanda — aggiungine una sotto</div>`;
+    sez.domande.forEach((q, qi) => { html += renderQEdDomanda(si, qi, q); });
+    html += `<button class="qed-add-dom" onclick="qcfgAddDomanda(${si})">＋ Aggiungi domanda</button>
+    </div>`;
+  });
+  document.getElementById('qeditor').innerHTML = html;
+}
+
+function renderQEdDomanda(si, qi, q) {
+  const hasOpts = q.tipo === 'scelta_singola' || q.tipo === 'scelta_multipla';
+  const obblig = q.obbligatoria !== false;
+  let html = `<div class="qed-domanda">
+    <div class="qed-dom-row">
+      <input class="qed-input qed-dom-label" value="${esc(q.label)}" oninput="qcfgSetDom(${si},${qi},'label',this.value)" placeholder="Testo domanda" />
+      <select class="qed-select" onchange="qcfgSetDom(${si},${qi},'tipo',this.value);qcfgInitOpts(${si},${qi});renderImpostazioni()">
+        <option value="scelta_singola" ${q.tipo==='scelta_singola'?'selected':''}>Scelta singola</option>
+        <option value="scelta_multipla" ${q.tipo==='scelta_multipla'?'selected':''}>Scelta multipla</option>
+        <option value="testo" ${q.tipo==='testo'?'selected':''}>Testo libero</option>
+        <option value="testo_lungo" ${q.tipo==='testo_lungo'?'selected':''}>Testo lungo</option>
+      </select>
+      <label class="qed-obblig" title="Obbligatoria">
+        <input type="checkbox" ${obblig?'checked':''} onchange="qcfgSetDom(${si},${qi},'obbligatoria',this.checked)" />
+        Obblig.
+      </label>
+      <button class="btn-icon-sm" onclick="qcfgDelDomanda(${si},${qi})" title="Elimina domanda">🗑</button>
+    </div>`;
+  if (q.tipo==='testo'||q.tipo==='testo_lungo') {
+    html += `<div style="padding:2px 0 4px"><input class="qed-input" style="width:100%;font-size:12px" value="${esc(q.placeholder||'')}" oninput="qcfgSetDom(${si},${qi},'placeholder',this.value)" placeholder="Placeholder (opzionale)" /></div>`;
+  }
+  if (hasOpts) {
+    html += `<div class="qed-options">`;
+    (q.opzioni||[]).forEach((opt,oi) => {
+      html += `<div class="qed-opt-row">
+        <span style="font-size:11px;color:var(--gray-400);width:18px;flex-shrink:0">${oi+1}.</span>
+        <input class="qed-input qed-opt-input" value="${esc(opt)}" oninput="qcfgSetOpt(${si},${qi},${oi},this.value)" placeholder="Opzione..." />
+        <button class="btn-icon-sm" onclick="qcfgDelOpt(${si},${qi},${oi})" title="Elimina opzione">✕</button>
+      </div>`;
+    });
+    html += `<button class="qed-add-opt" onclick="qcfgAddOpt(${si},${qi})">＋ Aggiungi opzione</button>`;
+    if (q.tipo==='scelta_multipla') {
+      html += `<div class="qed-max-row">Max selezioni:
+        <input class="qed-input" type="number" min="1" max="10" value="${q.max||''}" oninput="qcfgSetDom(${si},${qi},'max',this.value?parseInt(this.value):undefined)" placeholder="illim." style="width:50px;padding:4px 6px;font-size:12px" />
+        <span style="color:var(--gray-400)">(lascia vuoto = illimitato)</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function qcfgSetSez(si, field, val) { QUESTIONNAIRE_CONFIG.sezioni[si][field] = val; }
+function qcfgSetDom(si, qi, field, val) { QUESTIONNAIRE_CONFIG.sezioni[si].domande[qi][field] = val; }
+function qcfgSetOpt(si, qi, oi, val) { QUESTIONNAIRE_CONFIG.sezioni[si].domande[qi].opzioni[oi] = val; }
+
+function qcfgInitOpts(si, qi) {
+  const q = QUESTIONNAIRE_CONFIG.sezioni[si].domande[qi];
+  if ((q.tipo==='scelta_singola'||q.tipo==='scelta_multipla') && !q.opzioni?.length) {
+    q.opzioni = ['Opzione 1','Opzione 2','Opzione 3'];
+  }
+}
+
+function qcfgAddOpt(si, qi) {
+  const q = QUESTIONNAIRE_CONFIG.sezioni[si].domande[qi];
+  if (!q.opzioni) q.opzioni = [];
+  q.opzioni.push('Nuova opzione');
+  renderImpostazioni();
+}
+function qcfgDelOpt(si, qi, oi) {
+  QUESTIONNAIRE_CONFIG.sezioni[si].domande[qi].opzioni.splice(oi, 1);
+  renderImpostazioni();
+}
+function qcfgAddDomanda(si) {
+  QUESTIONNAIRE_CONFIG.sezioni[si].domande.push({
+    id: 'dom_' + Date.now(),
+    tipo: 'scelta_singola',
+    label: 'Nuova domanda',
+    opzioni: ['Opzione 1','Opzione 2','Opzione 3'],
+    obbligatoria: true
+  });
+  renderImpostazioni();
+}
+function qcfgDelDomanda(si, qi) {
+  if (!confirm('Eliminare questa domanda?')) return;
+  QUESTIONNAIRE_CONFIG.sezioni[si].domande.splice(qi, 1);
+  renderImpostazioni();
+}
+function qcfgDelSez(si) {
+  if (QUESTIONNAIRE_CONFIG.sezioni.length <= 1) { toast('Serve almeno una sezione'); return; }
+  if (!confirm(`Eliminare la sezione "${QUESTIONNAIRE_CONFIG.sezioni[si].titolo}" con tutte le sue domande?`)) return;
+  QUESTIONNAIRE_CONFIG.sezioni.splice(si, 1);
+  renderImpostazioni();
+}
+function qcfgAddSez() {
+  QUESTIONNAIRE_CONFIG.sezioni.push({
+    id: 'sez_' + Date.now(),
+    titolo: 'Nuova sezione',
+    icona: '📋',
+    domande: []
+  });
+  renderImpostazioni();
+  setTimeout(() => document.getElementById('qeditor').lastElementChild?.previousElementSibling?.scrollIntoView({behavior:'smooth'}), 50);
+}
+function applyQConfig() {
+  saveQConfig();
+  toast('✓ Questionario salvato');
+}
+function resetQConfigUI() {
+  if (!confirm('Ripristinare le domande predefinite? Le modifiche andranno perse.')) return;
+  resetQConfig();
+  renderImpostazioni();
+  toast('Domande ripristinate ai valori di default');
 }
 
 // ═══════════════════════════════════════════════════════════════════
