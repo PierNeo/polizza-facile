@@ -10,9 +10,18 @@ load_dotenv()
 
 app = FastAPI(title="Polizza Facile API")
 
+ALLOWED_ORIGINS = [
+    "https://polizza-facile-git-main-pierneos-projects.vercel.app",
+    "https://polizza-facile.vercel.app",  # dominio custom se aggiunto in futuro
+]
+# Override da env var (per sviluppo locale o domini aggiuntivi)
+_env_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
+if _env_origins:
+    ALLOWED_ORIGINS = [o.strip() for o in _env_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
