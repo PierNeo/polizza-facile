@@ -479,6 +479,59 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
   .results-topbar { flex-direction:column; align-items:flex-start; }
 }
 
+/* ═══ MATCH AI ══════════════════════════════════════════════════════ */
+.match-layout { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+@media(max-width:800px) { .match-layout { grid-template-columns:1fr; } }
+.match-panel { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); }
+.match-panel-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:14px; }
+.match-client-card { display:flex; gap:12px; align-items:center; padding:12px; border:2px solid transparent; border-radius:10px; cursor:pointer; transition:border-color .15s,background .15s; margin-bottom:8px; }
+.match-client-card:hover { background:var(--gray-50); border-color:var(--gray-200); }
+.match-client-card.selected { border-color:var(--polo); background:rgba(15,39,65,.04); }
+.match-client-card .mc-avatar { width:36px; height:36px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+.match-client-card .mc-name { font-size:13px; font-weight:600; color:var(--gray-900); }
+.match-client-card .mc-meta { font-size:11px; color:var(--gray-400); }
+.match-policy-card { display:flex; gap:10px; align-items:center; padding:10px 12px; border:2px solid transparent; border-radius:10px; cursor:pointer; transition:border-color .15s,background .15s; margin-bottom:8px; }
+.match-policy-card:hover { background:var(--gray-50); border-color:var(--gray-200); }
+.match-policy-card.selected { border-color:var(--gold); background:rgba(200,151,28,.06); }
+.match-policy-card .mp-icon { font-size:20px; flex-shrink:0; }
+.match-policy-card .mp-name { font-size:13px; font-weight:600; color:var(--gray-900); }
+.match-policy-card .mp-meta { font-size:11px; color:var(--gray-400); }
+.match-run-bar { display:flex; align-items:center; gap:12px; padding:16px 0; border-top:1px solid var(--gray-100); border-bottom:1px solid var(--gray-100); margin-bottom:24px; }
+.match-results { margin-top:8px; }
+.match-rec-box { background:linear-gradient(135deg,rgba(15,39,65,.05),rgba(200,151,28,.08)); border:1px solid rgba(200,151,28,.25); border-radius:var(--radius-lg); padding:20px 24px; margin-bottom:24px; }
+.match-rec-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gold); margin-bottom:8px; }
+.match-rec-text { font-size:14px; color:var(--gray-800); line-height:1.7; }
+.match-tip { font-size:12px; color:var(--polo); margin-top:10px; padding-top:10px; border-top:1px solid rgba(200,151,28,.2); font-style:italic; }
+.match-cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; margin-bottom:24px; }
+.match-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg); padding:18px 20px; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; }
+.match-card.top-pick::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--polo),var(--gold)); }
+.match-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+.match-card-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); }
+.match-card-name { font-size:14px; font-weight:700; color:var(--gray-900); margin-top:2px; }
+.match-score-ring { width:52px; height:52px; flex-shrink:0; }
+.match-score-ring svg { transform:rotate(-90deg); }
+.match-score-num { font-size:13px; font-weight:800; color:var(--polo); text-anchor:middle; dominant-baseline:central; }
+.match-budget-badge { display:inline-block; font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; margin-bottom:10px; }
+.match-budget-badge.ottimo { background:rgba(34,197,94,.12); color:#15803d; }
+.match-budget-badge.buono { background:rgba(59,130,246,.12); color:#1d4ed8; }
+.match-budget-badge.stretto { background:rgba(245,158,11,.12); color:#b45309; }
+.match-budget-badge.fuori { background:rgba(239,68,68,.12); color:#dc2626; }
+.match-gap-list { margin:10px 0; display:flex; flex-direction:column; gap:5px; }
+.match-gap-item { display:flex; align-items:center; gap:8px; font-size:12px; }
+.match-gap-bar { flex:1; height:5px; background:var(--gray-100); border-radius:3px; overflow:hidden; }
+.match-gap-fill { height:100%; border-radius:3px; background:var(--polo); transition:width .4s; }
+.match-gap-fill.low { background:var(--red); }
+.match-gap-fill.mid { background:#f59e0b; }
+.match-gap-fill.high { background:#22c55e; }
+.match-verdict { font-size:12px; color:var(--gray-600); line-height:1.55; margin-top:10px; padding-top:10px; border-top:1px solid var(--gray-100); }
+.match-strengths { margin-top:10px; }
+.match-str-item { font-size:11px; color:#15803d; display:flex; gap:5px; margin-bottom:3px; }
+.match-str-item::before { content:'✓'; font-weight:700; }
+.match-weak-item { font-size:11px; color:var(--red); display:flex; gap:5px; margin-bottom:3px; }
+.match-weak-item::before { content:'✗'; font-weight:700; }
+.match-rank-badge { position:absolute; top:12px; right:12px; width:22px; height:22px; border-radius:50%; background:var(--gold); color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.match-empty { text-align:center; padding:32px; color:var(--gray-400); }
+
 /* ═══ ONBOARDING ════════════════════════════════════════════════════ */
 .onboarding { background:linear-gradient(135deg,rgba(15,39,65,.04) 0%,rgba(200,151,28,.06) 100%); border:1px solid rgba(200,151,28,.2); border-radius:var(--radius-lg); padding:28px 28px 22px; margin-bottom:28px; position:relative; }
 .onboarding-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
@@ -570,6 +623,11 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
     </div>
     <div class="nav-item" onclick="startDirectComparison()">
       <span class="nav-icon">📑</span> Confronto rapido
+    </div>
+
+    <div class="nav-section-label" style="margin-top:8px">AI</div>
+    <div class="nav-item" id="nav-match" onclick="navTo('pagMatch')">
+      <span class="nav-icon">🎯</span> Match AI
     </div>
 
     <div class="nav-section-label" style="margin-top:8px">Configura</div>
@@ -859,6 +917,38 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 </div>
 </div>
 
+<!-- ══ MATCH AI ══════════════════════════════════════════════════════ -->
+<div id="pagMatch" style="display:none">
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">🎯 Match AI</div>
+      <div class="page-subtitle">Seleziona un cliente e le polizze da confrontare — l'AI analizza la compatibilità</div>
+    </div>
+  </div>
+
+  <div class="match-layout">
+    <!-- Selezione cliente -->
+    <div class="match-panel">
+      <div class="match-panel-title">👤 Seleziona cliente</div>
+      <div id="matchClientList"><div class="match-empty">Nessun cliente nello storico.<br>Compila prima un questionario.</div></div>
+    </div>
+    <!-- Selezione polizze -->
+    <div class="match-panel">
+      <div class="match-panel-title">📚 Seleziona polizze (max 4)</div>
+      <div id="matchPolicyList"><div class="match-empty">Nessuna polizza in libreria.<br>Carica prima alcune polizze.</div></div>
+    </div>
+  </div>
+
+  <div class="match-run-bar">
+    <button class="btn btn-primary" id="btnRunMatch" onclick="runMatch()" disabled>✦ Analizza compatibilità</button>
+    <span id="matchSelStatus" style="font-size:13px;color:var(--gray-400)">Seleziona un cliente e almeno una polizza</span>
+  </div>
+
+  <div id="matchResults"></div>
+</div>
+</div>
+
 <!-- ══ IMPOSTAZIONI QUESTIONARIO ═════════════════════════════════════ -->
 <div id="pagImpostazioni" style="display:none">
 <div class="page">
@@ -1027,7 +1117,7 @@ function updateBadges() {
 // ═══════════════════════════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════════════
-const ALL_PAGES = ['pagDashboard','pagClienti','pagClienteDetail','pagLibreria','pagQuestionario','pagRaccomandazioni','pagUpload','pagLoading','pagResults','pagImpostazioni'];
+const ALL_PAGES = ['pagDashboard','pagClienti','pagClienteDetail','pagLibreria','pagQuestionario','pagRaccomandazioni','pagUpload','pagLoading','pagResults','pagImpostazioni','pagMatch'];
 
 function navTo(id) {
   ALL_PAGES.forEach(p => document.getElementById(p).style.display = p===id ? 'block' : 'none');
@@ -1040,6 +1130,10 @@ function navTo(id) {
   if (id === 'pagClienti') renderClientList();
   if (id === 'pagLibreria') renderLibreria();
   if (id === 'pagImpostazioni') renderImpostazioni();
+  if (id === 'pagMatch') renderMatchPage();
+  // highlight nav
+  const navMap2 = { pagMatch:'nav-match' };
+  if (navMap2[id]) document.getElementById(navMap2[id])?.classList.add('active');
 }
 
 function toggleSidebar() {
@@ -1597,6 +1691,171 @@ function calcScore(policy) {
   let pts=0,max=0;
   g.forEach(x=>{max+=3;if(!x.presente) return;pts+=2;if(!x.franchigia&&!x.scoperto) pts+=.5;else if(x.scoperto) pts-=.2;});
   return Math.min(100,Math.max(10,max>0?Math.round((pts/max)*100):0));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MATCH AI
+// ═══════════════════════════════════════════════════════════════════
+let matchSelectedClient = null;
+let matchSelectedPolicies = new Set(); // IDs polizze selezionate
+
+function renderMatchPage() {
+  matchSelectedClient = null;
+  matchSelectedPolicies = new Set();
+  document.getElementById('matchResults').innerHTML = '';
+  renderMatchClientList();
+  renderMatchPolicyList();
+  updateMatchRunBar();
+}
+
+function renderMatchClientList() {
+  const clients = getClients();
+  const el = document.getElementById('matchClientList');
+  if (!clients.length) { el.innerHTML = '<div class="match-empty">Nessun cliente nello storico.<br>Compila prima un questionario.</div>'; return; }
+  el.innerHTML = clients.slice(0,10).map(c => {
+    const initials = (c.nome||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const recs = c.raccomandazioni?.raccomandazioni||[];
+    const urgente = recs.find(r=>r.urgenza==='alta');
+    const sel = matchSelectedClient?.id === c.id;
+    return `<div class="match-client-card${sel?' selected':''}" onclick="selectMatchClient('${c.id}')">
+      <div class="mc-avatar">${esc(initials)}</div>
+      <div>
+        <div class="mc-name">${esc(c.nome)}</div>
+        <div class="mc-meta">${new Date(c.data).toLocaleDateString('it-IT')}${urgente?' · ⚠ '+esc(urgente.tipo):''}</div>
+      </div>
+      ${sel?'<span style="margin-left:auto;color:var(--polo);font-size:16px">✓</span>':''}
+    </div>`;
+  }).join('');
+}
+
+function renderMatchPolicyList() {
+  const polizze = getPolizze();
+  const el = document.getElementById('matchPolicyList');
+  if (!polizze.length) { el.innerHTML = '<div class="match-empty">Nessuna polizza in libreria.<br>Carica prima alcune polizze.</div>'; return; }
+  el.innerHTML = polizze.map(p => {
+    const sel = matchSelectedPolicies.has(p.id);
+    const icon = {vita:'❤️',salute:'🏥',casa:'🏠','rc auto':'🚗',infortuni:'🦺',risparmio:'💰'}[p.tipo?.toLowerCase()] || '📄';
+    return `<div class="match-policy-card${sel?' selected':''}" onclick="toggleMatchPolicy('${p.id}')">
+      <div class="mp-icon">${icon}</div>
+      <div style="flex:1">
+        <div class="mp-name">${esc(p.compagnia)} — ${esc(p.prodotto)}</div>
+        <div class="mp-meta">${esc(p.tipo||'?')} · ${new Date(p.data).toLocaleDateString('it-IT')}</div>
+      </div>
+      ${sel?'<span style="color:var(--gold);font-size:16px;flex-shrink:0">✓</span>':''}
+    </div>`;
+  }).join('');
+}
+
+function selectMatchClient(id) {
+  const clients = getClients();
+  matchSelectedClient = clients.find(c=>c.id===id) || null;
+  renderMatchClientList();
+  updateMatchRunBar();
+}
+
+function toggleMatchPolicy(id) {
+  if (matchSelectedPolicies.has(id)) {
+    matchSelectedPolicies.delete(id);
+  } else {
+    if (matchSelectedPolicies.size >= 4) { toast('Massimo 4 polizze per il match'); return; }
+    matchSelectedPolicies.add(id);
+  }
+  renderMatchPolicyList();
+  updateMatchRunBar();
+}
+
+function updateMatchRunBar() {
+  const btn = document.getElementById('btnRunMatch');
+  const status = document.getElementById('matchSelStatus');
+  const ready = matchSelectedClient && matchSelectedPolicies.size > 0;
+  btn.disabled = !ready;
+  if (!matchSelectedClient && matchSelectedPolicies.size === 0) status.textContent = 'Seleziona un cliente e almeno una polizza';
+  else if (!matchSelectedClient) status.textContent = 'Seleziona un cliente';
+  else if (matchSelectedPolicies.size === 0) status.textContent = 'Seleziona almeno una polizza';
+  else status.textContent = `${matchSelectedClient.nome} · ${matchSelectedPolicies.size} polizz${matchSelectedPolicies.size===1?'a':'e'} selezionat${matchSelectedPolicies.size===1?'a':'e'}`;
+}
+
+async function runMatch() {
+  if (!matchSelectedClient || !matchSelectedPolicies.size) return;
+  const polizze = getPolizze();
+  const selectedPols = [...matchSelectedPolicies].map(id => polizze.find(p=>p.id===id)?.extracted).filter(Boolean);
+
+  document.getElementById('matchResults').innerHTML = `
+    <div style="text-align:center;padding:40px;color:var(--gray-500)">
+      <div style="font-size:32px;margin-bottom:12px">✦</div>
+      <div style="font-weight:600;margin-bottom:4px">Analisi in corso...</div>
+      <div style="font-size:12px">L'AI sta incrociando il profilo cliente con le polizze selezionate</div>
+    </div>`;
+
+  try {
+    const res = await fetch(`${BACKEND}/api/match`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ client: matchSelectedClient, policies: selectedPols, feedback_history: [] })
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    const data = await res.json();
+    renderMatchResults(data, selectedPols);
+  } catch(e) {
+    document.getElementById('matchResults').innerHTML = `<div class="match-empty" style="color:var(--red)">Errore: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderMatchResults(data, policies) {
+  const ranking = data.ranking || policies.map((_,i)=>i);
+
+  let html = `<div class="match-results">`;
+
+  // Box raccomandazione principale
+  html += `<div class="match-rec-box">
+    <div class="match-rec-label">✦ Raccomandazione AI</div>
+    <div class="match-rec-text">${esc(data.top_recommendation||'')}</div>
+    ${data.agent_tip ? `<div class="match-tip">💡 Consiglio per l'agente: ${esc(data.agent_tip)}</div>` : ''}
+  </div>`;
+
+  // Cards polizze ordinate per ranking
+  html += `<div class="section-title">Analisi compatibilità</div><div class="match-cards-grid">`;
+  ranking.forEach((pi, rankIdx) => {
+    const pm = (data.policy_matches||[]).find(m=>m.policy_index===pi);
+    const pol = policies[pi];
+    if (!pm || !pol) return;
+    const score = pm.compatibility_score || 0;
+    const budgetClass = {'ottimo':'ottimo','buono':'buono','stretto':'stretto','fuori budget':'fuori'}[pm.budget_fit?.toLowerCase()] || 'buono';
+    const circumference = 2 * Math.PI * 20;
+    const dash = (score/100) * circumference;
+    const scoreColor = score>=70?'#22c55e':score>=45?'#f59e0b':'#ef4444';
+
+    html += `<div class="match-card${rankIdx===0?' top-pick':''}">
+      ${rankIdx < 3 ? `<div class="match-rank-badge">${rankIdx+1}</div>` : ''}
+      <div class="match-card-header">
+        <div>
+          <div class="match-card-company">${esc(pol.compagnia||'?')}</div>
+          <div class="match-card-name">${esc(pol.prodotto||'?')}</div>
+        </div>
+        <svg class="match-score-ring" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="20" fill="none" stroke="var(--gray-100)" stroke-width="3.5"/>
+          <circle cx="22" cy="22" r="20" fill="none" stroke="${scoreColor}" stroke-width="3.5"
+            stroke-dasharray="${dash} ${circumference}" stroke-linecap="round"/>
+          <text x="22" y="22" class="match-score-num" style="font-size:10px;font-weight:800;fill:${scoreColor};transform:rotate(90deg);transform-origin:center"
+            transform="rotate(90,22,22)" text-anchor="middle" dominant-baseline="central">${score}</text>
+        </svg>
+      </div>
+      <span class="match-budget-badge ${budgetClass}">Budget: ${esc(pm.budget_fit||'?')}</span>
+      ${pm.gap_coverage?.length ? `<div class="match-gap-list">${pm.gap_coverage.map(g=>{
+        const fillClass = g.score>=70?'high':g.score>=40?'mid':'low';
+        return `<div class="match-gap-item">
+          <span style="font-size:10px;color:var(--gray-500);min-width:120px;line-height:1.3">${esc(g.gap)}</span>
+          <div class="match-gap-bar"><div class="match-gap-fill ${fillClass}" style="width:${g.score||0}%"></div></div>
+          <span style="font-size:10px;color:var(--gray-400);min-width:28px;text-align:right">${g.score||0}%</span>
+        </div>`;
+      }).join('')}</div>` : ''}
+      ${pm.strengths?.length ? `<div class="match-strengths">${pm.strengths.slice(0,2).map(s=>`<div class="match-str-item">${esc(s)}</div>`).join('')}</div>` : ''}
+      ${pm.weaknesses?.length ? `<div class="match-strengths">${pm.weaknesses.slice(0,2).map(w=>`<div class="match-weak-item">${esc(w)}</div>`).join('')}</div>` : ''}
+      <div class="match-verdict">${esc(pm.verdict||'')}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  document.getElementById('matchResults').innerHTML = html;
 }
 
 // ═══════════════════════════════════════════════════════════════════

@@ -69,6 +69,11 @@ class RaccomandaRequest(BaseModel):
     risposte: dict
     agenzia: str = "default"
 
+class MatchRequest(BaseModel):
+    client: dict        # {nome, answers, raccomandazioni}
+    policies: list      # lista di polizze estratte dalla libreria
+    feedback_history: list = []  # feedback passati rilevanti (opzionale)
+
 
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
 
@@ -201,6 +206,100 @@ Regole:
         raise
     except Exception as e:
         raise HTTPException(500, f"Errore raccomandazioni: {str(e)}")
+
+
+@app.post("/api/match")
+async def match_client_policies(req: MatchRequest):
+    """Analisi incrociata cliente/polizze con punteggi di compatibilità."""
+    import re, json as _json
+    if not req.client or not req.policies:
+        raise HTTPException(400, "Cliente e almeno una polizza sono richiesti")
+
+    # Costruisci il profilo cliente
+    answers = req.client.get("answers", {})
+    recs = req.client.get("raccomandazioni", {})
+    gaps = recs.get("gap_principali", []) if recs else []
+    profile_lines = "\n".join([f"  - {k}: {v}" for k, v in answers.items()])
+    gaps_text = "\n".join([f"  - {g}" for g in gaps]) if gaps else "  - Non disponibili"
+
+    # Costruisci il sommario delle polizze
+    policies_text = ""
+    for i, p in enumerate(req.policies):
+        garanzie = p.get("garanzie", [])
+        g_text = ", ".join([f"{g['nome']} (max: {g.get('massimale','N/D')}, fr: {g.get('franchigia','nessuna')})"
+                           for g in garanzie if g.get("presente")])
+        policies_text += f"""
+Polizza {i+1}: {p.get('compagnia','?')} — {p.get('prodotto','?')}
+  Tipo: {p.get('tipo','?')} | Premio: {p.get('premio','N/D')}
+  Garanzie attive: {g_text or 'N/D'}
+  Punti di forza: {', '.join(p.get('punti_di_forza',[]))}
+  Consigliata per: {p.get('consigliata_per','N/D')}
+"""
+
+    # Esempi da feedback storici rilevanti
+    feedback_text = ""
+    if req.feedback_history:
+        feedback_text = "\n\nESEMPI DA CASI PRECEDENTI SIMILI (usa per calibrare):\n"
+        for fb in req.feedback_history[:5]:
+            feedback_text += f"  - Profilo simile ({fb.get('clientType','?')}): {fb.get('note','')}" \
+                           f" → Polizza scelta: {fb.get('chosenPolicy','?')} | Rating: {fb.get('rating','?')}/5\n"
+
+    prompt = f"""Sei un esperto consulente assicurativo italiano di Polo Assicurativo Bassano.
+Analizza la compatibilità tra il profilo di questo cliente e le polizze disponibili.
+
+PROFILO CLIENTE — {req.client.get('nome','Cliente')}:
+{profile_lines}
+
+GAP ASSICURATIVI IDENTIFICATI:
+{gaps_text}
+{feedback_text}
+POLIZZE DA VALUTARE:
+{policies_text}
+
+Restituisci SOLO un JSON valido con questa struttura:
+{{
+  "client_summary": "Sintesi del profilo e dei bisogni principali in 2 frasi",
+  "gap_analysis": ["gap 1", "gap 2", "gap 3"],
+  "policy_matches": [
+    {{
+      "policy_index": 0,
+      "compatibility_score": 85,
+      "budget_fit": "ottimo | buono | stretto | fuori budget",
+      "gap_coverage": [
+        {{"gap": "nome gap", "covered": true, "score": 90, "note": "spiegazione breve"}}
+      ],
+      "strengths": ["punto di forza 1 per questo cliente", "punto 2"],
+      "weaknesses": ["lacuna 1 per questo cliente", "lacuna 2"],
+      "verdict": "1 frase: perché conviene o no per questo cliente"
+    }}
+  ],
+  "ranking": [0, 1, 2],
+  "top_recommendation": "Spiegazione in 2-3 frasi di quale polizza consigliare e perché, con riferimento ai bisogni specifici del cliente",
+  "agent_tip": "Consiglio pratico per l'agente su come presentare la proposta a questo cliente"
+}}
+
+Regole:
+- compatibility_score: 0-100, quanto la polizza copre i bisogni di QUESTO specifico cliente
+- gap_coverage: analizza ogni gap identificato contro le garanzie della polizza
+- ranking: array di policy_index ordinati dal più al meno adatto (0=primo in lista)
+- Sii concreto e specifico per questo profilo, non generico
+- budget_fit: confronta il premio con il budget dichiarato dal cliente"""
+
+    try:
+        msg = await call_claude(
+            model="claude-sonnet-4-6",
+            max_tokens=3000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = msg.content[0].text.strip()
+        match = re.search(r'\{[\s\S]*\}', raw)
+        if not match:
+            raise HTTPException(500, "Risposta AI non valida")
+        return _json.loads(match.group(0))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Errore match: {str(e)}")
 
 
 @app.post("/api/summary")
