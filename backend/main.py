@@ -37,6 +37,24 @@ if _env_origins:
 
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
+# ── RETRY HELPER ──────────────────────────────────────────────────────────────
+import asyncio, time
+
+async def call_claude(max_retries=3, **kwargs):
+    """Chiama Claude con retry automatico su errori 529 (overloaded)."""
+    for attempt in range(max_retries):
+        try:
+            return client.messages.create(**kwargs)
+        except anthropic.APIStatusError as e:
+            if e.status_code == 529 and attempt < max_retries - 1:
+                wait = 2 ** attempt  # 1s, 2s, 4s
+                await asyncio.sleep(wait)
+                continue
+            raise
+        except Exception:
+            raise
+    raise HTTPException(503, "Servizio AI temporaneamente non disponibile, riprova tra qualche secondo")
+
 
 # ── MODELS ────────────────────────────────────────────────────────────────────
 
@@ -113,18 +131,19 @@ Regole:
 - esclusioni: massimo 6, solo le più rilevanti"""
 
     try:
-        msg = client.messages.create(
+        msg = await call_claude(
             model="claude-haiku-4-5-20251001",
             max_tokens=3500,
             messages=[{"role": "user", "content": prompt}]
         )
         raw = msg.content[0].text.strip()
-        # Estrai JSON anche se Claude aggiunge testo
         import re, json
         match = re.search(r'\{[\s\S]*\}', raw)
         if not match:
             raise HTTPException(500, "Risposta AI non valida")
         return json.loads(match.group(0))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Errore estrazione: {str(e)}")
 
@@ -168,7 +187,7 @@ Regole:
 - budget_indicativo: stima realistica per il mercato italiano"""
 
     try:
-        msg = client.messages.create(
+        msg = await call_claude(
             model="claude-haiku-4-5-20251001",
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}]
@@ -178,6 +197,8 @@ Regole:
         if not match:
             raise HTTPException(500, "Risposta AI non valida")
         return _json.loads(match.group(0))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Errore raccomandazioni: {str(e)}")
 
@@ -204,11 +225,13 @@ POLIZZE:
 Rispondi solo con il testo del paragrafo, nessun titolo o prefazione."""
 
     try:
-        msg = client.messages.create(
+        msg = await call_claude(
             model="claude-haiku-4-5-20251001",
             max_tokens=400,
             messages=[{"role": "user", "content": prompt}]
         )
         return {"summary": msg.content[0].text.strip()}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Errore riepilogo: {str(e)}")
