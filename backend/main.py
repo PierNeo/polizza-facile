@@ -25,15 +25,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
-# ── CORS (solo per sviluppo locale / eventuali client esterni) ────────────────
-_env_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
-if _env_origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[o.strip() for o in _env_origins.split(",") if o.strip()],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# ── CORS ─────────────────────────────────────────────────────────────────────
+_env_origins = os.getenv("ALLOWED_ORIGINS", "*").strip()
+_origins = ["*"] if _env_origins == "*" else [o.strip() for o in _env_origins.split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
