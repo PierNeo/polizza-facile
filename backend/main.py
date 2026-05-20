@@ -1,30 +1,39 @@
 # main.py — Polizza Facile backend
 import os
 import anthropic
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="Polizza Facile API")
+app = FastAPI(title="Polizza Facile API", docs_url=None, redoc_url=None)
 
-ALLOWED_ORIGINS = [
-    "https://polizza-facile-git-main-pierneos-projects.vercel.app",
-    "https://polizza-facile.vercel.app",  # dominio custom se aggiunto in futuro
-]
-# Override da env var (per sviluppo locale o domini aggiuntivi)
+# ── SECURITY HEADERS ──────────────────────────────────────────────────────────
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ── CORS (solo per sviluppo locale / eventuali client esterni) ────────────────
 _env_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
 if _env_origins:
-    ALLOWED_ORIGINS = [o.strip() for o in _env_origins.split(",") if o.strip()]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[o.strip() for o in _env_origins.split(",") if o.strip()],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -45,9 +54,18 @@ class RaccomandaRequest(BaseModel):
 
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
 
-@app.get("/")
-def root():
+@app.get("/health")
+def health():
     return {"status": "ok", "service": "polizza-facile"}
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_app():
+    """Serve il frontend direttamente dal backend."""
+    html_path = os.path.join(os.path.dirname(__file__), "index.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read(), headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate"
+        })
 
 
 @app.post("/api/extract")
