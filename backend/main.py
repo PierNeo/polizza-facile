@@ -401,6 +401,27 @@ def _merge_extractions(results: list) -> dict:
 def health():
     return {"status": "ok", "service": "polizza-facile"}
 
+@app.get("/api/debug")
+async def debug():
+    """Diagnostica stato connessione Qdrant."""
+    info = {
+        "qdrant_url_configured": bool(QDRANT_URL),
+        "qdrant_client_active": _qdrant is not None,
+        "collection": QDRANT_COLLECTION,
+    }
+    if _qdrant:
+        try:
+            col = await _qdrant.get_collection(QDRANT_COLLECTION)
+            info["collection_points"] = col.points_count
+            info["qdrant_ok"] = True
+        except Exception as e:
+            info["qdrant_error"] = str(e)
+            info["qdrant_ok"] = False
+    else:
+        info["qdrant_ok"] = False
+        info["reason"] = "Client non inizializzato (controlla QDRANT_URL e QDRANT_API_KEY nei log Railway)"
+    return info
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_app():
     """Serve il frontend direttamente dal backend."""

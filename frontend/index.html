@@ -1158,19 +1158,52 @@ async function apiFetch(path, options = {}) {
  return res.json();
 }
 
-// Carica tutti i dati dal server all'avvio e aggiorna memoria + cache locale
+// Carica tutti i dati dal server all'avvio.
+// Strategia: se il server ha dati, usa quelli. Se il server è vuoto ma
+// localStorage ha dati, migra localStorage → server (primo login su nuovo device).
+// NON sovrascrive mai localStorage con dati vuoti provenienti dal server.
 async function loadServerData() {
+ // Leggi cache locale prima di tutto
+ let localClients, localPolizze;
+ try { localClients = JSON.parse(localStorage.getItem('pf_clients')||'[]'); } catch { localClients = []; }
+ try { localPolizze = JSON.parse(localStorage.getItem('pf_polizze')||'[]'); } catch { localPolizze = []; }
+
  try {
   const [clients, polizze, config] = await Promise.all([
    apiFetch('/api/clients'),
    apiFetch('/api/polizze'),
    apiFetch('/api/config')
   ]);
-  _clients = Array.isArray(clients) ? clients : [];
-  _polizze = Array.isArray(polizze) ? polizze : [];
-  localStorage.setItem('pf_clients', JSON.stringify(_clients));
-  localStorage.setItem('pf_polizze', JSON.stringify(_polizze));
-  // Aggiorna config questionario se trovata sul server
+
+  const serverClients = Array.isArray(clients) ? clients : [];
+  const serverPolizze = Array.isArray(polizze) ? polizze : [];
+
+  // Clients: preferisci server se ha dati, altrimenti migra localStorage → server
+  if (serverClients.length > 0) {
+   _clients = serverClients;
+   localStorage.setItem('pf_clients', JSON.stringify(_clients));
+  } else if (localClients.length > 0) {
+   _clients = localClients;
+   // Migra dati locali al server (es: primo accesso da nuovo dispositivo)
+   apiFetch('/api/clients', { method:'POST', body: JSON.stringify({ data: _clients }) })
+    .catch(e => console.warn('Migrazione clients→server:', e));
+  } else {
+   _clients = [];
+  }
+
+  // Polizze: stessa logica
+  if (serverPolizze.length > 0) {
+   _polizze = serverPolizze;
+   localStorage.setItem('pf_polizze', JSON.stringify(_polizze));
+  } else if (localPolizze.length > 0) {
+   _polizze = localPolizze;
+   apiFetch('/api/polizze', { method:'POST', body: JSON.stringify({ data: _polizze }) })
+    .catch(e => console.warn('Migrazione polizze→server:', e));
+  } else {
+   _polizze = [];
+  }
+
+  // Config questionario: aggiorna solo se il server ha una config valida
   if (config && config.sezioni && config.sezioni.length) {
    const sanitized = sanitizeQConfig(config);
    if (sanitized) {
@@ -1178,11 +1211,14 @@ async function loadServerData() {
     localStorage.setItem('pf_qconfig', JSON.stringify(QUESTIONNAIRE_CONFIG));
    }
   }
+
+  console.log(`[PF] Dati caricati — clients: ${_clients.length}, polizze: ${_polizze.length}`);
+
  } catch (e) {
-  console.warn('Caricamento server fallito, uso cache locale:', e);
-  // Fallback a localStorage
-  try { _clients = JSON.parse(localStorage.getItem('pf_clients')||'[]'); } catch { _clients = []; }
-  try { _polizze = JSON.parse(localStorage.getItem('pf_polizze')||'[]'); } catch { _polizze = []; }
+  // Server non raggiungibile: usa cache locale (funziona offline)
+  console.warn('[PF] Server non raggiungibile, uso cache locale:', e.message);
+  _clients = localClients;
+  _polizze = localPolizze;
  }
 }
 
