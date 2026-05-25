@@ -1404,6 +1404,9 @@ function openClient(id) {
  const client = getClients().find(c => c.id === id);
  if (!client) return;
  currentClientId = id;
+ // Popola clientAnswers dal cliente salvato, così "Confronta polizze" porta il contesto corretto
+ clientAnswers = { ...(client.answers || {}) };
+ clientRecs = client.raccomandazioni || null;
  const initials = client.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
  const date = new Date(client.data).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
 
@@ -1650,8 +1653,8 @@ async function submitQuestionnaire() {
  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.detail||`Errore server (${res.status})`);}
  clientRecs = await res.json();
  currentClientId = saveClient(clientAnswers, clientRecs);
- renderRecs(clientRecs);
- navTo('pagRaccomandazioni');
+ openClient(currentClientId);
+ toast(' Profilo salvato! Seleziona "Confronta polizze" quando sei pronto.');
  } catch(e) { renderSection(currentSectionIdx); navTo('pagQuestionario'); toast('Errore: '+(e.message||'Riprova'),5000); }
 }
 
