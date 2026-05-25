@@ -11,6 +11,8 @@ from fastapi.responses import HTMLResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+from qdrant_client import AsyncQdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct
 
 load_dotenv()
 
@@ -51,6 +53,103 @@ app.add_middleware(
 
 # ── CLIENT ANTHROPIC (ASYNC) ──────────────────────────────────────────────────
 client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+# ── QDRANT — PERSISTENZA DATI ─────────────────────────────────────────────────
+QDRANT_URL        = os.getenv("QDRANT_URL", "")
+QDRANT_API_KEY    = os.getenv("QDRANT_API_KEY", "")
+QDRANT_COLLECTION = "polizza_facile_data"
+
+# ID fissi per i tre "documenti" nella collezione
+_CLIENTS_PID = "00000000-0000-0000-0000-000000000001"
+_POLIZZE_PID = "00000000-0000-0000-0000-000000000002"
+_CONFIG_PID  = "00000000-0000-0000-0000-000000000003"
+_DUMMY_VEC   = [0.0]
+
+_qdrant: AsyncQdrantClient | None = None
+
+
+@app.on_event("startup")
+async def _startup():
+    global _qdrant
+    if not QDRANT_URL:
+        logger.warning("QDRANT_URL non configurato — persistenza Qdrant disabilitata")
+        return
+    try:
+        _qdrant = AsyncQdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY or None)
+        cols = await _qdrant.get_collections()
+        names = [c.name for c in cols.collections]
+        if QDRANT_COLLECTION not in names:
+            await _qdrant.create_collection(
+                QDRANT_COLLECTION,
+                vectors_config=VectorParams(size=1, distance=Distance.COSINE)
+            )
+            logger.info(f"Qdrant: collezione '{QDRANT_COLLECTION}' creata")
+        else:
+            logger.info(f"Qdrant: collezione '{QDRANT_COLLECTION}' trovata — ok")
+    except Exception as e:
+        logger.error(f"Qdrant init fallito: {e}")
+        _qdrant = None
+
+
+async def _q_get(point_id: str):
+    """Legge il payload di un punto dalla collezione Qdrant."""
+    if not _qdrant:
+        return None
+    try:
+        res = await _qdrant.retrieve(QDRANT_COLLECTION, ids=[point_id], with_payload=True)
+        return res[0].payload.get("data") if res else None
+    except Exception as e:
+        logger.error(f"Qdrant get {point_id}: {e}")
+        return None
+
+
+async def _q_set(point_id: str, data):
+    """Salva (upsert) un payload nella collezione Qdrant."""
+    if not _qdrant:
+        return
+    try:
+        await _qdrant.upsert(
+            QDRANT_COLLECTION,
+            points=[PointStruct(id=point_id, vector=_DUMMY_VEC, payload={"data": data})]
+        )
+    except Exception as e:
+        logger.error(f"Qdrant set {point_id}: {e}")
+
+
+# ── ENDPOINTS DATI PERSISTENTI ────────────────────────────────────────────────
+
+@app.get("/api/clients")
+async def api_get_clients():
+    data = await _q_get(_CLIENTS_PID)
+    return data if data is not None else []
+
+@app.post("/api/clients")
+async def api_save_clients(req: Request):
+    body = await req.json()
+    await _q_set(_CLIENTS_PID, body.get("data", []))
+    return {"ok": True}
+
+@app.get("/api/polizze")
+async def api_get_polizze():
+    data = await _q_get(_POLIZZE_PID)
+    return data if data is not None else []
+
+@app.post("/api/polizze")
+async def api_save_polizze(req: Request):
+    body = await req.json()
+    await _q_set(_POLIZZE_PID, body.get("data", []))
+    return {"ok": True}
+
+@app.get("/api/config")
+async def api_get_config():
+    data = await _q_get(_CONFIG_PID)
+    return data if data is not None else {}
+
+@app.post("/api/config")
+async def api_save_config(req: Request):
+    body = await req.json()
+    await _q_set(_CONFIG_PID, body.get("data", {}))
+    return {"ok": True}
 
 # ── RETRY HELPER ──────────────────────────────────────────────────────────────
 async def call_claude(max_retries: int = 3, **kwargs):

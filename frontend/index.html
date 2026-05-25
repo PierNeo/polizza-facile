@@ -1104,7 +1104,7 @@ function sanitizeQConfig(cfg) {
  } catch(e) { return null; }
 }
 
-// QUESTIONNAIRE CONFIG (localStorage-backed)
+// QUESTIONNAIRE CONFIG (con persistenza su Qdrant via backend)
 let QUESTIONNAIRE_CONFIG = (function() {
  try {
   const s = localStorage.getItem('pf_qconfig');
@@ -1118,15 +1118,20 @@ let QUESTIONNAIRE_CONFIG = (function() {
 
 function saveQConfig() {
  localStorage.setItem('pf_qconfig', JSON.stringify(QUESTIONNAIRE_CONFIG));
+ // Persisti anche su server
+ apiFetch('/api/config', { method:'POST', body: JSON.stringify({ data: QUESTIONNAIRE_CONFIG }) })
+  .catch(e => console.warn('saveQConfig server:', e));
 }
 function resetQConfig() {
  QUESTIONNAIRE_CONFIG = JSON.parse(JSON.stringify(DEFAULT_QUESTIONNAIRE_CONFIG));
  localStorage.removeItem('pf_qconfig');
+ apiFetch('/api/config', { method:'POST', body: JSON.stringify({ data: QUESTIONNAIRE_CONFIG }) })
+  .catch(e => console.warn('resetQConfig server:', e));
 }
 
-// 
+//
 // STATE
-// 
+//
 let files = [];
 let currentSectionIdx = 0;
 let clientAnswers = {};
@@ -1134,13 +1139,77 @@ let clientRecs = null;
 let currentClientId = null;
 let libSelected = new Set(); // IDs selected from library for comparison
 
-// 
-// LOCALSTORAGE
-// 
-function getClients() { try { return JSON.parse(localStorage.getItem('pf_clients')||'[]'); } catch { return []; } }
-function saveClients(arr) { localStorage.setItem('pf_clients', JSON.stringify(arr)); }
-function getPolizze() { try { return JSON.parse(localStorage.getItem('pf_polizze')||'[]'); } catch { return []; } }
-function savePolizze(arr) { localStorage.setItem('pf_polizze', JSON.stringify(arr)); }
+//
+// DATI IN MEMORIA + PERSISTENZA QDRANT
+// I dati sono caricati dal server all'avvio e tenuti in memoria.
+// getClients/getPolizze sono sincroni (leggono dalla memoria).
+// saveClients/savePolizze salvano sia in localStorage (cache) sia su Qdrant (via API).
+//
+let _clients = null;  // null = non ancora caricati
+let _polizze = null;
+
+// Helper fetch verso il backend
+async function apiFetch(path, options = {}) {
+ const res = await fetch(`${BACKEND}${path}`, {
+  headers: { 'Content-Type': 'application/json' },
+  ...options
+ });
+ if (!res.ok) throw new Error(`API ${res.status}`);
+ return res.json();
+}
+
+// Carica tutti i dati dal server all'avvio e aggiorna memoria + cache locale
+async function loadServerData() {
+ try {
+  const [clients, polizze, config] = await Promise.all([
+   apiFetch('/api/clients'),
+   apiFetch('/api/polizze'),
+   apiFetch('/api/config')
+  ]);
+  _clients = Array.isArray(clients) ? clients : [];
+  _polizze = Array.isArray(polizze) ? polizze : [];
+  localStorage.setItem('pf_clients', JSON.stringify(_clients));
+  localStorage.setItem('pf_polizze', JSON.stringify(_polizze));
+  // Aggiorna config questionario se trovata sul server
+  if (config && config.sezioni && config.sezioni.length) {
+   const sanitized = sanitizeQConfig(config);
+   if (sanitized) {
+    QUESTIONNAIRE_CONFIG = sanitized;
+    localStorage.setItem('pf_qconfig', JSON.stringify(QUESTIONNAIRE_CONFIG));
+   }
+  }
+ } catch (e) {
+  console.warn('Caricamento server fallito, uso cache locale:', e);
+  // Fallback a localStorage
+  try { _clients = JSON.parse(localStorage.getItem('pf_clients')||'[]'); } catch { _clients = []; }
+  try { _polizze = JSON.parse(localStorage.getItem('pf_polizze')||'[]'); } catch { _polizze = []; }
+ }
+}
+
+function getClients() {
+ if (_clients === null) {
+  try { _clients = JSON.parse(localStorage.getItem('pf_clients')||'[]'); } catch { _clients = []; }
+ }
+ return _clients;
+}
+function saveClients(arr) {
+ _clients = arr;
+ localStorage.setItem('pf_clients', JSON.stringify(arr));
+ apiFetch('/api/clients', { method:'POST', body: JSON.stringify({ data: arr }) })
+  .catch(e => console.warn('saveClients server:', e));
+}
+function getPolizze() {
+ if (_polizze === null) {
+  try { _polizze = JSON.parse(localStorage.getItem('pf_polizze')||'[]'); } catch { _polizze = []; }
+ }
+ return _polizze;
+}
+function savePolizze(arr) {
+ _polizze = arr;
+ localStorage.setItem('pf_polizze', JSON.stringify(arr));
+ apiFetch('/api/polizze', { method:'POST', body: JSON.stringify({ data: arr }) })
+  .catch(e => console.warn('savePolizze server:', e));
+}
 
 function saveClient(answers, recs) {
  const clients = getClients();
@@ -2225,10 +2294,12 @@ function toast(msg,dur=3000) {
  t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),dur);
 }
 
-// 
+//
 // INIT
-// 
-renderDashboard();
+//
+// Carica i dati dal server (Qdrant) al primo avvio, poi mostra la dashboard.
+// Se il server non è raggiungibile, usa la cache localStorage come fallback.
+loadServerData().finally(() => renderDashboard());
 </script>
 </body>
 </html>
