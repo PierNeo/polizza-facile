@@ -5,14 +5,13 @@ import json
 import asyncio
 import logging
 import anthropic
+import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
-from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
 
 load_dotenv()
 
@@ -54,64 +53,93 @@ app.add_middleware(
 # ── CLIENT ANTHROPIC (ASYNC) ──────────────────────────────────────────────────
 client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-# ── QDRANT — PERSISTENZA DATI ─────────────────────────────────────────────────
-QDRANT_URL        = os.getenv("QDRANT_URL", "")
+# ── QDRANT — PERSISTENZA DATI (via REST API dirette) ──────────────────────────
+# Usiamo httpx invece del client qdrant-client per maggiore affidabilità e
+# visibilità degli errori. Nessuna dipendenza da librerie esterne aggiuntive.
+
+QDRANT_URL        = os.getenv("QDRANT_URL", "").rstrip("/")
 QDRANT_API_KEY    = os.getenv("QDRANT_API_KEY", "")
 QDRANT_COLLECTION = "polizza_facile_data"
 
-# ID fissi per i tre "documenti" nella collezione
+# ID fissi UUID per i tre "documenti" nella collezione
 _CLIENTS_PID = "00000000-0000-0000-0000-000000000001"
 _POLIZZE_PID = "00000000-0000-0000-0000-000000000002"
 _CONFIG_PID  = "00000000-0000-0000-0000-000000000003"
-_DUMMY_VEC   = [0.0]
 
-_qdrant: AsyncQdrantClient | None = None
+_qdrant_ok = False  # True se la connessione è stata verificata con successo
+
+
+def _qh() -> dict:
+    """Header per le richieste Qdrant REST."""
+    h = {"Content-Type": "application/json"}
+    if QDRANT_API_KEY:
+        h["api-key"] = QDRANT_API_KEY
+    return h
 
 
 @app.on_event("startup")
 async def _startup():
-    global _qdrant
+    global _qdrant_ok
     if not QDRANT_URL:
         logger.warning("QDRANT_URL non configurato — persistenza Qdrant disabilitata")
         return
     try:
-        _qdrant = AsyncQdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY or None)
-        cols = await _qdrant.get_collections()
-        names = [c.name for c in cols.collections]
-        if QDRANT_COLLECTION not in names:
-            await _qdrant.create_collection(
-                QDRANT_COLLECTION,
-                vectors_config=VectorParams(size=1, distance=Distance.COSINE)
-            )
-            logger.info(f"Qdrant: collezione '{QDRANT_COLLECTION}' creata")
-        else:
-            logger.info(f"Qdrant: collezione '{QDRANT_COLLECTION}' trovata — ok")
+        async with httpx.AsyncClient(timeout=15.0) as http:
+            logger.info(f"Qdrant: connessione a {QDRANT_URL}")
+            r = await http.get(f"{QDRANT_URL}/collections/{QDRANT_COLLECTION}", headers=_qh())
+            if r.status_code == 200:
+                logger.info(f"Qdrant: collezione '{QDRANT_COLLECTION}' trovata — ok")
+                _qdrant_ok = True
+            elif r.status_code == 404:
+                logger.info(f"Qdrant: creazione collezione '{QDRANT_COLLECTION}'...")
+                r2 = await http.put(
+                    f"{QDRANT_URL}/collections/{QDRANT_COLLECTION}",
+                    headers=_qh(),
+                    json={"vectors": {"size": 1, "distance": "Cosine"}}
+                )
+                if r2.status_code in (200, 201):
+                    logger.info(f"Qdrant: collezione creata con successo")
+                    _qdrant_ok = True
+                else:
+                    logger.error(f"Qdrant: creazione fallita {r2.status_code}: {r2.text[:200]}")
+            else:
+                logger.error(f"Qdrant: risposta inattesa {r.status_code}: {r.text[:200]}")
     except Exception as e:
-        logger.error(f"Qdrant init fallito: {e}")
-        _qdrant = None
+        logger.error(f"Qdrant startup FALLITO ({type(e).__name__}): {e}")
+        _qdrant_ok = False
 
 
 async def _q_get(point_id: str):
-    """Legge il payload di un punto dalla collezione Qdrant."""
-    if not _qdrant:
+    """Legge il payload di un punto Qdrant via REST."""
+    if not QDRANT_URL or not _qdrant_ok:
         return None
     try:
-        res = await _qdrant.retrieve(QDRANT_COLLECTION, ids=[point_id], with_payload=True)
-        return res[0].payload.get("data") if res else None
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            r = await http.get(
+                f"{QDRANT_URL}/collections/{QDRANT_COLLECTION}/points/{point_id}",
+                headers=_qh()
+            )
+            if r.status_code == 404:
+                return None
+            r.raise_for_status()
+            return r.json().get("result", {}).get("payload", {}).get("data")
     except Exception as e:
         logger.error(f"Qdrant get {point_id}: {e}")
         return None
 
 
 async def _q_set(point_id: str, data):
-    """Salva (upsert) un payload nella collezione Qdrant."""
-    if not _qdrant:
+    """Salva (upsert) un punto Qdrant via REST."""
+    if not QDRANT_URL or not _qdrant_ok:
         return
     try:
-        await _qdrant.upsert(
-            QDRANT_COLLECTION,
-            points=[PointStruct(id=point_id, vector=_DUMMY_VEC, payload={"data": data})]
-        )
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            r = await http.put(
+                f"{QDRANT_URL}/collections/{QDRANT_COLLECTION}/points",
+                headers=_qh(),
+                json={"points": [{"id": point_id, "vector": [0.0], "payload": {"data": data}}]}
+            )
+            r.raise_for_status()
     except Exception as e:
         logger.error(f"Qdrant set {point_id}: {e}")
 
@@ -404,22 +432,27 @@ def health():
 @app.get("/api/debug")
 async def debug():
     """Diagnostica stato connessione Qdrant."""
-    info = {
+    info: dict = {
         "qdrant_url_configured": bool(QDRANT_URL),
-        "qdrant_client_active": _qdrant is not None,
+        "qdrant_ok": _qdrant_ok,
         "collection": QDRANT_COLLECTION,
     }
-    if _qdrant:
+    if QDRANT_URL and _qdrant_ok:
         try:
-            col = await _qdrant.get_collection(QDRANT_COLLECTION)
-            info["collection_points"] = col.points_count
-            info["qdrant_ok"] = True
+            async with httpx.AsyncClient(timeout=5.0) as http:
+                r = await http.get(
+                    f"{QDRANT_URL}/collections/{QDRANT_COLLECTION}",
+                    headers=_qh()
+                )
+                d = r.json()
+                info["points_count"] = d.get("result", {}).get("points_count", 0)
+                info["status"] = "ok"
         except Exception as e:
-            info["qdrant_error"] = str(e)
-            info["qdrant_ok"] = False
+            info["live_check_error"] = str(e)
+    elif QDRANT_URL:
+        info["reason"] = "Connessione Qdrant fallita al startup — vedi log Railway per dettagli"
     else:
-        info["qdrant_ok"] = False
-        info["reason"] = "Client non inizializzato (controlla QDRANT_URL e QDRANT_API_KEY nei log Railway)"
+        info["reason"] = "QDRANT_URL non configurato"
     return info
 
 @app.get("/", response_class=HTMLResponse)
