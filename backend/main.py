@@ -188,6 +188,7 @@ Schema JSON richiesto:
       "categoria": "ESATTAMENTE uno dei valori dalla TASSONOMIA CATEGORIE sopra",
       "nome": "nome NORMALIZZATO dalla tassonomia garanzie — usa ESATTAMENTE uno dei termini elencati se applicabile",
       "presente": true,
+      "opzionale": false,
       "massimale": "importo scritto nel documento es: 500.000 € — oppure null se non trovato",
       "massimale_num": 500000,
       "franchigia": "es: 250 € o 5% — oppure null",
@@ -204,7 +205,8 @@ Regole CRITICHE:
 - nome: usa SEMPRE un termine dalla tassonomia garanzie se applicabile — MAI inventare varianti
 - categoria: usa SEMPRE uno dei 9 valori dalla tassonomia categorie — MAI inventare categorie nuove
 - massimale_num: valore numerico puro (es: 500000), 0 se non trovato o non applicabile
-- presente: true se la garanzia è inclusa di default; false se è opzionale/non inclusa
+- presente: true se la garanzia è inclusa nel pacchetto base; false altrimenti
+- opzionale: true se è un supplemento acquistabile a pagamento; false se è completamente assente dal prodotto
 - Includi TUTTE le garanzie menzionate nel testo, anche quelle opzionali
 - punti_di_forza: 3 vantaggi concreti e specifici, NON generici
 - esclusioni: massimo 6, solo le più rilevanti per un cliente medio
