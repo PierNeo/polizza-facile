@@ -193,12 +193,24 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 }
 .search-input:focus { border-color:var(--polo); }
 .client-list { display:flex; flex-direction:column; gap:10px; }
+/* Toolbar selezione multipla */
+.client-bulk-bar {
+ display:flex; align-items:center; gap:12px; padding:10px 14px;
+ background:var(--blue-soft); border:1.5px solid var(--blue-mid);
+ border-radius:10px; margin-bottom:4px; animation:fadeIn .15s;
+}
+.client-bulk-count { font-size:13px; font-weight:600; color:var(--polo); flex:1; }
+/* Checkbox cliente */
+.client-checkbox {
+ width:18px; height:18px; accent-color:var(--polo); cursor:pointer; flex-shrink:0;
+}
 .client-row {
  background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius);
  padding:16px 20px; display:flex; align-items:center; gap:16px;
  cursor:pointer; transition:all .15s; box-shadow:var(--shadow-sm);
 }
 .client-row:hover { border-color:var(--polo); box-shadow:var(--shadow); }
+.client-row.selected { border-color:var(--polo); background:rgba(15,39,65,.04); }
 .client-avatar { width:42px; height:42px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; flex-shrink:0; }
 .client-info { flex:1; min-width:0; }
 .client-name { font-size:15px; font-weight:700; color:var(--gray-900); }
@@ -770,6 +782,11 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  </div>
  <div class="search-bar">
  <input class="search-input" id="clientSearch" placeholder="Cerca per nome..." oninput="renderClientList()">
+ </div>
+ <div id="clientBulkBar" style="display:none" class="client-bulk-bar">
+ <span class="client-bulk-count" id="clientBulkCount">0 selezionati</span>
+ <button class="btn btn-danger btn-sm" onclick="deleteSelectedClients()"> Elimina selezionati</button>
+ <button class="btn btn-ghost btn-sm" onclick="clearClientSelection()">Annulla</button>
  </div>
  <div class="client-list" id="clientList"></div>
 </div>
@@ -1359,41 +1376,85 @@ function renderDashboard() {
  }).join('');
 }
 
-// 
-// CLIENT LIST
-// 
+//
+// CLIENT LIST + SELEZIONE MULTIPLA
+//
+let selectedClientIds = new Set();
+
 function renderClientList() {
  const q = (document.getElementById('clientSearch')?.value||'').toLowerCase();
  const clients = getClients().filter(c => !q || c.nome.toLowerCase().includes(q));
  const list = document.getElementById('clientList');
  if (!clients.length) {
- list.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><p>${q ? 'Nessun risultato per "'+esc(q)+'"' : 'Nessun cliente salvato.'}</p></div>`;
- return;
+  list.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><p>${q ? 'Nessun risultato per "'+esc(q)+'"' : 'Nessun cliente salvato.'}</p></div>`;
+  updateClientBulkBar();
+  return;
  }
  list.innerHTML = clients.map(c => {
- const initials = c.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
- const date = new Date(c.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
- const recs = c.raccomandazioni?.raccomandazioni||[];
- const tags = recs.slice(0,3).map(r => `<span class="client-rec-tag rec-${r.urgenza||'media'}">${esc(r.tipo)}</span>`).join('');
- return `<div class="client-row" onclick="openClient('${c.id}')">
- <div class="client-avatar">${initials}</div>
- <div class="client-info">
- <div class="client-name">${esc(c.nome)}</div>
- <div class="client-date">${date}</div>
- <div class="client-recs">${tags}</div>
- </div>
- <div class="client-actions" onclick="event.stopPropagation()">
- <button class="btn btn-ghost btn-sm" onclick="openClient('${c.id}')">Apri</button>
- <button class="btn btn-danger btn-sm" onclick="confirmDeleteClient('${c.id}','${esc(c.nome)}')"></button>
- </div>
- </div>`;
+  const initials = c.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const date = new Date(c.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+  const recs = c.raccomandazioni?.raccomandazioni||[];
+  const tags = recs.slice(0,3).map(r => `<span class="client-rec-tag rec-${r.urgenza||'media'}">${esc(r.tipo)}</span>`).join('');
+  const checked = selectedClientIds.has(c.id) ? 'checked' : '';
+  const selClass = selectedClientIds.has(c.id) ? ' selected' : '';
+  return `<div class="client-row${selClass}" onclick="openClient('${c.id}')">
+  <input type="checkbox" class="client-checkbox" ${checked}
+   onclick="event.stopPropagation();toggleClientSelect('${c.id}',this.checked)" />
+  <div class="client-avatar">${initials}</div>
+  <div class="client-info">
+  <div class="client-name">${esc(c.nome)}</div>
+  <div class="client-date">${date}</div>
+  <div class="client-recs">${tags}</div>
+  </div>
+  <div class="client-actions" onclick="event.stopPropagation()">
+  <button class="btn btn-ghost btn-sm" onclick="openClient('${c.id}')">Apri</button>
+  </div>
+  </div>`;
  }).join('');
+ updateClientBulkBar();
+}
+
+function toggleClientSelect(id, checked) {
+ if (checked) selectedClientIds.add(id);
+ else selectedClientIds.delete(id);
+ // Aggiorna classe visiva senza re-render completo
+ document.querySelectorAll(`#clientList .client-row`).forEach(row => {
+  const cb = row.querySelector('.client-checkbox');
+  if (cb) row.classList.toggle('selected', cb.checked);
+ });
+ updateClientBulkBar();
+}
+
+function updateClientBulkBar() {
+ const bar = document.getElementById('clientBulkBar');
+ const count = document.getElementById('clientBulkCount');
+ if (!bar) return;
+ const n = selectedClientIds.size;
+ bar.style.display = n > 0 ? 'flex' : 'none';
+ if (count) count.textContent = `${n} client${n===1?'e':'i'} selezionat${n===1?'o':'i'}`;
+}
+
+function clearClientSelection() {
+ selectedClientIds.clear();
+ renderClientList();
+}
+
+function deleteSelectedClients() {
+ const n = selectedClientIds.size;
+ if (!n) return;
+ if (!confirm(`Eliminare ${n} client${n===1?'e':'i'}? L'operazione non è reversibile.`)) return;
+ selectedClientIds.forEach(id => deleteClient(id));
+ selectedClientIds.clear();
+ updateBadges();
+ renderClientList();
+ toast(`${n} client${n===1?'e':'i'} eliminat${n===1?'o':'i'}`);
 }
 
 function confirmDeleteClient(id, nome) {
  if (confirm(`Eliminare il profilo di ${nome}?`)) {
- deleteClient(id);
- renderClientList();
+  deleteClient(id);
+  selectedClientIds.delete(id);
+  renderClientList();
  }
 }
 
