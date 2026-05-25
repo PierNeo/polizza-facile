@@ -429,6 +429,33 @@ def _merge_extractions(results: list) -> dict:
 def health():
     return {"status": "ok", "service": "polizza-facile"}
 
+@app.get("/api/qdrant-test")
+async def qdrant_test():
+    """Test connessione Qdrant in tempo reale — mostra errore esatto."""
+    if not QDRANT_URL:
+        return {"error": "QDRANT_URL non configurato"}
+    results = {}
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as http:
+            url = f"{QDRANT_URL}/collections"
+            results["url_called"] = url
+            results["api_key_length"] = len(QDRANT_API_KEY)
+            results["api_key_prefix"] = QDRANT_API_KEY[:8] + "..." if QDRANT_API_KEY else "VUOTA"
+            r = await http.get(url, headers=_qh())
+            results["status_code"] = r.status_code
+            results["response_text"] = r.text[:500]
+    except httpx.ConnectError as e:
+        results["error_type"] = "ConnectError"
+        results["error"] = str(e)
+    except httpx.TimeoutException as e:
+        results["error_type"] = "Timeout"
+        results["error"] = str(e)
+    except Exception as e:
+        results["error_type"] = type(e).__name__
+        results["error"] = str(e)
+    return results
+
+
 @app.get("/api/debug")
 async def debug():
     """Diagnostica stato connessione Qdrant."""
