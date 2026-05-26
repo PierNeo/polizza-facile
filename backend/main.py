@@ -316,7 +316,7 @@ Schema JSON richiesto:
       "nome": "nome NORMALIZZATO dalla tassonomia garanzie — usa ESATTAMENTE uno dei termini elencati se applicabile",
       "presente": true,
       "opzionale": false,
-      "massimale": "importo scritto nel documento es: 500.000 € — oppure null se non trovato",
+      "massimale": "importo ESATTO scritto nel documento es: 500.000 € — oppure null se non trovato",
       "massimale_num": 500000,
       "franchigia": "es: 250 € o 5% — oppure null",
       "scoperto": "es: 10% — oppure null",
@@ -332,6 +332,8 @@ Regole CRITICHE:
 - nome: usa SEMPRE un termine dalla tassonomia garanzie se applicabile — MAI inventare varianti
 - categoria: usa SEMPRE uno dei 9 valori dalla tassonomia categorie — MAI inventare categorie nuove
 - massimale_num: valore numerico puro (es: 500000), 0 se non trovato o non applicabile
+- massimale: cerca ATTIVAMENTE nelle TABELLE del DIP, nelle Schede Tecniche, nei "Limiti di indennizzo", nelle "Somme assicurate", nelle "Condizioni specifiche" — riporta il valore ESATTO trovato
+- franchigia: cerca nelle tabelle "Franchigie", "Scoperti", "Limitazioni" — riporta il valore ESATTO
 - presente: true se la garanzia è inclusa nel pacchetto base; false altrimenti
 - opzionale: true se è un supplemento acquistabile a pagamento; false se è completamente assente dal prodotto
 - Includi TUTTE le garanzie menzionate nel testo, anche quelle opzionali
@@ -339,6 +341,49 @@ Regole CRITICHE:
 - punti_di_forza: 3 vantaggi concreti e specifici, NON generici
 - esclusioni: massimo 6, solo le più rilevanti per un cliente medio
 - Se il testo è parziale (brochure, DIP, set informativo), estrai comunque tutto il possibile"""
+
+
+def _build_refinement_prompt(merged: dict, dense_text: str, filename: str) -> str:
+    """Prompt per il pass di raffinamento con Opus: arricchisce massimali e franchigie mancanti."""
+    garanzie_mancanti = [
+        g["nome"] for g in merged.get("garanzie", [])
+        if not g.get("massimale_num") or g.get("massimale_num") == 0
+    ]
+    garanzie_json = json.dumps(merged.get("garanzie", []), ensure_ascii=False, indent=2)
+    return f"""Sei un esperto di polizze assicurative italiane con capacità di lettura precisa di tabelle e condizioni contrattuali.
+
+Hai già estratto le garanzie di questa polizza (file: {filename}). Ora devi COMPLETARE i valori mancanti cercando nel testo originale.
+
+GARANZIE GIÀ ESTRATTE (JSON attuale):
+{garanzie_json}
+
+GARANZIE CON MASSIMALE MANCANTE (massimale_num = 0):
+{json.dumps(garanzie_mancanti, ensure_ascii=False)}
+
+TESTO ORIGINALE DELLA POLIZZA (sezioni più dense):
+<testo_polizza>
+{dense_text}
+</testo_polizza>
+
+COMPITO:
+1. Per ogni garanzia con massimale mancante, cerca nel testo: tabelle dei limiti, DIP, schede tecniche, "somme assicurate", "massimali", "limiti di indennizzo"
+2. Per ogni garanzia con franchigia null, cerca: tabelle franchigie, "scoperto", "limite minimo"
+3. Aggiorna SOLO i campi che trovi nel testo — non inventare valori
+4. Restituisci l'array COMPLETO delle garanzie aggiornato (incluse quelle già corrette)
+
+Restituisci SOLO un JSON valido con questa struttura:
+{{
+  "garanzie": [ ... array completo aggiornato ... ],
+  "premio": "importo trovato oppure null",
+  "punti_di_forza": [ ... aggiornati se trovi info migliori ... ],
+  "esclusioni": [ ... aggiornate se trovi info migliori ... ]
+}}
+
+Regole:
+- massimale: riporta il valore ESATTO dal testo (es: "500.000 €", "2.500.000 €")
+- massimale_num: numero puro corrispondente (es: 500000, 2500000)
+- Se un valore non è nel testo, lascia null/0 — NON inventare
+- Mantieni tutti gli altri campi invariati se non hai informazioni migliori"""
 
 
 async def _extract_single_chunk(text_chunk: str, filename: str, chunk_info: str = "") -> dict:
@@ -538,14 +583,77 @@ async def _extract_all_chunks(chunks: list[tuple[str, str]], filename: str, batc
     return all_results
 
 
+async def _refine_with_opus(merged: dict, text: str, filename: str) -> dict:
+    """
+    Pass finale con Opus: arricchisce massimali e franchigie mancanti
+    cercando nei chunk più densi di dati (DIP, schede tecniche).
+    Usato solo quando ci sono garanzie con massimale_num = 0.
+    """
+    missing = [g for g in merged.get("garanzie", []) if not g.get("massimale_num")]
+    if not missing:
+        logger.info(f"[refine] '{filename}' — tutti i massimali già presenti, skip Opus")
+        return merged
+
+    # Usa i primi 120k chars (DIP e indice garanzie) + campione dal centro del doc
+    mid = len(text) // 2
+    dense_text = text[:120_000] + "\n\n[...]\n\n" + text[mid:mid + 60_000]
+
+    prompt = _build_refinement_prompt(merged, dense_text, filename)
+    try:
+        msg = await call_claude(
+            model="claude-opus-4-6",
+            max_tokens=6000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        raw = msg.content[0].text.strip()
+        match = re.search(r'\{[\s\S]*\}', raw)
+        if not match:
+            logger.warning(f"[refine] JSON non trovato nella risposta Opus per '{filename}' — uso merged originale")
+            return merged
+        refined = json.loads(match.group(0))
+
+        # Applica gli aggiornamenti al merged originale
+        if "garanzie" in refined:
+            refined_map = {g.get("nome", ""): g for g in refined["garanzie"]}
+            for g in merged["garanzie"]:
+                nome = g.get("nome", "")
+                if nome in refined_map:
+                    r = refined_map[nome]
+                    # Aggiorna solo se il valore raffinato è migliore
+                    if r.get("massimale_num", 0) > g.get("massimale_num", 0):
+                        g["massimale"] = r.get("massimale")
+                        g["massimale_num"] = r.get("massimale_num", 0)
+                    if r.get("franchigia") and not g.get("franchigia"):
+                        g["franchigia"] = r.get("franchigia")
+                    if r.get("scoperto") and not g.get("scoperto"):
+                        g["scoperto"] = r.get("scoperto")
+                    if r.get("note") and (not g.get("note") or g["note"] == "null"):
+                        g["note"] = r.get("note")
+
+        if refined.get("premio") and not merged.get("premio"):
+            merged["premio"] = refined["premio"]
+        if refined.get("punti_di_forza"):
+            merged["punti_di_forza"] = refined["punti_di_forza"]
+        if refined.get("esclusioni"):
+            merged["esclusioni"] = refined["esclusioni"]
+
+        missing_after = sum(1 for g in merged["garanzie"] if not g.get("massimale_num"))
+        logger.info(f"[refine] '{filename}' — Opus completato. Massimali mancanti: {len(missing)} → {missing_after}")
+        return merged
+
+    except Exception as e:
+        logger.warning(f"[refine] Errore Opus per '{filename}': {e} — uso merged originale")
+        return merged
+
+
 @app.post("/api/extract")
 async def extract_policy(req: ExtractRequest):
     """
     Estrae struttura garanzie/franchigie/scoperti da testo di polizza.
-    Legge TUTTO il documento senza limiti di dimensione:
-    - Documenti brevi (≤60k): singola estrazione
-    - Documenti lunghi: chunk sequenziali sovrapposti che coprono ogni parte,
-      processati in batch paralleli da 8 per gestire anche set informativi enormi.
+    Pipeline in 3 fasi per massima accuratezza:
+    1. Lettura completa del documento (tutti i chunk, nessun limite)
+    2. Merge intelligente dei risultati
+    3. Raffinamento con Opus per completare massimali e franchigie mancanti
     """
     text = req.text.strip() if req.text else ""
     if len(text) < 100:
@@ -557,7 +665,7 @@ async def extract_policy(req: ExtractRequest):
 
     try:
         if len(text) <= CHUNK_SIZE:
-            # Documento breve: singola estrazione
+            # Documento breve: singola estrazione + raffinamento
             result = await _extract_single_chunk(text, req.filename)
         else:
             chunks = _build_sequential_chunks(text, CHUNK_SIZE, OVERLAP)
@@ -566,6 +674,9 @@ async def extract_policy(req: ExtractRequest):
 
             results = await _extract_all_chunks(chunks, req.filename, BATCH_SIZE)
             result = _merge_extractions(results)
+
+        # Fase 3: raffinamento Opus per massimali/franchigie mancanti
+        result = await _refine_with_opus(result, text, req.filename)
 
         return result
 
