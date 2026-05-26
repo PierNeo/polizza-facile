@@ -661,11 +661,11 @@ async def extract_policy(req: ExtractRequest):
 
     CHUNK_SIZE = 60_000  # caratteri per chunk
     OVERLAP    =  3_000  # sovrapposizione tra chunk consecutivi
-    BATCH_SIZE =      8  # chunk processati in parallelo per batch
+    BATCH_SIZE =     16  # chunk processati in parallelo per batch (aumentato per ridurre latenza)
 
     try:
         if len(text) <= CHUNK_SIZE:
-            # Documento breve: singola estrazione + raffinamento
+            # Documento breve: singola estrazione
             result = await _extract_single_chunk(text, req.filename)
         else:
             chunks = _build_sequential_chunks(text, CHUNK_SIZE, OVERLAP)
@@ -675,7 +675,8 @@ async def extract_policy(req: ExtractRequest):
             results = await _extract_all_chunks(chunks, req.filename, BATCH_SIZE)
             result = _merge_extractions(results)
 
-        # Fase 3: raffinamento Opus per massimali/franchigie mancanti
+        # Fase 3: raffinamento Opus SEMPRE (se ci sono massimali mancanti)
+        # ma lavora solo sui primi 120k chars (DIP + tabelle massimali sono sempre all'inizio)
         result = await _refine_with_opus(result, text, req.filename)
 
         return result
