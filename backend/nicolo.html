@@ -423,8 +423,11 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .save-to-lib input { accent-color:var(--polo); width:14px; height:14px; }
 
 /* LOADING */
-.loading-page { max-width:440px; margin:0 auto; padding:80px 24px; text-align:center; }
+.loading-page { max-width:480px; margin:0 auto; padding:80px 24px; text-align:center; }
 .big-spinner { width:50px; height:50px; border:4px solid var(--gray-200); border-top-color:var(--polo); border-radius:50%; animation:spin .75s linear infinite; margin:0 auto 22px; }
+.progress-bar-wrap { width:100%; background:var(--gray-100); border-radius:99px; height:8px; margin:20px 0 8px; overflow:hidden; }
+.progress-bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,var(--polo),var(--polo-light)); transition:width .5s ease; width:0%; }
+.progress-bar-pct { font-size:12px; color:var(--gray-400); margin-bottom:18px; }
 @keyframes spin { to { transform:rotate(360deg); } }
 .loading-page h2 { font-size:20px; font-weight:700; margin-bottom:7px; }
 .loading-page p { font-size:14px; color:var(--gray-500); margin-bottom:22px; }
@@ -959,6 +962,10 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  <div class="big-spinner"></div>
  <h2 id="loadingTitle">Analisi in corso</h2>
  <p id="loadingSubtitle">L'AI sta elaborando...</p>
+ <div class="progress-bar-wrap">
+  <div class="progress-bar-fill" id="progressBarFill"></div>
+ </div>
+ <div class="progress-bar-pct" id="progressBarPct">0%</div>
  <ul class="progress-steps" id="progressSteps"></ul>
  </div>
 </div>
@@ -1784,6 +1791,10 @@ async function startComparison() {
  const steps=[...newFiles.map(f=>({label:f.name,status:'pending'})),{label:'Generazione analisi comparativa',status:'pending'}];
  renderSteps(steps);
 
+ const totalChars = newFiles.reduce((s,f)=>(f.text||'').length + s, 0);
+ const estimatedSec = totalChars > 1_000_000 ? 90 : totalChars > 300_000 ? 45 : 20;
+ startProgressBar(estimatedSec);
+
  try {
  const extracted = [...libPolicies];
  for(let i=0;i<newFiles.length;i++){
@@ -1791,7 +1802,7 @@ async function startComparison() {
  const isLarge = (newFiles[i].text||'').length > 1_000_000;
  if (isLarge) {
   document.getElementById('loadingSubtitle').textContent =
-   '📄 Documento molto grande rilevato — lettura completa in corso, potrebbero volerci fino a 60 secondi...';
+   '📄 Documento molto grande — lettura completa in corso, attendere...';
  }
  const data=await callExtract(newFiles[i].text,newFiles[i].name);
  if (isLarge) {
@@ -1801,6 +1812,7 @@ async function startComparison() {
  steps[i].status='done'; renderSteps(steps);
  }
  steps[steps.length-1].status='active'; renderSteps(steps);
+ finishProgressBar();
 
  // Save new to library if checkbox checked
  if(document.getElementById('saveToLibCheck')?.checked) {
@@ -1830,6 +1842,39 @@ async function callSummary(policies) {
 
 function renderSteps(steps) {
  document.getElementById('progressSteps').innerHTML=steps.map(s=>`<li class="${s.status}"><span class="step-dot"></span>${s.status==='done'?' ':s.status==='active'?'→ ':''}${esc(s.label)}</li>`).join('');
+ const done = steps.filter(s=>s.status==='done').length;
+ const total = steps.length;
+ if (total > 0) _setProgressBar(Math.round((done / total) * 90));
+}
+
+let _progressTimer = null;
+let _progressCurrent = 0;
+
+function startProgressBar(estimatedSeconds) {
+ _progressCurrent = 0;
+ _setProgressBar(0);
+ if (_progressTimer) clearInterval(_progressTimer);
+ const intervalMs = 400;
+ const steps = (estimatedSeconds * 1000) / intervalMs;
+ const increment = 90 / steps;
+ _progressTimer = setInterval(() => {
+  _progressCurrent = Math.min(_progressCurrent + increment, 90);
+  _setProgressBar(Math.round(_progressCurrent));
+  if (_progressCurrent >= 90) clearInterval(_progressTimer);
+ }, intervalMs);
+}
+
+function finishProgressBar() {
+ if (_progressTimer) clearInterval(_progressTimer);
+ _setProgressBar(100);
+ setTimeout(() => _setProgressBar(0), 600);
+}
+
+function _setProgressBar(pct) {
+ const fill = document.getElementById('progressBarFill');
+ const label = document.getElementById('progressBarPct');
+ if (fill) fill.style.width = pct + '%';
+ if (label) label.textContent = pct + '%';
 }
 
 // 
