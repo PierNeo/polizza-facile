@@ -1,0 +1,2254 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polizza Facile — Consulenza</title>
+<script>
+/**
+ * config.js — Configurazione Agenzia Allianz Rosa (Nicolò Prior)
+ */
+
+window.AGENZIA_CONFIG = {
+
+  // ── IDENTITÀ ──────────────────────────────────────────────────────────────
+  nome:        "Agenzia Allianz Rosa",
+  nomeBreve:   "Allianz Rosa",
+  nomeSpan:    "Rosa",
+  tagline:     "Progettiamo la tua protezione",
+  sito:        "ageallianz.it/rosa847000",
+  email:       "nicolo.prior@ageallianz.it",
+  indirizzo:   "",
+  agente:      "Nicolò Prior",
+
+  // ── LOGO ──────────────────────────────────────────────────────────────────
+  logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Allianz_logo.svg/320px-Allianz_logo.svg.png",
+
+  // ── BRAND COLORS ──────────────────────────────────────────────────────────
+  colori: {
+    primario:     "#003781",
+    primarioMid:  "#004B9A",
+    primarioLight:"#006AB3",
+    accento:      "#00A3E0",
+    accentoSoft:  "#E6F4FA",
+    accentoMid:   "#33B5E8",
+    accentoDark:  "#0082B8",
+  },
+
+  // ── API ───────────────────────────────────────────────────────────────────
+  backendUrl: "",
+  apiKey:     "",
+
+  // ── DOCUMENTO PDF ─────────────────────────────────────────────────────────
+  pdfFooter: "Progettiamo la tua protezione · ageallianz.it/rosa847000",
+  pdfBrand:  "Agenzia Allianz Rosa — Nicolò Prior",
+};
+
+</script>
+<script>
+// Applica colori brand da config prima del rendering
+(function(){
+  const c = window.AGENZIA_CONFIG?.colori || {};
+  const root = document.documentElement;
+  if(c.primario)      root.style.setProperty('--polo',          c.primario);
+  if(c.primarioMid)   root.style.setProperty('--polo-mid',      c.primarioMid);
+  if(c.primarioLight) root.style.setProperty('--polo-light',    c.primarioLight);
+  if(c.accento)       root.style.setProperty('--gold',          c.accento);
+  if(c.accentoSoft)   root.style.setProperty('--gold-soft',     c.accentoSoft);
+  if(c.accentoMid)    root.style.setProperty('--gold-mid',      c.accentoMid);
+  if(c.accentoDark)   root.style.setProperty('--gold-dark',     c.accentoDark);
+  const cfg = window.AGENZIA_CONFIG || {};
+  if(cfg.nome) document.title = cfg.nome + ' — Consulenza';
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+ /* Polo Bassano brand */
+ --polo: #0F2741;
+ --polo-mid: #1A3D60;
+ --polo-light: #234E7A;
+ --polo-hover: rgba(255,255,255,.07);
+ --gold: #C8971C;
+ --gold-soft: #FDF5DC;
+ --gold-mid: #E8C050;
+ --gold-dark: #A07810;
+ /* App palette */
+ --blue: #2563EB;
+ --blue-dark: #1D4ED8;
+ --blue-soft: #EFF6FF;
+ --blue-mid: #BFDBFE;
+ --green: #16A34A;
+ --green-soft: #DCFCE7;
+ --green-dark: #15803D;
+ --red: #DC2626;
+ --red-soft: #FEE2E2;
+ --amber: #D97706;
+ --amber-soft: #FEF3C7;
+ --purple: #7C3AED;
+ --purple-soft: #F5F3FF;
+ --gray-50: #F9FAFB;
+ --gray-100: #F3F4F6;
+ --gray-200: #E5E7EB;
+ --gray-300: #D1D5DB;
+ --gray-400: #9CA3AF;
+ --gray-500: #6B7280;
+ --gray-600: #4B5563;
+ --gray-700: #374151;
+ --gray-800: #1F2937;
+ --gray-900: #111827;
+ --white: #FFFFFF;
+ --radius: 14px;
+ --shadow-sm: 0 1px 3px rgba(0,0,0,.06);
+ --shadow: 0 4px 16px rgba(0,0,0,.08);
+ --shadow-lg: 0 8px 32px rgba(0,0,0,.14);
+ --sidebar-w: 230px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gray-800); min-height:100vh; display:flex; }
+
+/* SIDEBAR */
+.sidebar {
+ width:var(--sidebar-w); min-height:100vh; background:var(--polo);
+ display:flex; flex-direction:column; position:fixed; left:0; top:0; bottom:0;
+ z-index:200; box-shadow:2px 0 12px rgba(0,0,0,.15);
+}
+.sidebar-brand {
+ padding:24px 20px 20px; border-bottom:1px solid rgba(255,255,255,.08);
+}
+.sidebar-logo-img { height:36px; margin-bottom:10px; display:block; }
+.sidebar-tagline { font-size:10px; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.8px; font-weight:500; }
+
+.sidebar-nav { flex:1; padding:16px 0; overflow-y:auto; }
+.nav-section-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,.3); padding:14px 20px 6px; }
+.nav-item {
+ display:flex; align-items:center; gap:11px; padding:10px 20px;
+ color:rgba(255,255,255,.65); font-size:13px; font-weight:500;
+ cursor:pointer; transition:all .15s; border-left:3px solid transparent;
+ user-select:none; text-decoration:none;
+}
+.nav-item:hover { background:var(--polo-hover); color:#fff; }
+.nav-item.active { background:rgba(200,151,28,.12); color:var(--gold-mid); border-left-color:var(--gold); }
+.nav-item .nav-icon { font-size:16px; width:20px; text-align:center; flex-shrink:0; }
+.nav-badge {
+ margin-left:auto; background:var(--gold); color:var(--polo); font-size:10px;
+ font-weight:700; padding:2px 7px; border-radius:20px; min-width:20px; text-align:center;
+}
+
+.sidebar-bottom {
+ padding:16px 20px; border-top:1px solid rgba(255,255,255,.08);
+ font-size:11px; color:rgba(255,255,255,.3); line-height:1.6;
+}
+.sidebar-bottom strong { color:rgba(255,255,255,.5); display:block; margin-bottom:2px; }
+
+/* Mobile sidebar toggle */
+.mob-bar {
+ display:none; position:fixed; top:0; left:0; right:0; height:52px;
+ background:var(--polo); z-index:300; align-items:center; padding:0 16px;
+ box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+.mob-bar .mob-logo { color:#fff; font-size:15px; font-weight:700; flex:1; letter-spacing:-.3px; }
+.mob-bar .mob-logo span { color:var(--gold-mid); }
+.mob-hamburger { background:none; border:none; cursor:pointer; color:#fff; font-size:22px; padding:4px; }
+.sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:199; }
+.sidebar-overlay.open { display:block; }
+
+@media(max-width:768px) {
+ .sidebar { transform:translateX(-100%); transition:transform .25s ease; }
+ .sidebar.open { transform:translateX(0); }
+ .mob-bar { display:flex; }
+ .main-content { margin-left:0 !important; padding-top:52px; }
+}
+
+/* MAIN CONTENT */
+.main-content { margin-left:var(--sidebar-w); flex:1; min-height:100vh; display:flex; flex-direction:column; }
+
+/* BUTTONS */
+.btn { padding:9px 20px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; border:none; transition:all .15s; }
+.btn-primary { background:var(--polo); color:#fff; }
+.btn-primary:hover { background:var(--polo-mid); }
+.btn-gold { background:var(--gold); color:#fff; }
+.btn-gold:hover { background:var(--gold-dark); }
+.btn-ghost { background:var(--white); border:1.5px solid var(--gray-200); color:var(--gray-600); }
+.btn-ghost:hover { border-color:var(--gray-400); }
+.btn-danger { background:var(--red-soft); color:var(--red); border:1px solid var(--red-soft); }
+.btn-danger:hover { background:var(--red); color:#fff; }
+.btn-sm { padding:6px 14px; font-size:12px; }
+.btn-go { background:var(--polo); color:#fff; border:none; padding:13px 32px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; display:flex; align-items:center; gap:9px; }
+.btn-go:hover:not(:disabled) { background:var(--polo-mid); }
+.btn-go:disabled { background:var(--gray-200); color:var(--gray-400); cursor:not-allowed; }
+
+/* PAGE SHELL */
+.page { padding:32px 36px 72px; max-width:1100px; }
+.page-sm { max-width:720px; }
+.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
+.page-title { font-size:22px; font-weight:700; letter-spacing:-.4px; color:var(--gray-900); }
+.page-subtitle { font-size:13px; color:var(--gray-400); margin-top:3px; }
+
+/* DASHBOARD */
+.dash-hero {
+ background:linear-gradient(135deg, var(--polo) 0%, var(--polo-light) 100%);
+ border-radius:var(--radius); padding:28px 32px; margin-bottom:28px;
+ color:#fff; display:flex; align-items:center; justify-content:space-between;
+ gap:20px; flex-wrap:wrap; box-shadow:var(--shadow);
+}
+.dash-hero-text h2 { font-size:20px; font-weight:700; margin-bottom:6px; }
+.dash-hero-text p { font-size:13px; opacity:.7; max-width:360px; line-height:1.6; }
+.dash-hero-badge { background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:12px 20px; text-align:center; flex-shrink:0; }
+.dash-hero-badge .badge-num { font-size:28px; font-weight:700; color:var(--gold-mid); }
+.dash-hero-badge .badge-label { font-size:11px; opacity:.6; margin-top:2px; }
+
+.stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; }
+@media(max-width:600px) { .stats-row { grid-template-columns:1fr 1fr; } }
+.stat-card { background:var(--white); border:1px solid var(--gray-200); border-radius:12px; padding:18px 20px; box-shadow:var(--shadow-sm); }
+.stat-num { font-size:28px; font-weight:700; color:var(--polo); }
+.stat-label { font-size:12px; color:var(--gray-400); margin-top:3px; }
+
+.dash-section-title { font-size:14px; font-weight:700; color:var(--gray-700); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.dash-actions { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:28px; }
+@media(max-width:480px) { .dash-actions { grid-template-columns:1fr; } }
+.dash-action-card {
+ background:var(--white); border:2px solid var(--gray-200); border-radius:var(--radius);
+ padding:22px 20px; cursor:pointer; transition:all .2s; box-shadow:var(--shadow-sm);
+}
+.dash-action-card:hover { border-color:var(--polo); box-shadow:var(--shadow); transform:translateY(-2px); }
+.dash-action-card.featured { border-color:var(--gold); background:var(--gold-soft); }
+.dash-action-card.featured:hover { border-color:var(--gold-dark); }
+.dac-icon { font-size:28px; margin-bottom:10px; }
+.dac-title { font-size:15px; font-weight:700; color:var(--gray-900); margin-bottom:4px; }
+.dac-desc { font-size:12px; color:var(--gray-400); line-height:1.55; }
+
+.recent-list { display:flex; flex-direction:column; gap:10px; }
+.recent-item {
+ background:var(--white); border:1px solid var(--gray-200); border-radius:10px;
+ padding:14px 16px; display:flex; align-items:center; gap:14px;
+ cursor:pointer; transition:border .15s; box-shadow:var(--shadow-sm);
+}
+.recent-item:hover { border-color:var(--polo); }
+.recent-avatar {
+ width:38px; height:38px; border-radius:50%; background:var(--polo); color:#fff;
+ display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex-shrink:0;
+}
+.recent-name { font-size:14px; font-weight:600; color:var(--gray-900); }
+.recent-meta { font-size:11px; color:var(--gray-400); margin-top:2px; }
+.recent-chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.recent-chip { font-size:10px; font-weight:500; padding:2px 8px; border-radius:20px; background:var(--blue-soft); color:var(--blue); }
+.recent-arrow { margin-left:auto; color:var(--gray-300); font-size:18px; flex-shrink:0; }
+.empty-state { text-align:center; padding:40px 20px; color:var(--gray-400); }
+.empty-state .empty-icon { font-size:40px; margin-bottom:12px; }
+.empty-state p { font-size:14px; line-height:1.6; }
+
+/* CLIENT LIST */
+.search-bar {
+ display:flex; gap:10px; margin-bottom:20px;
+}
+.search-input {
+ flex:1; padding:10px 14px; border:1.5px solid var(--gray-200); border-radius:10px;
+ font-size:14px; font-family:inherit; outline:none; transition:border .15s;
+}
+.search-input:focus { border-color:var(--polo); }
+.client-list { display:flex; flex-direction:column; gap:10px; }
+.client-bulk-bar {
+ display:flex; align-items:center; gap:12px; padding:10px 14px;
+ background:var(--blue-soft); border:1.5px solid var(--blue-mid);
+ border-radius:10px; margin-bottom:4px; animation:fadeIn .15s;
+}
+.client-bulk-count { font-size:13px; font-weight:600; color:var(--polo); flex:1; }
+.client-checkbox {
+ width:18px; height:18px; accent-color:var(--polo); cursor:pointer; flex-shrink:0;
+}
+.client-row {
+ background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius);
+ padding:16px 20px; display:flex; align-items:center; gap:16px;
+ cursor:pointer; transition:all .15s; box-shadow:var(--shadow-sm);
+}
+.client-row:hover { border-color:var(--polo); box-shadow:var(--shadow); }
+.client-row.selected { border-color:var(--polo); background:rgba(15,39,65,.04); }
+.client-avatar { width:42px; height:42px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; flex-shrink:0; }
+.client-info { flex:1; min-width:0; }
+.client-name { font-size:15px; font-weight:700; color:var(--gray-900); }
+.client-date { font-size:11px; color:var(--gray-400); margin-top:2px; }
+.client-recs { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+.client-rec-tag { font-size:10px; font-weight:600; padding:2px 9px; border-radius:20px; }
+.rec-alta { background:var(--red-soft); color:var(--red); }
+.rec-media { background:var(--amber-soft); color:var(--amber); }
+.rec-bassa { background:var(--green-soft); color:var(--green-dark); }
+.client-actions { display:flex; gap:6px; flex-shrink:0; }
+
+/* CLIENT DETAIL */
+.detail-header { display:flex; align-items:flex-start; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+.detail-avatar { width:56px; height:56px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; flex-shrink:0; }
+.detail-name { font-size:22px; font-weight:700; color:var(--gray-900); letter-spacing:-.3px; }
+.detail-meta { font-size:12px; color:var(--gray-400); margin-top:4px; }
+.detail-actions { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
+
+/* LIBRARY */
+.library-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+.library-card {
+ background:var(--white); border:2px solid var(--gray-200); border-radius:var(--radius);
+ padding:18px 18px; box-shadow:var(--shadow-sm); transition:all .15s; cursor:pointer;
+ position:relative;
+}
+.library-card:hover { border-color:var(--polo-light); box-shadow:var(--shadow); }
+.library-card.selected { border-color:var(--polo); background:var(--blue-soft); box-shadow:0 0 0 3px rgba(15,39,65,.08); }
+.lib-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:4px; }
+.lib-product { font-size:15px; font-weight:700; color:var(--gray-900); margin-bottom:6px; line-height:1.3; }
+.lib-tipo { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--blue-soft); color:var(--blue); margin-bottom:10px; }
+.lib-date { font-size:11px; color:var(--gray-400); }
+.lib-check { position:absolute; top:12px; right:12px; width:22px; height:22px; border-radius:50%; border:2px solid var(--gray-300); display:flex; align-items:center; justify-content:center; font-size:12px; transition:all .15s; }
+.library-card.selected .lib-check { border-color:var(--polo); background:var(--polo); color:#fff; }
+.lib-del { position:absolute; bottom:10px; right:12px; background:none; border:none; cursor:pointer; color:var(--gray-300); font-size:14px; transition:color .15s; }
+.lib-del:hover { color:var(--red); }
+.library-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+.selected-count { font-size:13px; color:var(--polo); font-weight:600; }
+
+/* QUESTIONNAIRE */
+.questionnaire-page { max-width:680px; padding:40px 36px 80px; }
+.section-progress-bar { margin-bottom:36px; }
+.section-progress-info { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.section-progress-label { font-size:13px; font-weight:600; color:var(--gray-700); }
+.section-progress-count { font-size:12px; color:var(--gray-400); }
+.progress-track { height:4px; background:var(--gray-200); border-radius:4px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--polo); border-radius:4px; transition:width .4s ease; }
+.section-header { display:flex; align-items:center; gap:12px; margin-bottom:32px; }
+.section-icon { font-size:28px; }
+.section-title-text { font-size:22px; font-weight:700; letter-spacing:-.3px; }
+.question-block { margin-bottom:28px; }
+.question-label { font-size:14px; font-weight:600; color:var(--gray-700); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+.required-star { color:var(--red); font-size:12px; }
+.optional-tag { font-size:11px; font-weight:400; color:var(--gray-400); background:var(--gray-100); padding:2px 8px; border-radius:20px; }
+.option-cards { display:flex; flex-wrap:wrap; gap:8px; }
+.option-card { padding:9px 16px; border:1.5px solid var(--gray-200); border-radius:9px; font-size:13px; font-weight:500; cursor:pointer; transition:all .15s; background:var(--white); color:var(--gray-700); user-select:none; }
+.option-card:hover { border-color:var(--polo); color:var(--polo); background:var(--blue-soft); }
+.option-card.selected { border-color:var(--polo); background:var(--polo); color:#fff; }
+.option-card.disabled { opacity:.4; cursor:not-allowed; }
+.option-card.disabled:hover { border-color:var(--gray-200); color:var(--gray-700); background:var(--white); }
+.q-input { width:100%; padding:11px 14px; border:1.5px solid var(--gray-200); border-radius:10px; font-size:14px; font-family:inherit; outline:none; transition:border .15s; color:var(--gray-800); background:var(--white); }
+.q-input:focus { border-color:var(--polo); }
+.q-textarea { resize:vertical; min-height:90px; }
+.questionnaire-nav { display:flex; justify-content:space-between; align-items:center; margin-top:36px; padding-top:24px; border-top:1px solid var(--gray-200); }
+.btn-next { background:var(--polo); color:#fff; border:none; padding:12px 28px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; display:flex; align-items:center; gap:8px; }
+.btn-next:hover { background:var(--polo-mid); }
+.btn-back { background:none; border:none; color:var(--gray-400); font-size:13px; font-weight:500; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:5px; padding:8px 4px; transition:color .15s; }
+.btn-back:hover { color:var(--gray-700); }
+
+/* RECOMMENDATIONS */
+.recs-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+.recs-topbar h1 { font-size:21px; font-weight:700; letter-spacing:-.3px; }
+.profile-box { background:linear-gradient(135deg, var(--blue-soft) 0%, var(--purple-soft) 100%); border:1px solid var(--blue-mid); border-radius:var(--radius); padding:20px 22px; margin-bottom:24px; display:flex; gap:12px; align-items:flex-start; }
+.profile-box-icon { font-size:22px; flex-shrink:0; margin-top:1px; }
+.profile-box-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--blue); margin-bottom:5px; }
+.profile-box-text { font-size:14px; color:var(--gray-700); line-height:1.65; }
+.recs-section-title { font-size:14px; font-weight:700; color:var(--gray-700); margin-bottom:14px; }
+.rec-cards { display:flex; flex-direction:column; gap:13px; margin-bottom:24px; }
+.rec-card { background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius); padding:20px 20px; box-shadow:var(--shadow-sm); display:flex; gap:16px; align-items:flex-start; transition:border .2s; }
+.rec-card.urgenza-alta { border-left:4px solid var(--red); }
+.rec-card.urgenza-media { border-left:4px solid var(--amber); }
+.rec-card.urgenza-bassa { border-left:4px solid var(--green); }
+.rec-priority { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0; color:#fff; margin-top:1px; }
+.urgenza-alta .rec-priority { background:var(--red); }
+.urgenza-media .rec-priority { background:var(--amber); }
+.urgenza-bassa .rec-priority { background:var(--green); }
+.rec-body { flex:1; min-width:0; }
+.rec-header { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:7px; }
+.rec-tipo { font-size:15px; font-weight:700; color:var(--gray-900); }
+.urgency-badge { font-size:10px; font-weight:700; padding:2px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; flex-shrink:0; }
+.urgenza-alta .urgency-badge { background:var(--red-soft); color:var(--red); }
+.urgenza-media .urgency-badge { background:var(--amber-soft); color:var(--amber); }
+.urgenza-bassa .urgency-badge { background:var(--green-soft); color:var(--green-dark); }
+.rec-motivo { font-size:13px; color:var(--gray-600); line-height:1.65; margin-bottom:9px; }
+.rec-cercare-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--gray-400); margin-bottom:5px; }
+.rec-cercare-list { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:9px; }
+.rec-cercare-tag { font-size:11px; font-weight:500; padding:2px 9px; border-radius:20px; background:var(--gray-100); color:var(--gray-600); border:1px solid var(--gray-200); }
+.rec-budget { font-size:12px; color:var(--gray-400); }
+.rec-budget strong { color:var(--gray-700); }
+.gap-card { background:var(--white); border:1px solid var(--amber-soft); border-radius:var(--radius); padding:16px 18px; margin-bottom:20px; box-shadow:var(--shadow-sm); }
+.gap-header { display:flex; align-items:center; gap:7px; margin-bottom:10px; }
+.gap-header-title { font-size:13px; font-weight:700; color:var(--amber); }
+.gap-list { display:flex; flex-direction:column; gap:5px; }
+.gap-item { font-size:13px; color:var(--gray-700); display:flex; gap:8px; align-items:flex-start; line-height:1.5; }
+.gap-item::before { content:""; color:var(--amber); font-size:11px; flex-shrink:0; margin-top:2px; }
+.nota-card { background:linear-gradient(135deg,#F0FDF4 0%,#EFF6FF 100%); border:1px solid #BBF7D0; border-radius:var(--radius); padding:16px 18px; margin-bottom:20px; box-shadow:var(--shadow-sm); display:flex; gap:10px; align-items:flex-start; }
+.nota-icon { font-size:17px; flex-shrink:0; }
+.nota-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--green-dark); margin-bottom:4px; }
+.nota-text { font-size:13px; color:var(--gray-700); line-height:1.65; }
+.recs-cta { display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:20px; background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius); box-shadow:var(--shadow-sm); }
+.recs-cta p { font-size:13px; color:var(--gray-500); flex:1; min-width:180px; line-height:1.5; }
+
+/* UPLOAD / LIBRARY SELECT */
+.upload-page { max-width:720px; padding:40px 36px; }
+.upload-hero { margin-bottom:24px; }
+.upload-hero h1 { font-size:24px; font-weight:700; letter-spacing:-.4px; margin-bottom:6px; }
+.upload-hero p { font-size:14px; color:var(--gray-500); }
+.upload-context { background:var(--blue-soft); border:1px solid var(--blue-mid); border-radius:10px; padding:11px 15px; margin-bottom:20px; font-size:13px; color:var(--blue-dark); display:flex; align-items:center; gap:8px; }
+
+.lib-select-section { margin-bottom:24px; }
+.lib-select-title { font-size:14px; font-weight:700; color:var(--gray-700); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.lib-select-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+.lib-select-card {
+ border:1.5px solid var(--gray-200); border-radius:10px; padding:13px 14px;
+ cursor:pointer; transition:all .15s; background:var(--white);
+}
+.lib-select-card:hover { border-color:var(--polo); }
+.lib-select-card.sel { border-color:var(--polo); background:var(--blue-soft); }
+.lsc-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); margin-bottom:3px; }
+.lsc-product { font-size:13px; font-weight:700; color:var(--gray-800); margin-bottom:4px; }
+.lsc-tipo { font-size:11px; color:var(--blue); }
+.lsc-check { float:right; margin-top:-24px; font-size:16px; color:var(--polo); opacity:0; transition:opacity .15s; }
+.lib-select-card.sel .lsc-check { opacity:1; }
+
+.divider-or { display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--gray-400); font-size:12px; }
+.divider-or::before, .divider-or::after { content:''; flex:1; height:1px; background:var(--gray-200); }
+
+.drop-zone { border:2px dashed var(--gray-200); border-radius:var(--radius); padding:44px 32px; text-align:center; cursor:pointer; background:var(--white); transition:all .2s; box-shadow:var(--shadow-sm); }
+.drop-zone:hover, .drop-zone.over { border-color:var(--polo); background:var(--blue-soft); }
+.drop-icon { font-size:40px; margin-bottom:12px; }
+.drop-zone h3 { font-size:16px; font-weight:600; margin-bottom:5px; }
+.drop-zone p { font-size:13px; color:var(--gray-400); }
+.drop-zone small { font-size:11px; color:var(--gray-300); margin-top:6px; display:block; }
+#fileInput { display:none; }
+.chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.chip { display:flex; align-items:center; gap:7px; padding:6px 12px; background:var(--white); border:1.5px solid var(--gray-200); border-radius:8px; font-size:12px; font-weight:500; box-shadow:var(--shadow-sm); transition:border .2s; }
+.chip.ready { border-color:var(--green); }
+.chip.loading { border-color:var(--blue-mid); }
+.chip.error { border-color:var(--red); }
+.chip-name { max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chip-x { background:none; border:none; cursor:pointer; color:var(--gray-400); font-size:15px; line-height:1; padding:0 2px; margin-left:2px; }
+.chip-x:hover { color:var(--red); }
+.upload-action { margin-top:22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.upload-hint { font-size:12px; color:var(--gray-400); }
+.save-to-lib { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--gray-500); cursor:pointer; margin-top:12px; }
+.save-to-lib input { accent-color:var(--polo); width:14px; height:14px; }
+
+/* LOADING */
+.loading-page { max-width:440px; margin:0 auto; padding:80px 24px; text-align:center; }
+.big-spinner { width:50px; height:50px; border:4px solid var(--gray-200); border-top-color:var(--polo); border-radius:50%; animation:spin .75s linear infinite; margin:0 auto 22px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-page h2 { font-size:20px; font-weight:700; margin-bottom:7px; }
+.loading-page p { font-size:14px; color:var(--gray-500); margin-bottom:22px; }
+.progress-steps { list-style:none; display:inline-flex; flex-direction:column; gap:8px; text-align:left; }
+.progress-steps li { font-size:13px; color:var(--gray-400); display:flex; align-items:center; gap:10px; }
+.progress-steps li.active { color:var(--polo); font-weight:500; }
+.progress-steps li.done { color:var(--green); }
+.step-dot { width:7px; height:7px; border-radius:50%; background:var(--gray-300); flex-shrink:0; }
+.progress-steps li.active .step-dot { background:var(--polo); }
+.progress-steps li.done .step-dot { background:var(--green); }
+
+/* RESULTS */
+.results-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+.results-topbar h1 { font-size:21px; font-weight:700; letter-spacing:-.3px; }
+.results-topbar-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.btn-print { background:var(--polo); color:#fff; border:none; padding:9px 18px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+.btn-print:hover { background:var(--polo-mid); }
+.score-cards { display:grid; gap:14px; margin-bottom:24px; }
+.score-card { background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius); padding:20px 22px; box-shadow:var(--shadow-sm); display:flex; align-items:center; gap:18px; transition:border .2s; }
+.score-card.winner { border-color:var(--green); box-shadow:0 0 0 3px rgba(22,163,74,.08); }
+.score-ring { flex-shrink:0; position:relative; width:60px; height:60px; }
+.score-ring svg { transform:rotate(-90deg); }
+.score-ring .track { fill:none; stroke:var(--gray-100); stroke-width:6; }
+.score-ring .fill { fill:none; stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset .8s ease; }
+.score-ring .score-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; }
+.score-body { flex:1; min-width:0; }
+.score-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:2px; }
+.score-product { font-size:15px; font-weight:700; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.score-tipo { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; background:var(--blue-soft); color:var(--blue); }
+.score-premio { font-size:11px; color:var(--gray-500); margin-top:5px; }
+.score-premio strong { color:var(--gray-700); }
+.score-badges { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+.score-badge { font-size:10px; font-weight:500; padding:2px 8px; border-radius:20px; background:var(--gray-100); color:var(--gray-600); }
+.score-badge.best { background:var(--green-soft); color:var(--green-dark); }
+.winner-tag { flex-shrink:0; background:var(--green); color:#fff; font-size:10px; font-weight:700; padding:3px 11px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; align-self:flex-start; }
+.ai-summary { background:linear-gradient(135deg,#EFF6FF 0%,#F5F3FF 100%); border:1px solid var(--blue-mid); border-radius:var(--radius); padding:20px 22px; margin-bottom:24px; }
+.ai-summary-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--blue); margin-bottom:7px; display:flex; align-items:center; gap:6px; }
+.ai-summary-text { font-size:14px; line-height:1.7; color:var(--gray-700); }
+.section-title { font-size:15px; font-weight:700; margin-bottom:12px; color:var(--gray-800); }
+.table-outer { border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); margin-bottom:28px; }
+.table-scroll { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; background:var(--white); font-size:13px; }
+thead th { background:var(--gray-900); color:#fff; padding:13px 14px; font-size:11px; font-weight:600; text-align:center; border-right:1px solid rgba(255,255,255,.08); }
+thead th:first-child { text-align:left; min-width:190px; background:var(--gray-800); }
+thead th:not(:first-child) { min-width:165px; }
+thead .th-company { display:block; font-size:10px; opacity:.6; font-weight:400; margin-bottom:1px; }
+thead .th-product { display:block; font-size:12px; font-weight:700; }
+.group-row td { background:var(--gray-100); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gray-400); padding:6px 14px; border-bottom:1px solid var(--gray-200); }
+tbody tr td { border-bottom:1px solid var(--gray-100); }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover td { background:var(--blue-soft) !important; }
+td.row-label { padding:12px 14px; font-weight:500; color:var(--gray-700); background:var(--white); font-size:12px; }
+td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
+.cell.c-best { background:var(--green-soft); }
+.cell.c-mid { background:var(--white); }
+.cell.c-absent { background:var(--gray-50); }
+.cell-inner { display:flex; flex-direction:column; align-items:center; gap:3px; }
+.c-absent .absent-x { font-size:16px; color:var(--gray-300); }
+.massimale { font-size:13px; font-weight:700; color:var(--gray-900); }
+.massimale.best-val { color:var(--green-dark); }
+.detail-row { display:flex; gap:5px; flex-wrap:wrap; justify-content:center; }
+.detail-tag { font-size:10px; font-weight:600; padding:2px 6px; border-radius:20px; }
+.detail-tag.franchigia { background:var(--amber-soft); color:var(--amber); }
+.detail-tag.scoperto { background:var(--red-soft); color:var(--red); }
+.detail-tag.niente { background:var(--green-soft); color:var(--green-dark); }
+.note-text { font-size:10px; color:var(--gray-400); font-style:italic; margin-top:1px; }
+.best-pill { font-size:9px; font-weight:700; background:var(--green); color:#fff; padding:1px 6px; border-radius:20px; text-transform:uppercase; letter-spacing:.3px; }
+.excl-grid { display:grid; gap:12px; }
+.excl-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow-sm); }
+.excl-header { display:flex; gap:8px; align-items:baseline; margin-bottom:10px; }
+.excl-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); }
+.excl-product { font-size:13px; font-weight:600; color:var(--gray-800); }
+.excl-list { display:flex; flex-direction:column; gap:4px; }
+.excl-item { font-size:12px; color:var(--gray-600); display:flex; gap:7px; align-items:flex-start; line-height:1.5; }
+.excl-item::before { content:"×"; color:var(--red); font-weight:700; font-size:11px; flex-shrink:0; margin-top:1px; }
+.advice-grid { display:grid; gap:10px; margin-bottom:28px; }
+.advice-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow-sm); display:flex; gap:12px; }
+.advice-icon { font-size:26px; flex-shrink:0; }
+.advice-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); margin-bottom:2px; }
+.advice-for { font-size:13px; font-weight:600; color:var(--gray-800); margin-bottom:3px; }
+.advice-text { font-size:12px; color:var(--gray-500); line-height:1.55; }
+
+/* PRINT — CLIENT PROFILE */
+.print-profile { display:none; }
+@media print {
+ .sidebar, .mob-bar, .results-topbar-actions,
+ .upload-page, .loading-page, .questionnaire-page,
+ .recs-topbar .recs-actions, .dash-actions,
+ .client-actions, .library-toolbar .btn,
+ .page-header .btn, .detail-actions { display:none !important; }
+ .print-profile { display:block; }
+ .main-content { margin-left:0 !important; }
+ body { background:#fff; }
+ .score-card, .ai-summary, .excl-card, .advice-card, .rec-card { box-shadow:none !important; break-inside:avoid; }
+ .table-outer { box-shadow:none !important; }
+}
+.print-profile { padding:40px; font-family:'Inter',sans-serif; }
+.pp-header { display:flex; align-items:center; justify-content:space-between; padding-bottom:20px; border-bottom:3px solid var(--polo); margin-bottom:28px; }
+.pp-brand { font-size:18px; font-weight:700; color:var(--polo); }
+.pp-brand span { color:var(--gold); }
+.pp-tagline { font-size:11px; color:var(--gray-400); margin-top:2px; }
+.pp-client { font-size:11px; color:var(--gray-500); text-align:right; }
+.pp-client strong { font-size:20px; color:var(--gray-900); display:block; font-weight:700; }
+.pp-section { margin-bottom:22px; }
+.pp-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--polo); border-bottom:1px solid var(--gray-200); padding-bottom:6px; margin-bottom:12px; }
+.pp-summary { font-size:13px; color:var(--gray-700); line-height:1.65; padding:12px; background:var(--gray-50); border-radius:8px; }
+.pp-rec { display:flex; gap:12px; margin-bottom:12px; padding:10px 14px; background:var(--gray-50); border-radius:8px; break-inside:avoid; }
+.pp-rec-num { width:28px; height:28px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+.pp-rec-tipo { font-size:13px; font-weight:700; color:var(--gray-900); margin-bottom:3px; }
+.pp-rec-motivo { font-size:12px; color:var(--gray-600); line-height:1.55; }
+.pp-rec-budget { font-size:11px; color:var(--gray-400); margin-top:4px; }
+.pp-footer { margin-top:36px; padding-top:16px; border-top:1px solid var(--gray-200); font-size:10px; color:var(--gray-400); display:flex; justify-content:space-between; }
+
+@media(max-width:600px) {
+ .page { padding:20px 16px 60px; }
+ .stats-row { grid-template-columns:1fr 1fr; }
+ .score-card { flex-wrap:wrap; }
+ .library-grid { grid-template-columns:1fr; }
+ .results-topbar { flex-direction:column; align-items:flex-start; }
+}
+
+/* MATCH AI */
+.match-layout { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+@media(max-width:800px) { .match-layout { grid-template-columns:1fr; } }
+.match-panel { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); }
+.match-panel-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:14px; }
+.match-client-card { display:flex; gap:12px; align-items:center; padding:12px; border:2px solid transparent; border-radius:10px; cursor:pointer; transition:border-color .15s,background .15s; margin-bottom:8px; }
+.match-client-card:hover { background:var(--gray-50); border-color:var(--gray-200); }
+.match-client-card.selected { border-color:var(--polo); background:rgba(15,39,65,.04); }
+.match-client-card .mc-avatar { width:36px; height:36px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+.match-client-card .mc-name { font-size:13px; font-weight:600; color:var(--gray-900); }
+.match-client-card .mc-meta { font-size:11px; color:var(--gray-400); }
+.match-policy-card { display:flex; gap:10px; align-items:center; padding:10px 12px; border:2px solid transparent; border-radius:10px; cursor:pointer; transition:border-color .15s,background .15s; margin-bottom:8px; }
+.match-policy-card:hover { background:var(--gray-50); border-color:var(--gray-200); }
+.match-policy-card.selected { border-color:var(--gold); background:rgba(200,151,28,.06); }
+.match-policy-card .mp-icon { font-size:20px; flex-shrink:0; }
+.match-policy-card .mp-name { font-size:13px; font-weight:600; color:var(--gray-900); }
+.match-policy-card .mp-meta { font-size:11px; color:var(--gray-400); }
+.match-run-bar { display:flex; align-items:center; gap:12px; padding:16px 0; border-top:1px solid var(--gray-100); border-bottom:1px solid var(--gray-100); margin-bottom:24px; }
+.match-results { margin-top:8px; }
+.match-rec-box { background:linear-gradient(135deg,rgba(15,39,65,.05),rgba(200,151,28,.08)); border:1px solid rgba(200,151,28,.25); border-radius:var(--radius-lg); padding:20px 24px; margin-bottom:24px; }
+.match-rec-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gold); margin-bottom:8px; }
+.match-rec-text { font-size:14px; color:var(--gray-800); line-height:1.7; }
+.match-tip { font-size:12px; color:var(--polo); margin-top:10px; padding-top:10px; border-top:1px solid rgba(200,151,28,.2); font-style:italic; }
+.match-cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; margin-bottom:24px; }
+.match-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg); padding:18px 20px; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; }
+.match-card.top-pick::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--polo),var(--gold)); }
+.match-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+.match-card-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); }
+.match-card-name { font-size:14px; font-weight:700; color:var(--gray-900); margin-top:2px; }
+.match-score-ring { width:52px; height:52px; flex-shrink:0; }
+.match-score-ring svg { transform:rotate(-90deg); }
+.match-score-num { font-size:13px; font-weight:800; color:var(--polo); text-anchor:middle; dominant-baseline:central; }
+.match-budget-badge { display:inline-block; font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; margin-bottom:10px; }
+.match-budget-badge.ottimo { background:rgba(34,197,94,.12); color:#15803d; }
+.match-budget-badge.buono { background:rgba(59,130,246,.12); color:#1d4ed8; }
+.match-budget-badge.stretto { background:rgba(245,158,11,.12); color:#b45309; }
+.match-budget-badge.fuori { background:rgba(239,68,68,.12); color:#dc2626; }
+.match-gap-list { margin:10px 0; display:flex; flex-direction:column; gap:5px; }
+.match-gap-item { display:flex; align-items:center; gap:8px; font-size:12px; }
+.match-gap-bar { flex:1; height:5px; background:var(--gray-100); border-radius:3px; overflow:hidden; }
+.match-gap-fill { height:100%; border-radius:3px; background:var(--polo); transition:width .4s; }
+.match-gap-fill.low { background:var(--red); }
+.match-gap-fill.mid { background:#f59e0b; }
+.match-gap-fill.high { background:#22c55e; }
+.match-verdict { font-size:12px; color:var(--gray-600); line-height:1.55; margin-top:10px; padding-top:10px; border-top:1px solid var(--gray-100); }
+.match-strengths { margin-top:10px; }
+.match-str-item { font-size:11px; color:#15803d; display:flex; gap:5px; margin-bottom:3px; }
+.match-str-item::before { content:''; font-weight:700; }
+.match-weak-item { font-size:11px; color:var(--red); display:flex; gap:5px; margin-bottom:3px; }
+.match-weak-item::before { content:''; font-weight:700; }
+.match-rank-badge { position:absolute; top:12px; right:12px; width:22px; height:22px; border-radius:50%; background:var(--gold); color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.match-empty { text-align:center; padding:32px; color:var(--gray-400); }
+
+/* ONBOARDING */
+.onboarding { background:linear-gradient(135deg,rgba(15,39,65,.04) 0%,rgba(200,151,28,.06) 100%); border:1px solid rgba(200,151,28,.2); border-radius:var(--radius-lg); padding:28px 28px 22px; margin-bottom:28px; position:relative; }
+.onboarding-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.onboarding-title { font-size:16px; font-weight:700; color:var(--polo); }
+.onboarding-subtitle { font-size:13px; color:var(--gray-500); margin-top:2px; }
+.onboarding-dismiss { font-size:11px; color:var(--gray-400); background:none; border:none; cursor:pointer; padding:4px 8px; border-radius:6px; transition:color .15s; }
+.onboarding-dismiss:hover { color:var(--gray-600); }
+.onboarding-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+@media(max-width:700px) { .onboarding-steps { grid-template-columns:1fr; } }
+.ob-step { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:18px 16px; display:flex; flex-direction:column; gap:8px; box-shadow:var(--shadow-sm); }
+.ob-step-num { width:24px; height:24px; border-radius:50%; background:var(--polo); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.ob-step-icon { font-size:28px; margin-bottom:2px; }
+.ob-step-title { font-size:14px; font-weight:700; color:var(--gray-900); }
+.ob-step-desc { font-size:12px; color:var(--gray-500); line-height:1.6; }
+.ob-step-tag { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--polo); background:rgba(15,39,65,.07); padding:3px 8px; border-radius:20px; width:fit-content; }
+.onboarding-cta { display:flex; align-items:center; gap:12px; }
+.onboarding-cta .btn { font-size:14px; padding:10px 24px; }
+
+/* QUESTIONNAIRE EDITOR */
+.qed-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:10px; }
+.qed-section { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg); padding:20px 22px; margin-bottom:16px; box-shadow:var(--shadow-sm); }
+.qed-sez-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--gray-100); }
+.qed-sez-num { width:26px; height:26px; border-radius:50%; background:var(--polo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+.qed-input { border:1px solid var(--gray-200); border-radius:8px; padding:7px 10px; font-size:13px; font-family:inherit; color:var(--gray-800); background:var(--gray-50); transition:border-color .15s; outline:none; }
+.qed-input:focus { border-color:var(--polo); background:#fff; }
+.qed-title-input { flex:1; font-weight:600; font-size:15px; }
+.qed-icon-input { width:48px; text-align:center; font-size:18px; }
+.qed-domanda { background:var(--gray-50); border:1px solid var(--gray-100); border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+.qed-dom-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.qed-dom-label { flex:1; }
+.qed-select { border:1px solid var(--gray-200); border-radius:8px; padding:7px 10px; font-size:12px; font-family:inherit; color:var(--gray-700); background:var(--gray-50); cursor:pointer; outline:none; }
+.qed-select:focus { border-color:var(--polo); }
+.qed-options { padding:8px 0 4px; display:flex; flex-direction:column; gap:6px; }
+.qed-opt-row { display:flex; align-items:center; gap:6px; }
+.qed-opt-input { flex:1; font-size:12px; }
+.btn-icon-sm { background:none; border:none; cursor:pointer; color:var(--gray-400); font-size:14px; padding:4px 6px; border-radius:6px; transition:color .15s,background .15s; }
+.btn-icon-sm:hover { color:var(--red); background:rgba(239,68,68,.08); }
+.btn-icon-sm.del-sez:hover { color:var(--red); }
+.qed-add-opt { font-size:11px; color:var(--polo); background:none; border:1px dashed var(--gray-300); border-radius:6px; padding:5px 10px; cursor:pointer; margin-top:2px; width:fit-content; transition:border-color .15s,color .15s; }
+.qed-add-opt:hover { border-color:var(--polo); }
+.qed-add-dom { font-size:12px; color:var(--polo); background:none; border:1px dashed var(--gray-300); border-radius:8px; padding:8px 14px; cursor:pointer; margin-top:6px; width:100%; text-align:center; transition:border-color .15s; }
+.qed-add-dom:hover { border-color:var(--polo); background:rgba(15,39,65,.03); }
+.qed-add-sez { font-size:13px; color:var(--polo); background:none; border:2px dashed var(--gray-200); border-radius:12px; padding:14px; cursor:pointer; width:100%; text-align:center; margin-top:8px; transition:border-color .15s,background .15s; }
+.qed-add-sez:hover { border-color:var(--polo); background:rgba(15,39,65,.03); }
+.qed-empty { text-align:center; color:var(--gray-400); padding:20px 0 10px; font-size:13px; }
+.qed-obblig { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--gray-500); margin-left:auto; }
+.qed-obblig input[type=checkbox] { accent-color:var(--polo); }
+.qed-max-row { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--gray-500); margin-top:4px; }
+.qed-max-row input[type=number] { width:50px; }
+</style>
+</head>
+<body>
+
+<!-- Mobile top bar -->
+<div class="mob-bar">
+ <span class="mob-logo" id="mobLogoText">Polizza<span>Facile</span></span>
+ <button class="mob-hamburger" onclick="toggleSidebar()"></button>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+ <div class="sidebar-brand" onclick="navTo('pagDashboard')" style="cursor:pointer">
+ <img class="sidebar-logo-img"
+ id="sidebarLogoImg" src=""
+ onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"
+ alt="">
+ <div id="sidebarLogoText" style="display:none;color:#fff;font-size:16px;font-weight:700;margin-bottom:8px"></div>
+ <div class="sidebar-tagline">Progettiamo la tua protezione</div>
+ </div>
+
+ <div class="sidebar-nav">
+ <div class="nav-section-label">Principale</div>
+ <div class="nav-item active" id="nav-dashboard" onclick="navTo('pagDashboard')">
+ <span class="nav-icon"></span> Dashboard
+ </div>
+ <div class="nav-item" id="nav-clienti" onclick="navTo('pagClienti')">
+ <span class="nav-icon"></span> Clienti
+ <span class="nav-badge" id="badgeClienti">0</span>
+ </div>
+ <div class="nav-item" id="nav-libreria" onclick="navTo('pagLibreria')">
+ <span class="nav-icon"></span> Libreria polizze
+ <span class="nav-badge" id="badgeLibreria">0</span>
+ </div>
+
+ <div class="nav-section-label" style="margin-top:8px">Strumenti</div>
+ <div class="nav-item" id="nav-comparatore" onclick="startDirectComparison()">
+ <span class="nav-icon"></span> Comparatore polizze
+ </div>
+
+ <div class="nav-section-label" style="margin-top:8px">Configura</div>
+ <div class="nav-item" id="nav-impostazioni" onclick="navTo('pagImpostazioni')">
+ <span class="nav-icon"></span> Questionario
+ </div>
+ </div>
+
+ <div class="sidebar-bottom">
+ <strong id="sidebarNome"></strong>
+ <span id="sidebarIndirizzo"></span>
+ <span id="sidebarEmail"></span>
+ </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+<!-- DASHBOARD -->
+<div id="pagDashboard">
+<div class="page">
+ <div class="dash-hero">
+ <div class="dash-hero-text">
+ <h2>Benvenuto nel tuo spazio di lavoro</h2>
+ <p>Gestisci i profili clienti, la libreria di polizze e genera raccomandazioni personalizzate con l'AI.</p>
+ </div>
+ <div class="dash-hero-badge">
+ <div class="badge-num" id="dashTotalClients">0</div>
+ <div class="badge-label">clienti profilati</div>
+ </div>
+ </div>
+
+ <!-- ONBOARDING — visibile solo al primo accesso -->
+ <div class="onboarding" id="onboardingBox" style="display:none">
+ <div class="onboarding-header">
+ <div>
+ <div class="onboarding-title"> Benvenuto in Polizza Facile</div>
+ <div class="onboarding-subtitle">Ecco come funziona in 3 passi</div>
+ </div>
+ <button class="onboarding-dismiss" onclick="dismissOnboarding()"> Non mostrare più</button>
+ </div>
+ <div class="onboarding-steps">
+ <div class="ob-step">
+ <div class="ob-step-icon"></div>
+ <div class="ob-step-tag">Passo 1</div>
+ <div class="ob-step-title">Questionario cliente</div>
+ <div class="ob-step-desc">Compila il questionario in 3 minuti. L'AI analizza il profilo e genera raccomandazioni assicurative personalizzate.</div>
+ </div>
+ <div class="ob-step">
+ <div class="ob-step-icon"></div>
+ <div class="ob-step-tag">Passo 2</div>
+ <div class="ob-step-title">Confronto polizze</div>
+ <div class="ob-step-desc">Carica fino a 4 PDF di polizze. L'AI estrae garanzie, massimali e franchigie e le confronta in una tabella chiara.</div>
+ </div>
+ <div class="ob-step">
+ <div class="ob-step-icon"></div>
+ <div class="ob-step-tag">Passo 3</div>
+ <div class="ob-step-title">Libreria & storico</div>
+ <div class="ob-step-desc">Le polizze analizzate vengono salvate nella libreria. I clienti profilati restano nello storico per consultazioni future.</div>
+ </div>
+ </div>
+ <div class="onboarding-cta">
+ <button class="btn btn-primary" onclick="dismissOnboarding();startQuestionnaire()"> Inizia con un questionario →</button>
+ <button class="btn btn-ghost" onclick="dismissOnboarding();startDirectComparison()">oppure confronta polizze</button>
+ </div>
+ </div>
+
+ <div class="stats-row">
+ <div class="stat-card">
+ <div class="stat-num" id="statClienti">0</div>
+ <div class="stat-label">Clienti in archivio</div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-num" id="statPolizze">0</div>
+ <div class="stat-label">Polizze in libreria</div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-num" id="statUltimo">—</div>
+ <div class="stat-label">Ultima attività</div>
+ </div>
+ </div>
+
+ <div class="dash-section-title"> Azioni rapide</div>
+ <div class="dash-actions">
+ <div class="dash-action-card featured" onclick="startQuestionnaire()">
+ <div class="dac-icon"></div>
+ <div class="dac-title">Nuovo questionario</div>
+ <div class="dac-desc">Profila un cliente e ottieni raccomandazioni AI personalizzate in 3 minuti.</div>
+ </div>
+ <div class="dash-action-card" onclick="startDirectComparison()">
+ <div class="dac-icon"></div>
+ <div class="dac-title">Confronto polizze</div>
+ <div class="dac-desc">Carica 2–4 PDF o seleziona dalla libreria per un confronto garanzie dettagliato.</div>
+ </div>
+ </div>
+
+ <div class="dash-section-title"> Ultimi clienti</div>
+ <div class="recent-list" id="recentList">
+ <div class="empty-state">
+ <div class="empty-icon"></div>
+ <p>Nessun cliente ancora.<br>Inizia con un questionario.</p>
+ </div>
+ </div>
+</div>
+</div>
+
+<!-- CLIENTI -->
+<div id="pagClienti" style="display:none">
+<div class="page">
+ <div class="page-header">
+ <div>
+ <div class="page-title">Clienti</div>
+ <div class="page-subtitle">Profili salvati e raccomandazioni generate</div>
+ </div>
+ <button class="btn btn-gold" onclick="startQuestionnaire()">+ Nuovo cliente</button>
+ </div>
+ <div class="search-bar">
+ <input class="search-input" id="clientSearch" placeholder="Cerca per nome..." oninput="renderClientList()">
+ </div>
+ <div id="clientBulkBar" style="display:none" class="client-bulk-bar">
+ <span class="client-bulk-count" id="clientBulkCount">0 selezionati</span>
+ <button class="btn btn-danger btn-sm" onclick="deleteSelectedClients()"> Elimina selezionati</button>
+ <button class="btn btn-ghost btn-sm" onclick="clearClientSelection()">Annulla</button>
+ </div>
+ <div class="client-list" id="clientList"></div>
+</div>
+</div>
+
+<!-- CLIENTE DETAIL -->
+<div id="pagClienteDetail" style="display:none">
+<div class="page page-sm">
+ <div class="page-header" style="margin-bottom:8px">
+ <button class="btn btn-ghost btn-sm" onclick="navTo('pagClienti')">← Clienti</button>
+ <div class="detail-actions" id="detailActions"></div>
+ </div>
+ <div class="detail-header" id="detailHeader"></div>
+ <div id="detailContent"></div>
+</div>
+</div>
+
+<!-- LIBRERIA -->
+<div id="pagLibreria" style="display:none">
+<div class="page">
+ <div class="page-header">
+ <div>
+ <div class="page-title">Libreria polizze</div>
+ <div class="page-subtitle">Polizze estratte e pronte per il confronto</div>
+ </div>
+ <button class="btn btn-gold" onclick="startDirectComparison()">+ Aggiungi polizza</button>
+ </div>
+ <div class="library-toolbar">
+ <div class="selected-count" id="libSelectedCount"></div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+   <button class="btn btn-ghost btn-sm" onclick="esportaLibreria()" title="Scarica la libreria come file JSON">⬇ Esporta</button>
+   <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0" title="Carica una libreria salvata in precedenza">
+     ⬆ Importa<input type="file" accept=".json" style="display:none" onchange="importaLibreria(event)">
+   </label>
+   <button class="btn btn-primary" id="btnConfrontaLib" style="display:none" onclick="confrontaFromLibrary()">Confronta selezionate →</button>
+ </div>
+ </div>
+ <div class="library-grid" id="libraryGrid"></div>
+</div>
+</div>
+
+<!-- QUESTIONARIO -->
+<div id="pagQuestionario" style="display:none">
+<div class="questionnaire-page">
+ <div class="section-progress-bar">
+ <div class="section-progress-info">
+ <span class="section-progress-label" id="sezLabel">Sezione 1 di 5</span>
+ <span class="section-progress-count" id="sezCount"></span>
+ </div>
+ <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+ </div>
+ <div class="section-header">
+ <span class="section-icon" id="sezIcon"></span>
+ <span class="section-title-text" id="sezTitle"></span>
+ </div>
+ <div id="questionsContainer"></div>
+ <div class="questionnaire-nav">
+ <button class="btn-back" id="btnBack" onclick="prevSection()">← Indietro</button>
+ <button class="btn-next" id="btnNext" onclick="nextSection()">Continua →</button>
+ </div>
+</div>
+</div>
+
+<!-- RACCOMANDAZIONI -->
+<div id="pagRaccomandazioni" style="display:none">
+<div class="page page-sm">
+ <div class="recs-topbar">
+ <h1>Raccomandazioni per <span id="recsClientName">il cliente</span></h1>
+ <div class="recs-actions" style="display:flex;gap:8px">
+ <button class="btn btn-ghost btn-sm" onclick="editQuestionnaire()">← Modifica profilo</button>
+ <button class="btn btn-sm" style="background:var(--gold);color:#fff" onclick="exportClientPDF()">Esporta PDF</button>
+ <button class="btn btn-primary btn-sm" onclick="startDirectComparison()">Confronta polizze →</button>
+ </div>
+ </div>
+ <div class="profile-box">
+ <div class="profile-box-icon"></div>
+ <div>
+ <div class="profile-box-label">Profilo cliente</div>
+ <div class="profile-box-text" id="profileSummary"></div>
+ </div>
+ </div>
+ <div class="recs-section-title"> Coperture raccomandate</div>
+ <div class="rec-cards" id="recCards"></div>
+ <div class="gap-card" id="gapCard" style="display:none">
+ <div class="gap-header"><span></span><span class="gap-header-title">Gap di copertura principali</span></div>
+ <div class="gap-list" id="gapList"></div>
+ </div>
+ <div class="nota-card" id="notaCard" style="display:none">
+ <div class="nota-icon"></div>
+ <div>
+ <div class="nota-label">Nota per il consulente</div>
+ <div class="nota-text" id="notaText"></div>
+ </div>
+ </div>
+ <div class="recs-cta">
+ <p>Hai le Condizioni Generali in PDF? Caricale per confrontare garanzie, franchigie e scoperti.</p>
+ <button class="btn btn-primary" onclick="startDirectComparison()">Confronta polizze PDF →</button>
+ </div>
+</div>
+</div>
+
+<!-- UPLOAD -->
+<div id="pagUpload" style="display:none">
+<div class="upload-page">
+ <div class="page-header" style="margin-bottom:8px">
+ <button class="btn btn-ghost btn-sm" onclick="navTo('pagDashboard')">← Dashboard</button>
+ </div>
+ <div class="upload-hero">
+ <h1>Confronto polizze</h1>
+ <p>Seleziona dalla libreria o carica nuovi PDF — l'AI estrae e confronta garanzie, franchigie e scoperti</p>
+ </div>
+ <div class="upload-context" id="uploadContext" style="display:none">
+ <span></span><span id="uploadContextText"></span>
+ </div>
+
+ <!-- Library selection (if any saved) -->
+ <div class="lib-select-section" id="libSelectSection" style="display:none">
+ <div class="lib-select-title"> Dalla libreria <span style="font-size:12px;color:var(--gray-400);font-weight:400">(seleziona fino a 4)</span></div>
+ <div class="lib-select-grid" id="libSelectGrid"></div>
+ </div>
+
+ <div class="divider-or" id="dividerOr">oppure carica un nuovo PDF</div>
+
+ <div class="drop-zone" id="dropZone"
+ ondragover="dragOver(event)" ondragleave="dragLeave()" ondrop="onDrop(event)"
+ onclick="document.getElementById('fileInput').click()">
+ <div class="drop-icon"></div>
+ <h3>Trascina i PDF delle polizze qui</h3>
+ <p>oppure clicca per selezionarli</p>
+ <small>Massimo 4 polizze totali (libreria + nuovi) · Solo PDF</small>
+ </div>
+ <input type="file" id="fileInput" multiple accept=".pdf" onchange="filesSelected(event)">
+ <div class="chips" id="chipsRow"></div>
+ <label class="save-to-lib" id="saveToLibLabel" style="display:none">
+ <input type="checkbox" id="saveToLibCheck" checked> Salva le nuove polizze nella libreria dopo il confronto
+ </label>
+ <div class="upload-action">
+ <button class="btn-go" id="btnGo" onclick="startComparison()" disabled>Confronta polizze →</button>
+ <span class="upload-hint" id="uploadHint"></span>
+ </div>
+</div>
+</div>
+
+<!-- LOADING -->
+<div id="pagLoading" style="display:none">
+ <div class="loading-page">
+ <div class="big-spinner"></div>
+ <h2 id="loadingTitle">Analisi in corso</h2>
+ <p id="loadingSubtitle">L'AI sta elaborando...</p>
+ <ul class="progress-steps" id="progressSteps"></ul>
+ </div>
+</div>
+
+<!-- RESULTS -->
+<div id="pagResults" style="display:none">
+<div class="page">
+ <div class="results-topbar">
+ <h1 id="resultsTitle">Confronto polizze</h1>
+ <div class="results-topbar-actions">
+ <button class="btn-print" onclick="window.print()"> Stampa / PDF</button>
+ <button class="btn btn-ghost btn-sm" onclick="navTo('pagDashboard')">↩ Dashboard</button>
+ </div>
+ </div>
+ <div id="scoreCards" class="score-cards"></div>
+ <div id="aiSummary" class="ai-summary" style="display:none">
+ <div class="ai-summary-label"> Analisi AI</div>
+ <div class="ai-summary-text" id="aiSummaryText"></div>
+ </div>
+ <div class="section-title">Confronto garanzie</div>
+ <div class="table-outer"><div class="table-scroll"><table id="compTable"></table></div></div>
+ <div class="section-title" id="adviceTitle" style="display:none">Consigliata per chi...</div>
+ <div class="advice-grid" id="adviceGrid"></div>
+ <div class="section-title" id="exclTitle" style="display:none">Principali esclusioni</div>
+ <div class="excl-grid" id="exclGrid"></div>
+</div>
+</div>
+
+<!-- MATCH AI -->
+<div id="pagMatch" style="display:none">
+<div class="page">
+ <div class="page-header">
+ <div>
+ <div class="page-title"> Match AI</div>
+ <div class="page-subtitle">Seleziona un cliente e le polizze da confrontare — l'AI analizza la compatibilità</div>
+ </div>
+ </div>
+
+ <div class="match-layout">
+ <!-- Selezione cliente -->
+ <div class="match-panel">
+ <div class="match-panel-title"> Seleziona cliente</div>
+ <div id="matchClientList"><div class="match-empty">Nessun cliente nello storico.<br>Compila prima un questionario.</div></div>
+ </div>
+ <!-- Selezione polizze -->
+ <div class="match-panel">
+ <div class="match-panel-title"> Seleziona polizze (max 4)</div>
+ <div id="matchPolicyList"><div class="match-empty">Nessuna polizza in libreria.<br>Carica prima alcune polizze.</div></div>
+ </div>
+ </div>
+
+ <div class="match-run-bar">
+ <button class="btn btn-primary" id="btnRunMatch" onclick="runMatch()" disabled> Analizza compatibilità</button>
+ <span id="matchSelStatus" style="font-size:13px;color:var(--gray-400)">Seleziona un cliente e almeno una polizza</span>
+ </div>
+
+ <div id="matchResults"></div>
+</div>
+</div>
+
+<!-- IMPOSTAZIONI QUESTIONARIO -->
+<div id="pagImpostazioni" style="display:none">
+<div class="page">
+ <div class="page-header qed-toolbar">
+ <div>
+ <div class="page-title"> Modifica questionario</div>
+ <div class="page-subtitle">Aggiungi, rimuovi o modifica sezioni e domande. Le modifiche sono salvate localmente.</div>
+ </div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap">
+ <button class="btn btn-ghost btn-sm" onclick="resetQConfigUI()">↩ Ripristina default</button>
+ <button class="btn btn-primary" onclick="applyQConfig()"> Salva modifiche</button>
+ </div>
+ </div>
+ <div id="qeditor"></div>
+ <button class="qed-add-sez" onclick="qcfgAddSez()">＋ Aggiungi sezione</button>
+</div>
+</div>
+
+</div><!-- end .main-content -->
+
+<!-- PRINT-ONLY CLIENT PROFILE -->
+<div class="print-profile" id="printProfile">
+ <div class="pp-header">
+ <div>
+ <div class="pp-brand" id="ppBrand"></div>
+ <div class="pp-tagline" id="ppTagline"></div>
+ </div>
+ <div class="pp-client">
+ Profilo cliente<br>
+ <strong id="pp-nome"></strong>
+ <span id="pp-data"></span>
+ </div>
+ </div>
+ <div class="pp-section">
+ <div class="pp-section-title">Sintesi profilo</div>
+ <div class="pp-summary" id="pp-summary"></div>
+ </div>
+ <div class="pp-section">
+ <div class="pp-section-title">Raccomandazioni personalizzate</div>
+ <div id="pp-recs"></div>
+ </div>
+ <div class="pp-section" id="pp-gap-section" style="display:none">
+ <div class="pp-section-title">Gap di copertura</div>
+ <div id="pp-gaps"></div>
+ </div>
+ <div class="pp-footer">
+ <span id="pdfFooterBrand">Documento generato con Polizza Facile</span>
+ <span id="pp-footer-date"></span>
+ </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// 
+// CONFIG
+// 
+// ── CONFIG AGENZIA ────────────────────────────────────────────────────────────
+const _CFG = window.AGENZIA_CONFIG || {};
+const BACKEND = (_CFG.backendUrl || window.PF_BACKEND_URL || 'https://polizza-facile-production.up.railway.app').replace(/\/$/, '');
+const API_HEADERS = {'Content-Type':'application/json', ...(_CFG.apiKey ? {'X-API-Key': _CFG.apiKey} : {})};
+
+function initAgenziaUI() {
+  const cfg = _CFG;
+  if (!cfg.nome) return;
+
+  // Titolo pagina
+  document.title = cfg.nome + ' — Consulenza';
+
+  // Logo sidebar
+  const logoImg = document.getElementById('sidebarLogoImg');
+  const logoTxt = document.getElementById('sidebarLogoText');
+  if (cfg.logoUrl) {
+    logoImg.src = cfg.logoUrl;
+    logoImg.alt = cfg.nome;
+    logoImg.style.display = 'block';
+  } else {
+    logoImg.style.display = 'none';
+    const parti = cfg.nomeBreve ? cfg.nomeBreve.split(' ') : cfg.nome.split(' ');
+    logoTxt.innerHTML = parti[0] + (parti[1] ? `<span style="color:var(--gold-mid)">${parti.slice(1).join(' ')}</span>` : '');
+    logoTxt.style.display = 'block';
+  }
+
+  // Logo mobile
+  const mob = document.getElementById('mobLogoText');
+  if (mob && cfg.nomeBreve) {
+    const p = cfg.nomeBreve.split(' ');
+    mob.innerHTML = p[0] + (p[1] ? `<span>${p.slice(1).join(' ')}</span>` : '');
+  }
+
+  // Sidebar bottom
+  const sNome = document.getElementById('sidebarNome');
+  const sInd  = document.getElementById('sidebarIndirizzo');
+  const sEmail= document.getElementById('sidebarEmail');
+  if (sNome)  sNome.textContent  = cfg.agente ? cfg.agente : cfg.nome;
+  if (sInd)   sInd.innerHTML     = cfg.indirizzo ? cfg.indirizzo + '<br>' : '';
+  if (sEmail) sEmail.textContent = cfg.email || '';
+
+  // PDF brand
+  const ppBrand   = document.getElementById('ppBrand');
+  const ppTagline = document.getElementById('ppTagline');
+  const pdfFooter = document.getElementById('pdfFooterBrand');
+  if (ppBrand)   ppBrand.textContent   = cfg.pdfBrand  || cfg.nome;
+  if (ppTagline) ppTagline.textContent = cfg.pdfFooter || cfg.tagline || '';
+  if (pdfFooter) pdfFooter.textContent = `Documento generato con Polizza Facile · ${cfg.pdfBrand || cfg.nome}`;
+}
+
+const DEFAULT_QUESTIONNAIRE_CONFIG = {
+ sezioni: [
+ { id:"anagrafica", titolo:"Informazioni personali", icona:"", domande:[
+ { id:"nome", tipo:"testo", label:"Nome e cognome del cliente", placeholder:"es. Mario Rossi" },
+ { id:"eta", tipo:"scelta_singola", label:"Fascia d'età", opzioni:["18–30","31–45","46–60","Oltre 60"] },
+ { id:"stato_civile", tipo:"scelta_singola", label:"Stato civile", opzioni:["Celibe/Nubile","Coniugato/a","Convivente","Separato/Divorziato","Vedovo/a"] },
+ { id:"persone_a_carico", tipo:"scelta_singola", label:"Persone a carico", opzioni:["Nessuna","1","2","3 o più"] }
+ ]},
+ { id:"professione", titolo:"Situazione lavorativa", icona:"", domande:[
+ { id:"tipo_lavoro", tipo:"scelta_singola", label:"Tipo di lavoro", opzioni:["Dipendente privato","Dipendente pubblico","Libero professionista","Imprenditore/Artigiano","Pensionato","Studente/Non occupato"] },
+ { id:"settore", tipo:"scelta_singola", label:"Settore lavorativo", opzioni:["Sanità / Salute","Edilizia / Costruzioni","Trasporti / Logistica","Commercio / Retail","Professionisti (legale, contabile, tecnico)","Industria / Manifattura","Agricoltura","Altro"] },
+ { id:"reddito", tipo:"scelta_singola", label:"Reddito annuo lordo indicativo", opzioni:["Fino a 20.000 €","20.000–40.000 €","40.000–80.000 €","Oltre 80.000 €","Preferisco non indicarlo"] },
+ { id:"stabilita", tipo:"scelta_singola", label:"Stabilità lavorativa percepita", opzioni:["Molto stabile","Abbastanza stabile","Incerta","In transizione"] }
+ ]},
+ { id:"patrimonio", titolo:"Patrimonio e beni", icona:"", domande:[
+ { id:"abitazione", tipo:"scelta_singola", label:"Abitazione principale", opzioni:["Di proprietà (con mutuo)","Di proprietà (senza mutuo)","In affitto","Altra situazione"] },
+ { id:"altri_immobili", tipo:"scelta_singola", label:"Altri immobili di proprietà", opzioni:["Nessuno","1 immobile","2 o più immobili"] },
+ { id:"veicoli", tipo:"scelta_multipla", label:"Veicoli posseduti", opzioni:["Automobile","Moto / Scooter","Furgone / Veicolo commerciale","Nessuno"] },
+ { id:"attivita_propria", tipo:"scelta_singola", label:"Gestisce un'attività propria?", opzioni:["No","Sì, piccola attività / lavoro autonomo","Sì, azienda strutturata"] }
+ ]},
+ { id:"coperture", titolo:"Coperture esistenti", icona:"", domande:[
+ { id:"polizze_attive", tipo:"scelta_multipla", label:"Polizze attualmente attive", opzioni:["RC Auto","Kasko / Furto auto","Casa (incendio & contenuto)","Vita","Infortuni","Salute / Sanitaria integrativa","RC Professionale","Nessuna"] },
+ { id:"ultima_revisione", tipo:"scelta_singola", label:"Ultima revisione del portafoglio", opzioni:["Meno di 1 anno fa","1–3 anni fa","Più di 3 anni fa","Non ho mai fatto una revisione"] }
+ ]},
+ { id:"priorita", titolo:"Priorità e obiettivi", icona:"", domande:[
+ { id:"preoccupazioni", tipo:"scelta_multipla", max:3, label:"Principali preoccupazioni (max 3)", opzioni:["Perdita di reddito per malattia o infortunio","Danni alla casa o agli oggetti","Responsabilità verso terzi","Spese mediche non coperte dal SSN","Protezione del nucleo familiare","Protezione dell'attività lavorativa","Risparmio e previdenza complementare","Furto o danni ai veicoli"] },
+ { id:"budget", tipo:"scelta_singola", label:"Budget mensile per assicurazioni", opzioni:["Fino a 50 €/mese","50–100 €/mese","100–200 €/mese","Oltre 200 €/mese","Da valutare insieme"] },
+ { id:"note", tipo:"testo_lungo", label:"Note aggiuntive o situazioni particolari", placeholder:"es. lavoro spesso all'estero, ho un figlio disabile, gestisco un magazzino...", obbligatoria:false }
+ ]}
+ ]
+};
+
+// QUESTIONNAIRE CONFIG (localStorage-backed) 
+let QUESTIONNAIRE_CONFIG = (function() {
+ try {
+ const s = localStorage.getItem('pf_qconfig');
+ if (s) return JSON.parse(s);
+ } catch {}
+ return JSON.parse(JSON.stringify(DEFAULT_QUESTIONNAIRE_CONFIG));
+})();
+
+function saveQConfig() {
+ localStorage.setItem('pf_qconfig', JSON.stringify(QUESTIONNAIRE_CONFIG));
+}
+function resetQConfig() {
+ QUESTIONNAIRE_CONFIG = JSON.parse(JSON.stringify(DEFAULT_QUESTIONNAIRE_CONFIG));
+ localStorage.removeItem('pf_qconfig');
+}
+
+// 
+// STATE
+// 
+let files = [];
+let currentSectionIdx = 0;
+let clientAnswers = {};
+let clientRecs = null;
+let currentClientId = null;
+let libSelected = new Set(); // IDs selected from library for comparison
+
+// 
+// LOCALSTORAGE
+// 
+function getClients() { try { return JSON.parse(localStorage.getItem('pf_clients')||'[]'); } catch { return []; } }
+function saveClients(arr) { localStorage.setItem('pf_clients', JSON.stringify(arr)); }
+function getPolizze() { try { return JSON.parse(localStorage.getItem('pf_polizze')||'[]'); } catch { return []; } }
+function savePolizze(arr) { localStorage.setItem('pf_polizze', JSON.stringify(arr)); }
+
+function saveClient(answers, recs) {
+ const clients = getClients();
+ const id = Date.now().toString();
+ const client = { id, nome: answers['nome']||'Cliente senza nome', data: new Date().toISOString(), answers, raccomandazioni: recs };
+ clients.unshift(client);
+ saveClients(clients.slice(0, 200));
+ updateBadges();
+ return id;
+}
+
+function deleteClient(id) {
+ saveClients(getClients().filter(c => c.id !== id));
+ updateBadges();
+}
+
+function savePolizzaToLib(extracted, filename) {
+ const polizze = getPolizze();
+ const id = Date.now().toString() + Math.random().toString(36).slice(2,6);
+ polizze.unshift({ id, filename, compagnia: extracted.compagnia||'', prodotto: extracted.prodotto||'', tipo: extracted.tipo||'', data: new Date().toISOString(), extracted });
+ savePolizze(polizze.slice(0, 80));
+ updateBadges();
+ return id;
+}
+
+function deletePolizza(id) {
+ savePolizze(getPolizze().filter(p => p.id !== id));
+ updateBadges();
+ renderLibreria();
+}
+
+function updateBadges() {
+ const nc = getClients().length, np = getPolizze().length;
+ document.getElementById('badgeClienti').textContent = nc;
+ document.getElementById('badgeLibreria').textContent = np;
+ document.getElementById('statClienti').textContent = nc;
+ document.getElementById('statPolizze').textContent = np;
+ document.getElementById('dashTotalClients').textContent = nc;
+}
+
+// 
+// NAVIGATION
+// 
+const ALL_PAGES = ['pagDashboard','pagClienti','pagClienteDetail','pagLibreria','pagQuestionario','pagRaccomandazioni','pagUpload','pagLoading','pagResults','pagImpostazioni','pagMatch'];
+
+function navTo(id) {
+ ALL_PAGES.forEach(p => document.getElementById(p).style.display = p===id ? 'block' : 'none');
+ const navMap = { pagDashboard:'nav-dashboard', pagClienti:'nav-clienti', pagLibreria:'nav-libreria', pagUpload:'nav-comparatore' };
+ document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+ if (navMap[id]) document.getElementById(navMap[id])?.classList.add('active');
+ window.scrollTo(0,0);
+ closeSidebar();
+ if (id === 'pagDashboard') renderDashboard();
+ if (id === 'pagClienti') renderClientList();
+ if (id === 'pagLibreria') renderLibreria();
+ if (id === 'pagImpostazioni') renderImpostazioni();
+}
+
+function toggleSidebar() {
+ document.getElementById('sidebar').classList.toggle('open');
+ document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+ document.getElementById('sidebar').classList.remove('open');
+ document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+// 
+// DASHBOARD
+// 
+function dismissOnboarding() {
+ localStorage.setItem('pf_onboarding_done', '1');
+ document.getElementById('onboardingBox').style.display = 'none';
+}
+
+function renderDashboard() {
+ // Mostra onboarding solo se non è mai stato chiuso
+ const done = localStorage.getItem('pf_onboarding_done');
+ document.getElementById('onboardingBox').style.display = done ? 'none' : 'block';
+ updateBadges();
+ const clients = getClients();
+ // Last activity
+ if (clients.length) {
+ const d = new Date(clients[0].data);
+ document.getElementById('statUltimo').textContent = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+ }
+ // Recent list
+ const list = document.getElementById('recentList');
+ if (!clients.length) {
+ list.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><p>Nessun cliente ancora.<br>Inizia con un nuovo questionario.</p></div>`;
+ return;
+ }
+ list.innerHTML = clients.slice(0,5).map(c => {
+ const initials = c.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+ const date = new Date(c.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+ const recs = (c.raccomandazioni?.raccomandazioni||[]).slice(0,3);
+ const chips = recs.map(r => `<span class="recent-chip">${esc(r.tipo)}</span>`).join('');
+ return `<div class="recent-item" onclick="openClient('${c.id}')">
+ <div class="recent-avatar">${initials}</div>
+ <div style="flex:1;min-width:0">
+ <div class="recent-name">${esc(c.nome)}</div>
+ <div class="recent-meta">${date}</div>
+ ${chips ? `<div class="recent-chips">${chips}</div>` : ''}
+ </div>
+ <div class="recent-arrow">›</div>
+ </div>`;
+ }).join('');
+}
+
+// 
+// CLIENT LIST
+// 
+let selectedClientIds = new Set();
+
+function renderClientList() {
+ const q = (document.getElementById('clientSearch')?.value||'').toLowerCase();
+ const clients = getClients().filter(c => !q || c.nome.toLowerCase().includes(q));
+ const list = document.getElementById('clientList');
+ if (!clients.length) {
+ list.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><p>${q ? 'Nessun risultato per "'+esc(q)+'"' : 'Nessun cliente salvato.'}</p></div>`;
+ updateClientBulkBar();
+ return;
+ }
+ list.innerHTML = clients.map(c => {
+ const initials = c.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+ const date = new Date(c.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+ const recs = c.raccomandazioni?.raccomandazioni||[];
+ const tags = recs.slice(0,3).map(r => `<span class="client-rec-tag rec-${r.urgenza||'media'}">${esc(r.tipo)}</span>`).join('');
+ const checked = selectedClientIds.has(c.id) ? 'checked' : '';
+ const selClass = selectedClientIds.has(c.id) ? ' selected' : '';
+ return `<div class="client-row${selClass}" onclick="openClient('${c.id}')">
+ <input type="checkbox" class="client-checkbox" ${checked}
+  onclick="event.stopPropagation();toggleClientSelect('${c.id}',this.checked)" />
+ <div class="client-avatar">${initials}</div>
+ <div class="client-info">
+ <div class="client-name">${esc(c.nome)}</div>
+ <div class="client-date">${date}</div>
+ <div class="client-recs">${tags}</div>
+ </div>
+ <div class="client-actions" onclick="event.stopPropagation()">
+ <button class="btn btn-ghost btn-sm" onclick="openClient('${c.id}')">Apri</button>
+ </div>
+ </div>`;
+ }).join('');
+ updateClientBulkBar();
+}
+
+function toggleClientSelect(id, checked) {
+ if (checked) selectedClientIds.add(id);
+ else selectedClientIds.delete(id);
+ document.querySelectorAll(`#clientList .client-row`).forEach(row => {
+ const cb = row.querySelector('.client-checkbox');
+ if (cb) row.classList.toggle('selected', cb.checked);
+ });
+ updateClientBulkBar();
+}
+
+function updateClientBulkBar() {
+ const bar = document.getElementById('clientBulkBar');
+ const count = document.getElementById('clientBulkCount');
+ if (!bar) return;
+ const n = selectedClientIds.size;
+ bar.style.display = n > 0 ? 'flex' : 'none';
+ if (count) count.textContent = `${n} client${n===1?'e':'i'} selezionat${n===1?'o':'i'}`;
+}
+
+function clearClientSelection() {
+ selectedClientIds.clear();
+ renderClientList();
+}
+
+function deleteSelectedClients() {
+ const n = selectedClientIds.size;
+ if (!n) return;
+ if (!confirm(`Eliminare ${n} client${n===1?'e':'i'}? L'operazione non è reversibile.`)) return;
+ selectedClientIds.forEach(id => deleteClient(id));
+ selectedClientIds.clear();
+ updateBadges();
+ renderClientList();
+ toast(`${n} client${n===1?'e':'i'} eliminat${n===1?'o':'i'}`);
+}
+
+function confirmDeleteClient(id, nome) {
+ if (confirm(`Eliminare il profilo di ${nome}?`)) {
+ deleteClient(id);
+ selectedClientIds.delete(id);
+ renderClientList();
+ }
+}
+
+// 
+// CLIENT DETAIL
+// 
+function openClient(id) {
+ const client = getClients().find(c => c.id === id);
+ if (!client) return;
+ currentClientId = id;
+ clientAnswers = { ...(client.answers || {}) };
+ clientRecs = client.raccomandazioni || null;
+ const initials = client.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+ const date = new Date(client.data).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+
+ document.getElementById('detailHeader').innerHTML = `
+ <div class="detail-avatar">${initials}</div>
+ <div><div class="detail-name">${esc(client.nome)}</div><div class="detail-meta">Profilato il ${date}</div></div>`;
+
+ const hasRecs = !!(client.raccomandazioni?.raccomandazioni?.length);
+ document.getElementById('detailActions').innerHTML = `
+ <button class="btn btn-ghost btn-sm" onclick="loadAndEditClient('${id}')"> Modifica</button>
+ ${hasRecs ? `<button class="btn btn-sm" style="background:var(--gold);color:#fff" onclick="exportSavedClientPDF('${id}')"> PDF</button>` : ''}
+ <button id="btnGeneraRecs" class="btn btn-sm" style="background:var(--purple);color:#fff" onclick="generateRecsForClient('${id}')">
+  ${hasRecs ? ' Rigenera AI' : ' Genera raccomandazioni AI'}
+ </button>
+ ${hasRecs ? `<button class="btn btn-primary btn-sm" onclick="startDirectComparison(true)"> Confronta polizze</button>` : ''}
+ <button class="btn btn-danger btn-sm" onclick="confirmDeleteClient('${id}','${esc(client.nome)}');navTo('pagClienti')"></button>`;
+
+ // Re-use recommendation rendering
+ const recs = client.raccomandazioni;
+ let html = '';
+ if (recs) {
+ html += `<div class="profile-box"><div class="profile-box-icon"></div><div><div class="profile-box-label">Profilo cliente</div><div class="profile-box-text">${esc(recs.sintesi_profilo||'')}</div></div></div>`;
+ html += `<div class="recs-section-title"> Coperture raccomandate</div>`;
+ html += `<div class="rec-cards">${(recs.raccomandazioni||[]).map(r => buildRecCardHTML(r)).join('')}</div>`;
+ if (recs.gap_principali?.length) {
+ html += `<div class="gap-card"><div class="gap-header"><span></span><span class="gap-header-title">Gap di copertura principali</span></div><div class="gap-list">${recs.gap_principali.map(g=>`<div class="gap-item">${esc(g)}</div>`).join('')}</div></div>`;
+ }
+ if (recs.nota_consulente) {
+ html += `<div class="nota-card"><div class="nota-icon"></div><div><div class="nota-label">Nota per il consulente</div><div class="nota-text">${esc(recs.nota_consulente)}</div></div></div>`;
+ }
+ }
+ document.getElementById('detailContent').innerHTML = html;
+ navTo('pagClienteDetail');
+}
+
+function loadAndEditClient(id) {
+ const client = getClients().find(c => c.id === id);
+ if (!client) return;
+ clientAnswers = { ...client.answers };
+ currentClientId = id;
+ currentSectionIdx = 0;
+ renderSection(0);
+ navTo('pagQuestionario');
+}
+
+function buildRecCardHTML(r) {
+ const urg = r.urgenza||'media';
+ const urgLabel = {alta:'Priorità alta',media:'Priorità media',bassa:'Priorità bassa'}[urg]||urg;
+ return `<div class="rec-card urgenza-${esc(urg)}">
+ <div class="rec-priority">${r.priorita}</div>
+ <div class="rec-body">
+ <div class="rec-header"><span class="rec-tipo">${esc(r.tipo)}</span><span class="urgency-badge">${esc(urgLabel)}</span></div>
+ <div class="rec-motivo">${esc(r.motivo)}</div>
+ ${r.cosa_cercare?.length ? `<div class="rec-cercare-title">Cosa cercare</div><div class="rec-cercare-list">${r.cosa_cercare.map(c=>`<span class="rec-cercare-tag"> ${esc(c)}</span>`).join('')}</div>` : ''}
+ ${r.budget_indicativo ? `<div class="rec-budget"> Budget: <strong>${esc(r.budget_indicativo)}</strong></div>` : ''}
+ </div>
+ </div>`;
+}
+
+// 
+// LIBRARY PAGE
+// 
+function renderLibreria() {
+ const polizze = getPolizze();
+ const grid = document.getElementById('libraryGrid');
+ const countEl = document.getElementById('libSelectedCount');
+ const btnCfr = document.getElementById('btnConfrontaLib');
+
+ const selCount = libSelected.size;
+ countEl.textContent = selCount> 0 ? `${selCount} selezionate` : '';
+ btnCfr.style.display = selCount>= 2 ? 'block' : 'none';
+
+ if (!polizze.length) {
+ grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza salvata ancora.<br>Aggiungile durante un confronto PDF.</p></div>`;
+ return;
+ }
+ grid.innerHTML = polizze.map(p => {
+ const sel = libSelected.has(p.id);
+ const date = new Date(p.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+ return `<div class="library-card ${sel?'selected':''}" onclick="toggleLibSel('${p.id}')">
+ <div class="lib-check">${sel?'':''}</div>
+ <div class="lib-company">${esc(p.compagnia)}</div>
+ <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
+ <span class="lib-tipo">${esc(p.tipo)}</span>
+ <div class="lib-date" style="margin-top:8px">Aggiunta il ${date}</div>
+ <button class="lib-del" onclick="event.stopPropagation();deletePolizza('${p.id}')" title="Elimina"></button>
+ </div>`;
+ }).join('');
+}
+
+function toggleLibSel(id) {
+ if (libSelected.has(id)) libSelected.delete(id);
+ else if (libSelected.size < 4) libSelected.add(id);
+ else { toast('Massimo 4 polizze'); return; }
+ renderLibreria();
+}
+
+function confrontaFromLibrary() {
+ if (libSelected.size < 2) { toast('Seleziona almeno 2 polizze'); return; }
+ startDirectComparison();
+}
+
+// 
+// QUESTIONNAIRE
+// 
+function startQuestionnaire() {
+ currentSectionIdx = 0;
+ clientAnswers = {};
+ currentClientId = null;
+ renderSection(0);
+ navTo('pagQuestionario');
+}
+
+function startDirectComparison(withClient) {
+ // Se chiamato dalla sidebar (senza cliente), pulisce il contesto cliente
+ if (!withClient) {
+ clientAnswers = {};
+ currentClientId = null;
+ }
+ const nome = clientAnswers['nome'];
+ const ctx = document.getElementById('uploadContext');
+ if (nome) {
+ document.getElementById('uploadContextText').textContent = `Profilo attivo: ${nome}`;
+ ctx.style.display = 'flex';
+ } else { ctx.style.display = 'none'; }
+ renderLibSelectSection();
+ navTo('pagUpload');
+}
+
+function editQuestionnaire() { renderSection(currentSectionIdx); navTo('pagQuestionario'); }
+
+function renderLibSelectSection() {
+ const polizze = getPolizze();
+ const section = document.getElementById('libSelectSection');
+ const grid = document.getElementById('libSelectGrid');
+ const divider = document.getElementById('dividerOr');
+ if (!polizze.length) { section.style.display='none'; divider.textContent='Carica un PDF'; return; }
+ section.style.display = 'block';
+ divider.textContent = 'oppure carica un nuovo PDF';
+ grid.innerHTML = polizze.map(p => {
+ const sel = libSelected.has(p.id);
+ return `<div class="lib-select-card ${sel?'sel':''}" onclick="toggleLibSelUpload('${p.id}')">
+ <div class="lsc-check"></div>
+ <div class="lsc-company">${esc(p.compagnia)}</div>
+ <div class="lsc-product">${esc(p.prodotto||p.filename)}</div>
+ <div class="lsc-tipo">${esc(p.tipo)}</div>
+ </div>`;
+ }).join('');
+ updateUploadButton();
+}
+
+function toggleLibSelUpload(id) {
+ if (libSelected.has(id)) libSelected.delete(id);
+ else if (libSelected.size + files.filter(f=>f.status==='ready').length < 4) libSelected.add(id);
+ else { toast('Massimo 4 polizze totali'); return; }
+ renderLibSelectSection();
+}
+
+function updateUploadButton() {
+ const libReady = libSelected.size;
+ const fileReady = files.filter(f=>f.status==='ready').length;
+ const fileTotal = files.length;
+ const total = libReady + fileReady;
+ const allFilesDone = fileTotal === 0 || fileReady === fileTotal;
+ document.getElementById('btnGo').disabled = total < 2 || !allFilesDone;
+ document.getElementById('uploadHint').textContent = total> 0 ? `${total} polizze pronte` : '';
+ const saveLabel = document.getElementById('saveToLibLabel');
+ saveLabel.style.display = fileTotal> 0 ? 'flex' : 'none';
+}
+
+// 
+// RENDER SECTION
+// 
+function renderSection(idx) {
+ const sezioni = QUESTIONNAIRE_CONFIG.sezioni;
+ const sez = sezioni[idx];
+ const total = sezioni.length;
+ document.getElementById('sezLabel').textContent = `Sezione ${idx+1} di ${total}`;
+ document.getElementById('sezCount').textContent = sez.titolo;
+ document.getElementById('sezIcon').textContent = sez.icona;
+ document.getElementById('sezTitle').textContent = sez.titolo;
+ document.getElementById('progressFill').style.width = `${(idx/total)*100}%`;
+ document.getElementById('btnBack').style.visibility = idx===0 ? 'hidden' : 'visible';
+ const isLast = idx === total-1;
+ document.getElementById('btnNext').textContent = isLast ? 'Salva profilo →' : 'Continua →';
+ const container = document.getElementById('questionsContainer');
+ container.innerHTML = sez.domande.map(q => renderQuestion(q)).join('');
+ sez.domande.forEach(q => restoreAnswer(q));
+}
+
+function renderQuestion(q) {
+ const req = q.obbligatoria !== false;
+ const labelHtml = `<div class="question-label">${esc(q.label)} ${req?'<span class="required-star">*</span>':'<span class="optional-tag">facoltativo</span>'}</div>`;
+ let inp = '';
+ if (q.tipo==='scelta_singola') {
+ inp = `<div class="option-cards" id="q_${q.id}">${q.opzioni.map(o=>`<div class="option-card" data-qid="${esc(q.id)}" data-val="${esc(o)}" onclick="selectSingle(this)">${esc(o)}</div>`).join('')}</div>`;
+ } else if (q.tipo==='scelta_multipla') {
+ const mx = q.max ? `data-max="${q.max}"` : '';
+ inp = `<div class="option-cards" id="q_${q.id}" ${mx}>${q.opzioni.map(o=>`<div class="option-card" data-qid="${esc(q.id)}" data-val="${esc(o)}" onclick="selectMulti(this)">${esc(o)}</div>`).join('')}</div>`;
+ } else if (q.tipo==='testo') {
+ inp = `<input class="q-input" id="q_${q.id}" type="text" placeholder="${esc(q.placeholder||'')}" oninput="saveTextAnswer('${q.id}',this.value)">`;
+ } else if (q.tipo==='testo_lungo') {
+ inp = `<textarea class="q-input q-textarea" id="q_${q.id}" placeholder="${esc(q.placeholder||'')}" oninput="saveTextAnswer('${q.id}',this.value)"></textarea>`;
+ }
+ return `<div class="question-block">${labelHtml}${inp}</div>`;
+}
+
+function restoreAnswer(q) {
+ const val = clientAnswers[q.id]; if (!val) return;
+ if (q.tipo==='scelta_singola') { document.querySelectorAll(`#q_${q.id} .option-card`).forEach(c => { if (c.dataset.val===val) c.classList.add('selected'); }); }
+ else if (q.tipo==='scelta_multipla') { const vals=Array.isArray(val)?val:[val]; document.querySelectorAll(`#q_${q.id} .option-card`).forEach(c => { if (vals.includes(c.dataset.val)) c.classList.add('selected'); }); updateMultiDisabled(q.id,q.max); }
+ else { const el=document.getElementById(`q_${q.id}`); if(el) el.value=val; }
+}
+
+function selectSingle(el) { const qid=el.dataset.qid; document.querySelectorAll(`#q_${qid} .option-card`).forEach(c=>c.classList.remove('selected')); el.classList.add('selected'); clientAnswers[qid]=el.dataset.val; }
+function selectMulti(el) { if(el.classList.contains('disabled')) return; const qid=el.dataset.qid; const container=document.getElementById(`q_${qid}`); const maxVal=container?parseInt(container.dataset.max):0; el.classList.toggle('selected'); clientAnswers[qid]=[...document.querySelectorAll(`#q_${qid} .option-card.selected`)].map(c=>c.dataset.val); updateMultiDisabled(qid,maxVal); }
+function updateMultiDisabled(qid,maxVal) { if(!maxVal) return; const c=document.getElementById(`q_${qid}`); if(!c) return; const sel=c.querySelectorAll('.option-card.selected').length; c.querySelectorAll('.option-card:not(.selected)').forEach(x => { if(sel>=maxVal) x.classList.add('disabled'); else x.classList.remove('disabled'); }); }
+function saveTextAnswer(qid,val) { clientAnswers[qid]=val; }
+
+function validateSection(idx) {
+ const sezioni = QUESTIONNAIRE_CONFIG.sezioni;
+ const sez = sezioni[idx !== undefined ? idx : currentSectionIdx];
+ if (!sez) return true;
+ for (const q of sez.domande) {
+ if (q.obbligatoria===false) continue;
+ const val = clientAnswers[q.id];
+ if (!val || (Array.isArray(val)&&val.length===0) || String(val).trim()==='') { toast(`Compila: "${q.label}"`,3000); return false; }
+ }
+ return true;
+}
+
+function prevSection() { if(currentSectionIdx>0){currentSectionIdx--;renderSection(currentSectionIdx);}else{navTo('pagDashboard');} }
+async function nextSection() { if(!validateSection()) return; const total=QUESTIONNAIRE_CONFIG.sezioni.length; if(currentSectionIdx<total-1){currentSectionIdx++;renderSection(currentSectionIdx);}else{submitQuestionnaire();} }
+
+//
+// SUBMIT QUESTIONNAIRE → SALVA PROFILO (senza AI — raccomandazioni si generano on-demand)
+//
+function submitQuestionnaire() {
+ if (!validateSection(currentSectionIdx)) return;
+ currentClientId = saveClient(clientAnswers, null);
+ openClient(currentClientId);
+ toast(' Profilo salvato!');
+}
+
+// Genera raccomandazioni AI per un cliente salvato (chiamata on-demand dal profilo)
+async function generateRecsForClient(clientId) {
+ const client = getClients().find(c => c.id === clientId);
+ if (!client) return;
+ const risposte = buildProfilePayloadFromAnswers(client.answers);
+ const btn = document.getElementById('btnGeneraRecs');
+ if (btn) { btn.disabled = true; btn.textContent = 'Generazione in corso...'; }
+ try {
+ const res = await fetch(`${BACKEND}/api/raccomanda`, {
+  method:'POST', headers: API_HEADERS,
+  body: JSON.stringify({risposte, agenzia:(_CFG.nome||'default')})
+ });
+ if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.detail||`Errore (${res.status})`); }
+ const recs = await res.json();
+ const clients = getClients();
+ const idx = clients.findIndex(c => c.id === clientId);
+ if (idx >= 0) { clients[idx].raccomandazioni = recs; saveClients(clients); }
+ clientRecs = recs;
+ openClient(clientId);
+ toast(' Raccomandazioni generate!');
+ } catch(e) {
+ toast('Errore: ' + (e.message||'Riprova'), 5000);
+ if (btn) { btn.disabled = false; btn.textContent = ' Genera raccomandazioni AI'; }
+ }
+}
+
+function buildProfilePayloadFromAnswers(answers) {
+ const out = {};
+ QUESTIONNAIRE_CONFIG.sezioni.forEach(sez => {
+ sez.domande.forEach(q => {
+  const val = answers?.[q.id];
+  if (!val || (Array.isArray(val) && val.length===0)) return;
+  out[`[${sez.titolo}] ${q.label}`] = Array.isArray(val) ? val.join(', ') : val;
+ });
+ });
+ return out;
+}
+
+function buildProfilePayload() {
+ return buildProfilePayloadFromAnswers(clientAnswers);
+}
+
+// 
+// RENDER RECOMMENDATIONS
+// 
+function renderRecs(data) {
+ document.getElementById('recsClientName').textContent = clientAnswers['nome']||'il cliente';
+ document.getElementById('profileSummary').textContent = data.sintesi_profilo||'';
+ document.getElementById('recCards').innerHTML = (data.raccomandazioni||[]).map(r => buildRecCardHTML(r)).join('');
+ if (data.gap_principali?.length) { document.getElementById('gapList').innerHTML=data.gap_principali.map(g=>`<div class="gap-item">${esc(g)}</div>`).join(''); document.getElementById('gapCard').style.display='block'; } else { document.getElementById('gapCard').style.display='none'; }
+ if (data.nota_consulente) { document.getElementById('notaText').textContent=data.nota_consulente; document.getElementById('notaCard').style.display='flex'; } else { document.getElementById('notaCard').style.display='none'; }
+}
+
+// 
+// PDF EXPORT
+// 
+function populatePrintProfile(client) {
+ const recs = client.raccomandazioni;
+ const date = new Date(client.data).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+ document.getElementById('pp-nome').textContent = client.nome;
+ document.getElementById('pp-data').textContent = date;
+ document.getElementById('pp-summary').textContent = recs?.sintesi_profilo||'';
+ document.getElementById('pp-recs').innerHTML = (recs?.raccomandazioni||[]).map(r => `
+ <div class="pp-rec">
+ <div class="pp-rec-num">${r.priorita}</div>
+ <div>
+ <div class="pp-rec-tipo">${esc(r.tipo)} — ${({alta:'Alta priorità',media:'Media priorità',bassa:'Bassa priorità'})[r.urgenza]||''}</div>
+ <div class="pp-rec-motivo">${esc(r.motivo)}</div>
+ ${r.budget_indicativo ? `<div class="pp-rec-budget">Budget indicativo: ${esc(r.budget_indicativo)}</div>` : ''}
+ </div>
+ </div>`).join('');
+ const gaps = recs?.gap_principali||[];
+ if (gaps.length) { document.getElementById('pp-gaps').innerHTML=gaps.map(g=>`<div style="font-size:12px;color:#4B5563;margin-bottom:4px"> ${esc(g)}</div>`).join(''); document.getElementById('pp-gap-section').style.display='block'; } else { document.getElementById('pp-gap-section').style.display='none'; }
+ document.getElementById('pp-footer-date').textContent = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+}
+
+function exportClientPDF() {
+ if (!currentClientId) return;
+ const client = getClients().find(c=>c.id===currentClientId) || {nome:clientAnswers['nome']||'Cliente',data:new Date().toISOString(),raccomandazioni:clientRecs};
+ populatePrintProfile(client);
+ window.print();
+}
+
+function exportSavedClientPDF(id) {
+ const client = getClients().find(c=>c.id===id);
+ if(!client) return;
+ populatePrintProfile(client);
+ window.print();
+}
+
+// 
+// DRAG & DROP / FILE UPLOAD
+// 
+function dragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('over'); }
+function dragLeave() { document.getElementById('dropZone').classList.remove('over'); }
+function onDrop(e) { e.preventDefault(); dragLeave(); addFiles([...e.dataTransfer.files]); }
+function filesSelected(e) { addFiles([...e.target.files]); e.target.value=''; }
+
+function addFiles(list) {
+ const pdfs = list.filter(f=>f.name.toLowerCase().endsWith('.pdf'));
+ if(!pdfs.length) { toast('Solo file PDF supportati'); return; }
+ const free = 4 - files.length - libSelected.size;
+ if(free<=0) { toast('Massimo 4 polizze totali (libreria + nuovi)'); return; }
+ pdfs.slice(0,free).forEach(f=>files.push({file:f,name:f.name,text:null,status:'loading',extracted:null}));
+ renderChips(); extractAll();
+}
+
+function renderChips() {
+ document.getElementById('chipsRow').innerHTML = files.map((f,i)=>`
+ <div class="chip ${f.status}">
+ <span>${f.status==='loading'?'':f.status==='ready'?'':''}</span>
+ <span class="chip-name" title="${esc(f.name)}">${esc(f.name)}</span>
+ ${f.status!=='loading'?`<button class="chip-x" onclick="removeFile(${i})">×</button>`:''}
+ </div>`).join('');
+ updateUploadButton();
+}
+
+function removeFile(i) { files.splice(i,1); renderChips(); }
+
+async function extractAll() {
+ for(let i=0;i<files.length;i++) {
+ if(files[i].text!==null) continue;
+ try { files[i].text=await readPdf(files[i].file); files[i].status='ready'; }
+ catch { files[i].status='error'; }
+ renderChips();
+ }
+}
+
+async function readPdf(file) {
+ const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+ let out=''; const pages=Math.min(pdf.numPages,45);
+ for(let p=1;p<=pages;p++){const pg=await pdf.getPage(p);const ct=await pg.getTextContent();out+=ct.items.map(i=>i.str).join(' ')+'\n';}
+ return out.slice(0,28000);
+}
+
+// 
+// COMPARISON FLOW
+// 
+async function startComparison() {
+ const libPolicies = getPolizze().filter(p=>libSelected.has(p.id)).map(p=>p.extracted);
+ const newFiles = files.filter(f=>f.status==='ready');
+ if(libPolicies.length + newFiles.length < 2) return;
+
+ navTo('pagLoading');
+ document.getElementById('loadingTitle').textContent='Analisi polizze';
+ document.getElementById('loadingSubtitle').textContent="L'AI sta leggendo e confrontando le polizze...";
+ const steps=[...newFiles.map(f=>({label:f.name,status:'pending'})),{label:'Generazione analisi comparativa',status:'pending'}];
+ renderSteps(steps);
+
+ try {
+ const extracted = [...libPolicies];
+ for(let i=0;i<newFiles.length;i++){
+ steps[i].status='active'; renderSteps(steps);
+ const data=await callExtract(newFiles[i].text,newFiles[i].name);
+ newFiles[i].extracted=data; extracted.push(data);
+ steps[i].status='done'; renderSteps(steps);
+ }
+ steps[steps.length-1].status='active'; renderSteps(steps);
+
+ // Save new to library if checkbox checked
+ if(document.getElementById('saveToLibCheck')?.checked) {
+ newFiles.forEach(f=>{ if(f.extracted) savePolizzaToLib(f.extracted,f.name); });
+ }
+
+ renderResults(extracted);
+ callSummary(extracted).catch(()=>{});
+ steps[steps.length-1].status='done'; renderSteps(steps);
+ const nome=clientAnswers['nome'];
+ document.getElementById('resultsTitle').textContent=nome?`Confronto polizze — ${nome}`:'Confronto polizze';
+ navTo('pagResults');
+ } catch(e) { navTo('pagUpload'); toast('Errore: '+(e.message||'Riprova'),6000); }
+}
+
+async function callExtract(text,filename) {
+ const res=await fetch(`${BACKEND}/api/extract`,{method:'POST',headers:API_HEADERS,body:JSON.stringify({text,filename})});
+ if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.detail||`Errore server (${res.status})`);}
+ return res.json();
+}
+
+async function callSummary(policies) {
+ const res=await fetch(`${BACKEND}/api/summary`,{method:'POST',headers:API_HEADERS,body:JSON.stringify({policies})});
+ if(!res.ok) return; const d=await res.json();
+ if(d.summary){document.getElementById('aiSummaryText').textContent=d.summary;document.getElementById('aiSummary').style.display='block';}
+}
+
+function renderSteps(steps) {
+ document.getElementById('progressSteps').innerHTML=steps.map(s=>`<li class="${s.status}"><span class="step-dot"></span>${s.status==='done'?' ':s.status==='active'?'→ ':''}${esc(s.label)}</li>`).join('');
+}
+
+// 
+// RENDER RESULTS
+// 
+function renderResults(policies) {
+ const scores=policies.map(p=>calcScore(p)); const winnerIdx=scores.indexOf(Math.max(...scores));
+ const cols=['#0F2741','#7C3AED','#C8971C','#DC2626'];
+ document.getElementById('scoreCards').style.gridTemplateColumns=`repeat(${policies.length},1fr)`;
+ document.getElementById('scoreCards').innerHTML=policies.map((p,i)=>{
+ const s=scores[i]; const circ=2*Math.PI*25; const offset=circ*(1-s/100);
+ return `<div class="score-card ${i===winnerIdx?'winner':''}">
+ <div class="score-ring"><svg width="60" height="60" viewBox="0 0 60 60"><circle class="track" cx="30" cy="30" r="25"/><circle class="fill" cx="30" cy="30" r="25" stroke="${i===winnerIdx?'#16A34A':cols[i]}" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/></svg><div class="score-num" style="color:${i===winnerIdx?'#16A34A':cols[i]}">${s}</div></div>
+ <div class="score-body"><div class="score-company">${esc(p.compagnia||'—')}</div><div class="score-product">${esc(p.prodotto||'—')}</div><span class="score-tipo">${esc(p.tipo||'—')}</span>${p.premio?`<div class="score-premio">Premio: <strong>${esc(p.premio)}</strong></div>`:''}<div class="score-badges">${(p.punti_di_forza||[]).slice(0,2).map(b=>`<span class="score-badge best">${esc(b)}</span>`).join('')}</div></div>
+ ${i===winnerIdx?'<div class="winner-tag">Migliore</div>':''}
+ </div>`;
+ }).join('');
+
+ buildTable(policies,cols);
+
+ document.getElementById('adviceGrid').innerHTML=policies.map((p,i)=>p.consigliata_per?`<div class="advice-card"><div class="advice-icon">${['','','🟡',''][i]}</div><div><div class="advice-company">${esc(p.compagnia||'')}</div><div class="advice-for">${esc(p.prodotto||'')}</div><div class="advice-text">${esc(p.consigliata_per)}</div></div></div>`:'').join('');
+ document.getElementById('adviceTitle').style.display=policies.some(p=>p.consigliata_per)?'block':'none';
+ const hasExcl=policies.some(p=>p.esclusioni?.length);
+ document.getElementById('exclGrid').innerHTML=hasExcl?policies.map(p=>p.esclusioni?.length?`<div class="excl-card"><div class="excl-header"><span class="excl-company">${esc(p.compagnia||'')}</span><span class="excl-product"> ${esc(p.prodotto||'')}</span></div><div class="excl-list">${p.esclusioni.map(e=>`<div class="excl-item">${esc(e)}</div>`).join('')}</div></div>`:'').join(''):'';
+ document.getElementById('exclTitle').style.display=hasExcl?'block':'none';
+ document.getElementById('exclGrid').style.gridTemplateColumns=`repeat(${Math.min(policies.length,2)},1fr)`;
+}
+
+function buildTable(policies,cols) {
+ const byCategory={};
+ policies.forEach(p=>{(p.garanzie||[]).forEach(g=>{if(!byCategory[g.categoria])byCategory[g.categoria]=new Set();byCategory[g.categoria].add(g.nome);});});
+ let html='<thead><tr><th style="text-align:left">Garanzia</th>';
+ policies.forEach((p,i)=>html+=`<th style="border-top:3px solid ${cols[i]}"><span class="th-company">${esc(p.compagnia||'')}</span><span class="th-product">${esc(p.prodotto||'')}</span></th>`);
+ html+='</tr></thead><tbody>';
+ for(const [cat,names] of Object.entries(byCategory)){
+ html+=`<tr class="group-row"><td colspan="${policies.length+1}">${esc(cat)}</td></tr>`;
+ [...names].forEach(name=>{
+ const vals=policies.map(p=>(p.garanzie||[]).find(g=>g.nome===name)||null);
+ const nums=vals.map(g=>g&&g.presente?(g.massimale_num||0):-1); const maxNum=Math.max(...nums);
+ html+=`<tr><td class="row-label">${esc(name)}</td>`;
+ vals.forEach((g,i)=>{
+ if(!g||!g.presente){html+=`<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;return;}
+ const isBest=nums[i]===maxNum&&maxNum>0;
+ html+=`<td class="cell ${isBest?'c-best':'c-mid'}"><div class="cell-inner">`;
+ if(g.massimale) html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
+ const det=[];
+ if(g.franchigia) det.push(`<span class="detail-tag franchigia">Fr. ${esc(g.franchigia)}</span>`);
+ if(g.scoperto) det.push(`<span class="detail-tag scoperto">Sc. ${esc(g.scoperto)}</span>`);
+ if(!g.franchigia&&!g.scoperto) det.push(`<span class="detail-tag niente">Senza franchigia</span>`);
+ if(det.length) html+=`<div class="detail-row">${det.join('')}</div>`;
+ if(isBest) html+=`<span class="best-pill">migliore</span>`;
+ if(g.note) html+=`<div class="note-text">${esc(g.note)}</div>`;
+ html+='</div></td>';
+ });
+ html+='</tr>';
+ });
+ }
+ html+='</tbody>';
+ document.getElementById('compTable').innerHTML=html;
+}
+
+function calcScore(policy) {
+ const g=policy.garanzie||[]; if(!g.length) return 0;
+ let pts=0,max=0;
+ g.forEach(x=>{max+=3;if(!x.presente) return;pts+=2;if(!x.franchigia&&!x.scoperto) pts+=.5;else if(x.scoperto) pts-=.2;});
+ return Math.min(100,Math.max(10,max>0?Math.round((pts/max)*100):0));
+}
+
+// 
+// MATCH AI
+// 
+let matchSelectedClient = null;
+let matchSelectedPolicies = new Set(); // IDs polizze selezionate
+
+function renderMatchPage() {
+ matchSelectedClient = null;
+ matchSelectedPolicies = new Set();
+ document.getElementById('matchResults').innerHTML = '';
+ renderMatchClientList();
+ renderMatchPolicyList();
+ updateMatchRunBar();
+}
+
+function renderMatchClientList() {
+ const clients = getClients();
+ const el = document.getElementById('matchClientList');
+ if (!clients.length) { el.innerHTML = '<div class="match-empty">Nessun cliente nello storico.<br>Compila prima un questionario.</div>'; return; }
+ el.innerHTML = clients.slice(0,10).map(c => {
+ const initials = (c.nome||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+ const recs = c.raccomandazioni?.raccomandazioni||[];
+ const urgente = recs.find(r=>r.urgenza==='alta');
+ const sel = matchSelectedClient?.id === c.id;
+ return `<div class="match-client-card${sel?' selected':''}" onclick="selectMatchClient('${c.id}')">
+ <div class="mc-avatar">${esc(initials)}</div>
+ <div>
+ <div class="mc-name">${esc(c.nome)}</div>
+ <div class="mc-meta">${new Date(c.data).toLocaleDateString('it-IT')}${urgente?' · '+esc(urgente.tipo):''}</div>
+ </div>
+ ${sel?'<span style="margin-left:auto;color:var(--polo);font-size:16px"></span>':''}
+ </div>`;
+ }).join('');
+}
+
+function renderMatchPolicyList() {
+ const polizze = getPolizze();
+ const el = document.getElementById('matchPolicyList');
+ if (!polizze.length) { el.innerHTML = '<div class="match-empty">Nessuna polizza in libreria.<br>Carica prima alcune polizze.</div>'; return; }
+ el.innerHTML = polizze.map(p => {
+ const sel = matchSelectedPolicies.has(p.id);
+ const icon = {vita:'',salute:'',casa:'','rc auto':'',infortuni:'',risparmio:''}[p.tipo?.toLowerCase()] || '';
+ return `<div class="match-policy-card${sel?' selected':''}" onclick="toggleMatchPolicy('${p.id}')">
+ <div class="mp-icon">${icon}</div>
+ <div style="flex:1">
+ <div class="mp-name">${esc(p.compagnia)} — ${esc(p.prodotto)}</div>
+ <div class="mp-meta">${esc(p.tipo||'?')} · ${new Date(p.data).toLocaleDateString('it-IT')}</div>
+ </div>
+ ${sel?'<span style="color:var(--gold);font-size:16px;flex-shrink:0"></span>':''}
+ </div>`;
+ }).join('');
+}
+
+function selectMatchClient(id) {
+ const clients = getClients();
+ matchSelectedClient = clients.find(c=>c.id===id) || null;
+ renderMatchClientList();
+ updateMatchRunBar();
+}
+
+function toggleMatchPolicy(id) {
+ if (matchSelectedPolicies.has(id)) {
+ matchSelectedPolicies.delete(id);
+ } else {
+ if (matchSelectedPolicies.size>= 4) { toast('Massimo 4 polizze per il match'); return; }
+ matchSelectedPolicies.add(id);
+ }
+ renderMatchPolicyList();
+ updateMatchRunBar();
+}
+
+function updateMatchRunBar() {
+ const btn = document.getElementById('btnRunMatch');
+ const status = document.getElementById('matchSelStatus');
+ const ready = matchSelectedClient && matchSelectedPolicies.size> 0;
+ btn.disabled = !ready;
+ if (!matchSelectedClient && matchSelectedPolicies.size === 0) status.textContent = 'Seleziona un cliente e almeno una polizza';
+ else if (!matchSelectedClient) status.textContent = 'Seleziona un cliente';
+ else if (matchSelectedPolicies.size === 0) status.textContent = 'Seleziona almeno una polizza';
+ else status.textContent = `${matchSelectedClient.nome} · ${matchSelectedPolicies.size} polizz${matchSelectedPolicies.size===1?'a':'e'} selezionat${matchSelectedPolicies.size===1?'a':'e'}`;
+}
+
+async function runMatch() {
+ if (!matchSelectedClient || !matchSelectedPolicies.size) return;
+ const polizze = getPolizze();
+ const selectedPols = [...matchSelectedPolicies].map(id => polizze.find(p=>p.id===id)?.extracted).filter(Boolean);
+
+ document.getElementById('matchResults').innerHTML = `
+ <div style="text-align:center;padding:40px;color:var(--gray-500)">
+ <div style="font-size:32px;margin-bottom:12px"></div>
+ <div style="font-weight:600;margin-bottom:4px">Analisi in corso...</div>
+ <div style="font-size:12px">L'AI sta incrociando il profilo cliente con le polizze selezionate</div>
+ </div>`;
+
+ try {
+ const res = await fetch(`${BACKEND}/api/match`, {
+ method:'POST', headers:API_HEADERS,
+ body: JSON.stringify({ client: {...matchSelectedClient, agenzia: _CFG.nome||'default'}, policies: selectedPols, feedback_history: [] })
+ });
+ if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+ const data = await res.json();
+ renderMatchResults(data, selectedPols);
+ } catch(e) {
+ document.getElementById('matchResults').innerHTML = `<div class="match-empty" style="color:var(--red)">Errore: ${esc(e.message)}</div>`;
+ }
+}
+
+function renderMatchResults(data, policies) {
+ const ranking = data.ranking || policies.map((_,i)=>i);
+
+ let html = `<div class="match-results">`;
+
+ // Box raccomandazione principale
+ html += `<div class="match-rec-box">
+ <div class="match-rec-label"> Raccomandazione AI</div>
+ <div class="match-rec-text">${esc(data.top_recommendation||'')}</div>
+ ${data.agent_tip ? `<div class="match-tip"> Consiglio per l'agente: ${esc(data.agent_tip)}</div>` : ''}
+ </div>`;
+
+ // Cards polizze ordinate per ranking
+ html += `<div class="section-title">Analisi compatibilità</div><div class="match-cards-grid">`;
+ ranking.forEach((pi, rankIdx) => {
+ const pm = (data.policy_matches||[]).find(m=>m.policy_index===pi);
+ const pol = policies[pi];
+ if (!pm || !pol) return;
+ const score = pm.compatibility_score || 0;
+ const budgetClass = {'ottimo':'ottimo','buono':'buono','stretto':'stretto','fuori budget':'fuori'}[pm.budget_fit?.toLowerCase()] || 'buono';
+ const circumference = 2 * Math.PI * 20;
+ const dash = (score/100) * circumference;
+ const scoreColor = score>=70?'#22c55e':score>=45?'#f59e0b':'#ef4444';
+
+ html += `<div class="match-card${rankIdx===0?' top-pick':''}">
+ ${rankIdx < 3 ? `<div class="match-rank-badge">${rankIdx+1}</div>` : ''}
+ <div class="match-card-header">
+ <div>
+ <div class="match-card-company">${esc(pol.compagnia||'?')}</div>
+ <div class="match-card-name">${esc(pol.prodotto||'?')}</div>
+ </div>
+ <svg class="match-score-ring" viewBox="0 0 44 44">
+ <circle cx="22" cy="22" r="20" fill="none" stroke="var(--gray-100)" stroke-width="3.5"/>
+ <circle cx="22" cy="22" r="20" fill="none" stroke="${scoreColor}" stroke-width="3.5"
+ stroke-dasharray="${dash} ${circumference}" stroke-linecap="round"/>
+ <text x="22" y="22" class="match-score-num" style="font-size:10px;font-weight:800;fill:${scoreColor};transform:rotate(90deg);transform-origin:center"
+ transform="rotate(90,22,22)" text-anchor="middle" dominant-baseline="central">${score}</text>
+ </svg>
+ </div>
+ <span class="match-budget-badge ${budgetClass}">Budget: ${esc(pm.budget_fit||'?')}</span>
+ ${pm.gap_coverage?.length ? `<div class="match-gap-list">${pm.gap_coverage.map(g=>{
+ const fillClass = g.score>=70?'high':g.score>=40?'mid':'low';
+ return `<div class="match-gap-item">
+ <span style="font-size:10px;color:var(--gray-500);min-width:120px;line-height:1.3">${esc(g.gap)}</span>
+ <div class="match-gap-bar"><div class="match-gap-fill ${fillClass}" style="width:${g.score||0}%"></div></div>
+ <span style="font-size:10px;color:var(--gray-400);min-width:28px;text-align:right">${g.score||0}%</span>
+ </div>`;
+ }).join('')}</div>` : ''}
+ ${pm.strengths?.length ? `<div class="match-strengths">${pm.strengths.slice(0,2).map(s=>`<div class="match-str-item">${esc(s)}</div>`).join('')}</div>` : ''}
+ ${pm.weaknesses?.length ? `<div class="match-strengths">${pm.weaknesses.slice(0,2).map(w=>`<div class="match-weak-item">${esc(w)}</div>`).join('')}</div>` : ''}
+ <div class="match-verdict">${esc(pm.verdict||'')}</div>
+ </div>`;
+ });
+ html += `</div></div>`;
+
+ document.getElementById('matchResults').innerHTML = html;
+}
+
+// 
+// QUESTIONNAIRE EDITOR
+// 
+
+function renderImpostazioni() {
+ const cfg = QUESTIONNAIRE_CONFIG;
+ let html = '';
+ cfg.sezioni.forEach((sez, si) => {
+ const hasMultiple = cfg.sezioni.length> 1;
+ html += `<div class="qed-section">
+ <div class="qed-sez-header">
+ <div class="qed-sez-num">${si+1}</div>
+ <input class="qed-input qed-icon-input" value="${esc(sez.icona)}" oninput="qcfgSetSez(${si},'icona',this.value)" title="Emoji icona" />
+ <input class="qed-input qed-title-input" value="${esc(sez.titolo)}" oninput="qcfgSetSez(${si},'titolo',this.value)" placeholder="Titolo sezione" />
+ ${hasMultiple ? `<button class="btn-icon-sm del-sez" onclick="qcfgDelSez(${si})" title="Elimina sezione"></button>` : ''}
+ </div>`;
+ if (!sez.domande.length) html += `<div class="qed-empty">Nessuna domanda — aggiungine una sotto</div>`;
+ sez.domande.forEach((q, qi) => { html += renderQEdDomanda(si, qi, q); });
+ html += `<button class="qed-add-dom" onclick="qcfgAddDomanda(${si})">＋ Aggiungi domanda</button>
+ </div>`;
+ });
+ document.getElementById('qeditor').innerHTML = html;
+}
+
+function renderQEdDomanda(si, qi, q) {
+ const hasOpts = q.tipo === 'scelta_singola' || q.tipo === 'scelta_multipla';
+ const obblig = q.obbligatoria !== false;
+ let html = `<div class="qed-domanda">
+ <div class="qed-dom-row">
+ <input class="qed-input qed-dom-label" value="${esc(q.label)}" oninput="qcfgSetDom(${si},${qi},'label',this.value)" placeholder="Testo domanda" />
+ <select class="qed-select" onchange="qcfgSetDom(${si},${qi},'tipo',this.value);qcfgInitOpts(${si},${qi});renderImpostazioni()">
+ <option value="scelta_singola" ${q.tipo==='scelta_singola'?'selected':''}>Scelta singola</option>
+ <option value="scelta_multipla" ${q.tipo==='scelta_multipla'?'selected':''}>Scelta multipla</option>
+ <option value="testo" ${q.tipo==='testo'?'selected':''}>Testo libero</option>
+ <option value="testo_lungo" ${q.tipo==='testo_lungo'?'selected':''}>Testo lungo</option>
+ </select>
+ <label class="qed-obblig" title="Obbligatoria">
+ <input type="checkbox" ${obblig?'checked':''} onchange="qcfgSetDom(${si},${qi},'obbligatoria',this.checked)" />
+ Obblig.
+ </label>
+ <button class="btn-icon-sm" onclick="qcfgDelDomanda(${si},${qi})" title="Elimina domanda"></button>
+ </div>`;
+ if (q.tipo==='testo'||q.tipo==='testo_lungo') {
+ html += `<div style="padding:2px 0 4px"><input class="qed-input" style="width:100%;font-size:12px" value="${esc(q.placeholder||'')}" oninput="qcfgSetDom(${si},${qi},'placeholder',this.value)" placeholder="Placeholder (opzionale)" /></div>`;
+ }
+ if (hasOpts) {
+ html += `<div class="qed-options">`;
+ (q.opzioni||[]).forEach((opt,oi) => {
+ html += `<div class="qed-opt-row">
+ <span style="font-size:11px;color:var(--gray-400);width:18px;flex-shrink:0">${oi+1}.</span>
+ <input class="qed-input qed-opt-input" value="${esc(opt)}" oninput="qcfgSetOpt(${si},${qi},${oi},this.value)" placeholder="Opzione..." />
+ <button class="btn-icon-sm" onclick="qcfgDelOpt(${si},${qi},${oi})" title="Elimina opzione"></button>
+ </div>`;
+ });
+ html += `<button class="qed-add-opt" onclick="qcfgAddOpt(${si},${qi})">＋ Aggiungi opzione</button>`;
+ if (q.tipo==='scelta_multipla') {
+ html += `<div class="qed-max-row">Max selezioni:
+ <input class="qed-input" type="number" min="1" max="10" value="${q.max||''}" oninput="qcfgSetDom(${si},${qi},'max',this.value?parseInt(this.value):undefined)" placeholder="illim." style="width:50px;padding:4px 6px;font-size:12px" />
+ <span style="color:var(--gray-400)">(lascia vuoto = illimitato)</span>
+ </div>`;
+ }
+ html += `</div>`;
+ }
+ html += `</div>`;
+ return html;
+}
+
+function qcfgSetSez(si, field, val) { QUESTIONNAIRE_CONFIG.sezioni[si][field] = val; }
+function qcfgSetDom(si, qi, field, val) { QUESTIONNAIRE_CONFIG.sezioni[si].domande[qi][field] = val; }
+function qcfgSetOpt(si, qi, oi, val) { QUESTIONNAIRE_CONFIG.sezioni[si].domande[qi].opzioni[oi] = val; }
+
+function qcfgInitOpts(si, qi) {
+ const q = QUESTIONNAIRE_CONFIG.sezioni[si].domande[qi];
+ if ((q.tipo==='scelta_singola'||q.tipo==='scelta_multipla') && !q.opzioni?.length) {
+ q.opzioni = ['Opzione 1','Opzione 2','Opzione 3'];
+ }
+}
+
+function qcfgAddOpt(si, qi) {
+ const q = QUESTIONNAIRE_CONFIG.sezioni[si].domande[qi];
+ if (!q.opzioni) q.opzioni = [];
+ q.opzioni.push('Nuova opzione');
+ renderImpostazioni();
+}
+function qcfgDelOpt(si, qi, oi) {
+ QUESTIONNAIRE_CONFIG.sezioni[si].domande[qi].opzioni.splice(oi, 1);
+ renderImpostazioni();
+}
+function qcfgAddDomanda(si) {
+ QUESTIONNAIRE_CONFIG.sezioni[si].domande.push({
+ id: 'dom_' + Date.now(),
+ tipo: 'scelta_singola',
+ label: 'Nuova domanda',
+ opzioni: ['Opzione 1','Opzione 2','Opzione 3'],
+ obbligatoria: true
+ });
+ renderImpostazioni();
+}
+function qcfgDelDomanda(si, qi) {
+ if (!confirm('Eliminare questa domanda?')) return;
+ QUESTIONNAIRE_CONFIG.sezioni[si].domande.splice(qi, 1);
+ renderImpostazioni();
+}
+function qcfgDelSez(si) {
+ if (QUESTIONNAIRE_CONFIG.sezioni.length <= 1) { toast('Serve almeno una sezione'); return; }
+ if (!confirm(`Eliminare la sezione "${QUESTIONNAIRE_CONFIG.sezioni[si].titolo}" con tutte le sue domande?`)) return;
+ QUESTIONNAIRE_CONFIG.sezioni.splice(si, 1);
+ renderImpostazioni();
+}
+function qcfgAddSez() {
+ QUESTIONNAIRE_CONFIG.sezioni.push({
+ id: 'sez_' + Date.now(),
+ titolo: 'Nuova sezione',
+ icona: '',
+ domande: []
+ });
+ renderImpostazioni();
+ setTimeout(() => document.getElementById('qeditor').lastElementChild?.previousElementSibling?.scrollIntoView({behavior:'smooth'}), 50);
+}
+function applyQConfig() {
+ saveQConfig();
+ toast(' Questionario salvato');
+}
+function resetQConfigUI() {
+ if (!confirm('Ripristinare le domande predefinite? Le modifiche andranno perse.')) return;
+ resetQConfig();
+ renderImpostazioni();
+ toast('Domande ripristinate ai valori di default');
+}
+
+// 
+// UTILS
+// 
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function toast(msg,dur=3000) {
+ const t=document.createElement('div');
+ t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F2741;color:#fff;padding:10px 22px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+ t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),dur);
+}
+
+// 
+// ── EXPORT / IMPORT LIBRERIA ──────────────────────────────────────────────────
+function esportaLibreria() {
+  const lib = getPolizze();
+  if (!lib.length) { alert('La libreria è vuota, niente da esportare.'); return; }
+  const agenzia = (_CFG.nome || 'polizza-facile').toLowerCase().replace(/\s+/g,'-');
+  const data = new Date().toISOString().slice(0,10);
+  const blob = new Blob([JSON.stringify({
+    versione: 1,
+    agenzia: _CFG.nome || '',
+    esportato: new Date().toISOString(),
+    polizze: lib
+  }, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `libreria-polizze-${agenzia}-${data}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importaLibreria(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      // Supporta sia formato {versione,polizze:[...]} che array diretto
+      const nuove = Array.isArray(parsed) ? parsed : (parsed.polizze || []);
+      if (!nuove.length) { alert('Nessuna polizza trovata nel file.'); return; }
+      const esistenti = getPolizze();
+      // Evita duplicati per prodotto+compagnia
+      const chiavi = new Set(esistenti.map(p => `${(p.extracted?.compagnia||p.compagnia)}|${(p.extracted?.prodotto||p.prodotto)}`));
+      const aggiunte = nuove.filter(p => {
+        const k = `${(p.extracted?.compagnia||p.compagnia)}|${(p.extracted?.prodotto||p.prodotto)}`;
+        return !chiavi.has(k);
+      });
+      if (!aggiunte.length) { alert('Tutte le polizze importate esistono già in libreria.'); return; }
+      savePolizze([...esistenti, ...aggiunte]);
+      updateBadges();
+      renderLibreria();
+      alert(`✅ Importate ${aggiunte.length} polizze (${nuove.length - aggiunte.length} già presenti, saltate).`);
+    } catch(err) {
+      alert('File non valido. Assicurati di importare un file JSON esportato da Polizza Facile.');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // reset input per permettere re-import dello stesso file
+}
+
+// INIT
+initAgenziaUI();
+renderDashboard();
+</script>
+</body>
+</html>

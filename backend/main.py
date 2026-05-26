@@ -491,6 +491,15 @@ async def serve_app():
             "Cache-Control": "no-cache, no-store, must-revalidate"
         })
 
+@app.get("/nicolo", response_class=HTMLResponse)
+async def serve_nicolo():
+    """Serve il comparatore personalizzato per Nicolò Prior (Allianz Rosa)."""
+    html_path = os.path.join(os.path.dirname(__file__), "nicolo.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read(), headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate"
+        })
+
 
 @app.post("/api/extract")
 async def extract_policy(req: ExtractRequest):
