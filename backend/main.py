@@ -8,7 +8,7 @@ import anthropic
 import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -786,6 +786,92 @@ async def extract_policy(req: ExtractRequest):
     except Exception as e:
         logger.error(f"Error in /api/extract: {e}")
         raise HTTPException(500, "Errore durante l'analisi della polizza")
+
+
+@app.post("/api/extract-stream")
+async def extract_policy_stream(req: ExtractRequest):
+    """
+    Versione streaming SSE di /api/extract.
+    Invia ping ogni 3s per mantenere la connessione viva su Cloudflare/Railway.
+    Invia eventi 'progress' durante l'elaborazione e 'result' alla fine.
+    Elimina definitivamente il problema 'Failed to fetch' da timeout.
+    """
+    text = req.text.strip() if req.text else ""
+    if len(text) < 100:
+        raise HTTPException(400, "Testo polizza troppo breve o vuoto")
+
+    CHUNK_SIZE = 60_000
+    OVERLAP    =  3_000
+    BATCH_SIZE =     16
+
+    async def generate():
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def do_extract():
+            try:
+                if len(text) <= CHUNK_SIZE:
+                    await queue.put({"type": "progress", "step": "Analisi documento...", "pct": 30})
+                    result = await _extract_single_chunk(text, req.filename)
+                else:
+                    chunks = _build_sequential_chunks(text, CHUNK_SIZE, OVERLAP)
+                    total = len(chunks)
+                    logger.info(f"[stream] '{req.filename}' → {total} chunk(s) su {len(text)} chars")
+                    await queue.put({"type": "progress", "step": f"Lettura documento ({total} sezioni)...", "pct": 5})
+
+                    all_results = []
+                    for i in range(0, total, BATCH_SIZE):
+                        batch = chunks[i:i + BATCH_SIZE]
+                        batch_results = await asyncio.gather(*[
+                            _extract_single_chunk(chunk_text, req.filename, chunk_info)
+                            for chunk_text, chunk_info in batch
+                        ])
+                        all_results.extend(batch_results)
+                        pct = 5 + int(70 * len(all_results) / total)
+                        await queue.put({
+                            "type": "progress",
+                            "step": f"Analisi sezioni ({len(all_results)}/{total})...",
+                            "pct": pct
+                        })
+
+                    result = _merge_extractions(all_results)
+
+                # Opus refinement
+                await queue.put({"type": "progress", "step": "Verifica massimali con AI avanzata...", "pct": 82})
+                result = await _refine_with_opus(result, text, req.filename)
+                await queue.put({"type": "result", "data": result})
+
+            except Exception as e:
+                logger.error(f"[stream] Errore per '{req.filename}': {e}")
+                await queue.put({"type": "error", "message": str(e)})
+
+        task = asyncio.create_task(do_extract())
+        try:
+            while True:
+                try:
+                    msg = await asyncio.wait_for(queue.get(), timeout=3.0)
+                    yield f"data: {json.dumps(msg, ensure_ascii=False)}\n\n"
+                    if msg["type"] in ("result", "error"):
+                        break
+                except asyncio.TimeoutError:
+                    # Heartbeat: mantiene viva la connessione Cloudflare/Railway
+                    yield 'data: {"type":"ping"}\n\n'
+        finally:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",   # disabilita buffering nginx/Cloudflare
+            "Connection":       "keep-alive",
+        }
+    )
 
 
 @app.post("/api/raccomanda")

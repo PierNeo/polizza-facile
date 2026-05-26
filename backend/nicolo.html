@@ -1800,18 +1800,16 @@ async function startComparison() {
  try {
  const extracted = [...libPolicies];
  for(let i=0;i<newFiles.length;i++){
- steps[i].status='active'; renderSteps(steps);
- const isLarge = (newFiles[i].text||'').length > 1_000_000;
- if (isLarge) {
-  document.getElementById('loadingSubtitle').textContent =
-   '📄 Documento molto grande — lettura completa in corso, attendere...';
- }
- const data=await callExtract(newFiles[i].text,newFiles[i].name);
- if (isLarge) {
-  document.getElementById('loadingSubtitle').textContent = "L'AI sta leggendo e confrontando le polizze...";
- }
- newFiles[i].extracted=data; extracted.push(data);
- steps[i].status='done'; renderSteps(steps);
+  steps[i].status='active'; renderSteps(steps);
+  const onProg = (pct, step) => {
+   const fileFrac = 1 / newFiles.length;
+   const globalPct = Math.round((i * fileFrac + fileFrac * pct / 100) * 100);
+   _setProgressBar(Math.min(globalPct, 90));
+   if (step) document.getElementById('loadingSubtitle').textContent = step;
+  };
+  const data = await callExtract(newFiles[i].text, newFiles[i].name, onProg);
+  newFiles[i].extracted = data; extracted.push(data);
+  steps[i].status='done'; renderSteps(steps);
  }
  steps[steps.length-1].status='active'; renderSteps(steps);
  finishProgressBar();
@@ -1830,10 +1828,35 @@ async function startComparison() {
  } catch(e) { navTo('pagUpload'); toast('Errore: '+(e.message||'Riprova'),6000); }
 }
 
-async function callExtract(text,filename) {
- const res=await fetch(`${BACKEND}/api/extract`,{method:'POST',headers:API_HEADERS,body:JSON.stringify({text,filename})});
- if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.detail||`Errore server (${res.status})`);}
- return res.json();
+async function callExtract(text, filename, onProgress) {
+ // SSE streaming — ping ogni 3s → nessun timeout Cloudflare/Railway.
+ const res = await fetch(`${BACKEND}/api/extract-stream`, {
+  method: 'POST',
+  headers: API_HEADERS,
+  body: JSON.stringify({text, filename})
+ });
+ if (!res.ok) {
+  const e = await res.json().catch(() => ({}));
+  throw new Error(e.detail || `Errore server (${res.status})`);
+ }
+ const reader = res.body.getReader();
+ const decoder = new TextDecoder();
+ let buffer = '';
+ while (true) {
+  const {done, value} = await reader.read();
+  if (done) throw new Error('Stream terminato senza risultato');
+  buffer += decoder.decode(value, {stream: true});
+  const lines = buffer.split('\n');
+  buffer = lines.pop();
+  for (const line of lines) {
+   if (!line.startsWith('data: ')) continue;
+   const evt = JSON.parse(line.slice(6));
+   if (evt.type === 'ping') continue;
+   if (evt.type === 'progress' && onProgress) onProgress(evt.pct, evt.step);
+   if (evt.type === 'result') return evt.data;
+   if (evt.type === 'error') throw new Error(evt.message || 'Errore server');
+  }
+ }
 }
 
 async function callSummary(policies) {
