@@ -494,6 +494,8 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 .detail-tag.scoperto { background:var(--red-soft); color:var(--red); }
 .detail-tag.niente { background:var(--green-soft); color:var(--green-dark); }
 .note-text { font-size:10px; color:var(--gray-400); font-style:italic; margin-top:1px; }
+.c-optional .comp-optional-tag { font-size:10px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:.5px; border:1px solid var(--blue-mid); border-radius:4px; padding:2px 7px; background:var(--blue-soft); }
+.dip-badge { font-size:10px; font-weight:600; color:var(--purple); background:var(--purple-soft); border:1px solid #DDD6FE; border-radius:4px; padding:2px 7px; display:inline-flex; align-items:center; gap:3px; cursor:default; }
 .best-pill { font-size:9px; font-weight:700; background:var(--green); color:#fff; padding:1px 6px; border-radius:20px; text-transform:uppercase; letter-spacing:.3px; }
 .excl-grid { display:grid; gap:12px; }
 .excl-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow-sm); }
@@ -1904,42 +1906,77 @@ function renderResults(policies) {
 }
 
 function buildTable(policies,cols) {
+ // Mappa nome→categoria canonica (first-occurrence) per evitare duplicati di categoria
+ const nameToCategory={};
+ const categoryOrder=[];
+ policies.forEach(p=>{
+  (p.garanzie||[]).forEach(g=>{
+   const nome=(g.nome||'').trim(); const cat=(g.categoria||'Altro').trim();
+   if(!nome) return;
+   if(!nameToCategory[nome]){ nameToCategory[nome]=cat; if(!categoryOrder.includes(cat)) categoryOrder.push(cat); }
+  });
+ });
  const byCategory={};
- policies.forEach(p=>{(p.garanzie||[]).forEach(g=>{if(!byCategory[g.categoria])byCategory[g.categoria]=new Set();byCategory[g.categoria].add(g.nome);});});
+ categoryOrder.forEach(cat=>{ byCategory[cat]=[]; });
+ Object.entries(nameToCategory).forEach(([nome,cat])=>{ byCategory[cat].push(nome); });
+
  let html='<thead><tr><th style="text-align:left">Garanzia</th>';
  policies.forEach((p,i)=>html+=`<th style="border-top:3px solid ${cols[i]}"><span class="th-company">${esc(p.compagnia||'')}</span><span class="th-product">${esc(p.prodotto||'')}</span></th>`);
  html+='</tr></thead><tbody>';
  for(const [cat,names] of Object.entries(byCategory)){
- html+=`<tr class="group-row"><td colspan="${policies.length+1}">${esc(cat)}</td></tr>`;
- [...names].forEach(name=>{
- const vals=policies.map(p=>(p.garanzie||[]).find(g=>g.nome===name)||null);
- const nums=vals.map(g=>g&&g.presente?(g.massimale_num||0):-1); const maxNum=Math.max(...nums);
- html+=`<tr><td class="row-label">${esc(name)}</td>`;
- vals.forEach((g,i)=>{
- if(!g||!g.presente){html+=`<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;return;}
- const isBest=nums[i]===maxNum&&maxNum>0;
- html+=`<td class="cell ${isBest?'c-best':'c-mid'}"><div class="cell-inner">`;
- if(g.massimale) html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
- const det=[];
- if(g.franchigia) det.push(`<span class="detail-tag franchigia">Fr. ${esc(g.franchigia)}</span>`);
- if(g.scoperto) det.push(`<span class="detail-tag scoperto">Sc. ${esc(g.scoperto)}</span>`);
- if(!g.franchigia&&!g.scoperto) det.push(`<span class="detail-tag niente">Senza franchigia</span>`);
- if(det.length) html+=`<div class="detail-row">${det.join('')}</div>`;
- if(isBest) html+=`<span class="best-pill">migliore</span>`;
- if(g.note) html+=`<div class="note-text">${esc(g.note)}</div>`;
- html+='</div></td>';
- });
- html+='</tr>';
- });
+  if(!names.length) continue;
+  html+=`<tr class="group-row"><td colspan="${policies.length+1}">${esc(cat)}</td></tr>`;
+  names.forEach(name=>{
+   const vals=policies.map(p=>(p.garanzie||[]).find(g=>(g.nome||'').trim()===name)||null);
+   const nums=vals.map(g=>g&&g.presente?(g.massimale_num||0):-1); const maxNum=Math.max(...nums);
+   html+=`<tr><td class="row-label">${esc(name)}</td>`;
+   vals.forEach((g,i)=>{
+    if(!g||!g.presente){
+     if(g&&g.opzionale){
+      const optNote=g.note?`<span style="font-size:10px;color:var(--gray-500);margin-top:3px;line-height:1.4;text-align:center">${esc(g.note)}</span>`:'';
+      html+=`<td class="cell c-optional"><div class="cell-inner"><span class="comp-optional-tag">+ Opzionale</span>${optNote}</div></td>`;
+     } else {
+      html+=`<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;
+     }
+     return;
+    }
+    const isBest=nums[i]===maxNum&&maxNum>0;
+    html+=`<td class="cell ${isBest?'c-best':'c-mid'}"><div class="cell-inner">`;
+    const _hasDipRef=!g.massimale&&g.note&&/\b(DIP|Condizioni Specifiche|modulo|formula|singoli Moduli)\b/i.test(g.note);
+    if(g.massimale){
+     html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
+    } else if(_hasDipRef){
+     const tipText=g.note.length>100?g.note.slice(0,97)+'…':g.note;
+     html+=`<span class="dip-badge" title="${esc(tipText)}">📄 Vedi DIP modulo</span>`;
+    }
+    const det=[];
+    if(g.franchigia) det.push(`<span class="detail-tag franchigia">Fr. ${esc(g.franchigia)}</span>`);
+    if(g.scoperto) det.push(`<span class="detail-tag scoperto">Sc. ${esc(g.scoperto)}</span>`);
+    if(!g.franchigia&&!g.scoperto&&!_hasDipRef) det.push(`<span class="detail-tag niente">Senza franchigia</span>`);
+    if(det.length) html+=`<div class="detail-row">${det.join('')}</div>`;
+    if(isBest) html+=`<span class="best-pill">migliore</span>`;
+    if(g.note&&!_hasDipRef) html+=`<div class="note-text">${esc(g.note)}</div>`;
+    html+='</div></td>';
+   });
+   html+='</tr>';
+  });
  }
  html+='</tbody>';
  document.getElementById('compTable').innerHTML=html;
 }
 
 function calcScore(policy) {
+ // Le garanzie opzionali non entrano nel denominatore (sono extra, non "mancanze")
  const g=policy.garanzie||[]; if(!g.length) return 0;
  let pts=0,max=0;
- g.forEach(x=>{max+=3;if(!x.presente) return;pts+=2;if(!x.franchigia&&!x.scoperto) pts+=.5;else if(x.scoperto) pts-=.2;});
+ g.forEach(x=>{
+  if(!x.presente&&x.opzionale) return; // skip opzionali: non penalizzano
+  max+=3;
+  if(!x.presente) return;
+  pts+=2;
+  if(!x.franchigia&&!x.scoperto) pts+=.5;
+  else if(x.scoperto) pts-=.2;
+ });
  return Math.min(100,Math.max(10,max>0?Math.round((pts/max)*100):0));
 }
 

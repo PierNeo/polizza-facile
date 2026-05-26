@@ -432,7 +432,7 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 .cell.c-optional { background:var(--gray-50); }
 .cell-inner { display:flex; flex-direction:column; align-items:center; gap:3px; }
 .c-absent .absent-x { font-size:16px; color:var(--gray-300); }
-.c-optional .optional-tag { font-size:10px; font-weight:600; color:var(--gray-400); text-transform:uppercase; letter-spacing:.5px; border:1px solid var(--gray-300); border-radius:4px; padding:2px 6px; }
+.c-optional .optional-tag { font-size:10px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:.5px; border:1px solid var(--blue-mid); border-radius:4px; padding:2px 7px; background:var(--blue-soft); }
 .massimale { font-size:13px; font-weight:700; color:var(--gray-900); }
 .massimale.best-val { color:var(--green-dark); }
 .detail-row { display:flex; gap:5px; flex-wrap:wrap; justify-content:center; }
@@ -440,6 +440,8 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 .detail-tag.franchigia { background:var(--amber-soft); color:var(--amber); }
 .detail-tag.scoperto { background:var(--red-soft); color:var(--red); }
 .detail-tag.niente { background:var(--green-soft); color:var(--green-dark); }
+.dip-badge { font-size:10px; font-weight:600; color:var(--purple); background:var(--purple-soft); border:1px solid #DDD6FE; border-radius:4px; padding:2px 7px; display:inline-flex; align-items:center; gap:3px; cursor:default; }
+.dip-badge:hover::after { content:attr(data-tip); position:absolute; z-index:50; background:var(--gray-800); color:#fff; font-size:11px; font-weight:400; padding:6px 10px; border-radius:6px; max-width:220px; white-space:normal; line-height:1.4; margin-top:4px; transform:translateX(-30%); }
 .note-text { font-size:10px; color:var(--gray-400); font-style:italic; margin-top:1px; }
 .best-pill { font-size:9px; font-weight:700; background:var(--green); color:#fff; padding:1px 6px; border-radius:20px; text-transform:uppercase; letter-spacing:.3px; }
 .excl-grid { display:grid; gap:12px; }
@@ -2129,23 +2131,35 @@ function buildTable(policies,cols) {
    html+=`<tr><td class="row-label">${esc(name)}</td>`;
    vals.forEach((g,i)=>{
     if(!g||!g.presente){
-     if(g&&g.opzionale){html+=`<td class="cell c-optional"><div class="cell-inner"><span class="optional-tag">Opzionale</span>${g.note?`<span style="font-size:10px;color:var(--gray-400);margin-top:2px">${esc(g.note)}</span>`:''}</div></td>`;}
-     else{html+=`<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;}
+     if(g&&g.opzionale){
+      const optNote=g.note?`<span style="font-size:10px;color:var(--gray-500);margin-top:3px;line-height:1.4;text-align:center">${esc(g.note)}</span>`:'';
+      html+=`<td class="cell c-optional"><div class="cell-inner"><span class="optional-tag">+ Opzionale</span>${optNote}</div></td>`;
+     } else {
+      html+=`<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;
+     }
      return;
     }
     const isBest=nums[i]===maxNum&&maxNum>0;
     html+=`<td class="cell ${isBest?'c-best':'c-mid'}"><div class="cell-inner">`;
-    if(g.massimale) html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
+    // Massimale: se presente mostralo, altrimenti controlla se la nota rimanda a DIP separati
+    const _hasDipRef = !g.massimale && g.note && /\b(DIP|Condizioni Specifiche|modulo|formula|singoli Moduli)\b/i.test(g.note);
+    if(g.massimale){
+     html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
+    } else if(_hasDipRef){
+     const tipText=g.note.length>100?g.note.slice(0,97)+'…':g.note;
+     html+=`<span class="dip-badge" title="${esc(tipText)}">📄 Vedi DIP modulo</span>`;
+    }
     const det=[];
     if(g.massimale_tipo) det.push(`<span class="detail-tag" style="background:var(--gray-100);color:var(--gray-500)">${esc(g.massimale_tipo)}</span>`);
     if(g.franchigia) det.push(`<span class="detail-tag franchigia">Fr. ${esc(g.franchigia)}</span>`);
     if(g.scoperto) det.push(`<span class="detail-tag scoperto">Sc. ${esc(g.scoperto)}</span>`);
-    if(!g.franchigia&&!g.scoperto) det.push(`<span class="detail-tag niente">Senza franchigia</span>`);
+    if(!g.franchigia&&!g.scoperto&&!_hasDipRef) det.push(`<span class="detail-tag niente">Senza franchigia</span>`);
     if(g.territorio&&g.territorio!=='Italia') det.push(`<span class="detail-tag" style="background:var(--blue-soft);color:var(--blue)">${esc(g.territorio)}</span>`);
     if(g.periodo_carenza) det.push(`<span class="detail-tag" style="background:var(--amber-soft);color:var(--amber)">Carenza ${esc(g.periodo_carenza)}</span>`);
     if(det.length) html+=`<div class="detail-row">${det.join('')}</div>`;
     if(isBest) html+=`<span class="best-pill">migliore</span>`;
-    if(g.note) html+=`<div class="note-text">${esc(g.note)}</div>`;
+    // Note: non ripetiamo se già mostrate nel badge DIP
+    if(g.note&&!_hasDipRef) html+=`<div class="note-text">${esc(g.note)}</div>`;
     html+='</div></td>';
    });
    html+='</tr>';
@@ -2172,6 +2186,9 @@ function calcScores(policies) {
   const g = policy.garanzie||[]; if (!g.length) return 0;
   let pts=0, max=0;
   g.forEach(x => {
+   // Le garanzie opzionali non entrano nel denominatore: sono extra facoltativi,
+   // non "mancanze" — includerle abbasserebbe ingiustamente il punteggio
+   if (!x.presente && x.opzionale) return;
    max += 3;
    if (!x.presente) return;
    pts += 1.5; // presenza garanzia
