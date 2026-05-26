@@ -332,13 +332,14 @@ Regole CRITICHE:
 - nome: usa SEMPRE un termine dalla tassonomia garanzie se applicabile — MAI inventare varianti
 - categoria: usa SEMPRE uno dei 9 valori dalla tassonomia categorie — MAI inventare categorie nuove
 - massimale_num: valore numerico puro (es: 500000), 0 se non trovato o non applicabile
-- massimale: cerca ATTIVAMENTE nelle TABELLE del DIP, nelle Schede Tecniche, nei "Limiti di indennizzo", nelle "Somme assicurate", nelle "Condizioni specifiche" — riporta il valore ESATTO trovato
-- franchigia: cerca nelle tabelle "Franchigie", "Scoperti", "Limitazioni" — riporta il valore ESATTO
+- massimale: cerca ATTIVAMENTE i valori Euro nelle TABELLE del DIP, nelle Schede Tecniche, nei "Limiti di indennizzo", nelle "Somme assicurate", nei "Capitali assicurati", nelle "Condizioni specifiche", nelle righe "Massimale per sinistro", "Limite per evento", "Indennizzo massimo" — riporta il valore ESATTO trovato (es: "500.000 €", "2.500.000 €")
+- TABELLE: le tabelle PDF si presentano spesso come righe di testo allineato — cerca pattern come "Garanzia | Massimale | Franchigia" o "Nome garanzia ... €XXX.XXX" e leggi i valori numerici corrispondenti a ogni garanzia
+- franchigia: cerca nelle tabelle "Franchigie", "Scoperti", "Limitazioni", "Soglie", "Minimale" — riporta il valore ESATTO
 - presente: true se la garanzia è inclusa nel pacchetto base; false altrimenti
 - opzionale: true se è un supplemento acquistabile a pagamento; false se è completamente assente dal prodotto
 - Includi TUTTE le garanzie menzionate nel testo, anche quelle opzionali
-- PRODOTTI MODULARI: se il prodotto è composto da moduli (es. Modulo Casa, Modulo Salute, Modulo Armonia), estrai le garanzie di OGNI modulo — trattale tutte come parte dello stesso prodotto
-- punti_di_forza: 3 vantaggi concreti e specifici, NON generici
+- PRODOTTI MODULARI: se il prodotto è composto da moduli (es. Modulo Casa, Modulo Salute, Modulo Armonia, Modulo Persona), estrai le garanzie di OGNI modulo con i loro massimali specifici — trattale tutte come parte dello stesso prodotto
+- punti_di_forza: 3 vantaggi concreti e specifici con valori numerici dove disponibili, NON generici
 - esclusioni: massimo 6, solo le più rilevanti per un cliente medio
 - Se il testo è parziale (brochure, DIP, set informativo), estrai comunque tutto il possibile"""
 
@@ -360,30 +361,38 @@ GARANZIE GIÀ ESTRATTE (JSON attuale):
 GARANZIE CON MASSIMALE MANCANTE (massimale_num = 0):
 {json.dumps(garanzie_mancanti, ensure_ascii=False)}
 
-TESTO ORIGINALE DELLA POLIZZA (sezioni più dense):
+TESTO ORIGINALE DELLA POLIZZA (sezioni più dense con massimali e tabelle):
 <testo_polizza>
 {dense_text}
 </testo_polizza>
 
-COMPITO:
-1. Per ogni garanzia con massimale mancante, cerca nel testo: tabelle dei limiti, DIP, schede tecniche, "somme assicurate", "massimali", "limiti di indennizzo"
-2. Per ogni garanzia con franchigia null, cerca: tabelle franchigie, "scoperto", "limite minimo"
-3. Aggiorna SOLO i campi che trovi nel testo — non inventare valori
+COMPITO — RICERCA PRECISA:
+1. Per ogni garanzia con massimale mancante, cerca ATTIVAMENTE nel testo:
+   - Tabelle DIP con colonne "Garanzia | Massimale | Franchigia"
+   - Righe con pattern: "[nome garanzia] ... [€ XXX.XXX]" o "[€ XXX.XXX] ... [nome garanzia]"
+   - Sezioni: "Limiti di indennizzo", "Somme assicurate", "Capitali assicurati", "Massimali"
+   - Schede tecniche per modulo (es: Modulo Casa, Modulo Salute, Modulo Persona)
+   - Condizioni specifiche e particolari condizioni
+   - Valori come: "fino a €", "massimo €", "non oltre €", "pari a €"
+2. Per ogni garanzia con franchigia null, cerca: "Franchigia:", "Scoperto:", "Limite minimo:", percentuali dopo il nome garanzia
+3. Aggiorna SOLO i campi che trovi ESPLICITAMENTE nel testo — NON inventare o stimare valori
 4. Restituisci l'array COMPLETO delle garanzie aggiornato (incluse quelle già corrette)
+5. Se una garanzia ha massimale "illimitato" o "nessun massimale", usa massimale="Illimitato" e massimale_num=0
 
 Restituisci SOLO un JSON valido con questa struttura:
 {{
   "garanzie": [ ... array completo aggiornato ... ],
   "premio": "importo trovato oppure null",
-  "punti_di_forza": [ ... aggiornati se trovi info migliori ... ],
+  "punti_di_forza": [ ... aggiornati con valori numerici concreti se disponibili ... ],
   "esclusioni": [ ... aggiornate se trovi info migliori ... ]
 }}
 
 Regole:
-- massimale: riporta il valore ESATTO dal testo (es: "500.000 €", "2.500.000 €")
-- massimale_num: numero puro corrispondente (es: 500000, 2500000)
-- Se un valore non è nel testo, lascia null/0 — NON inventare
-- Mantieni tutti gli altri campi invariati se non hai informazioni migliori"""
+- massimale: riporta il valore ESATTO dal testo (es: "500.000 €", "2.500.000 €", "50% del capitale")
+- massimale_num: numero puro corrispondente (es: 500000, 2500000) — usa il numero intero senza simboli
+- Se un valore non è nel testo, lascia null/0 — MAI inventare
+- Mantieni tutti gli altri campi invariati se non hai informazioni migliori
+- punti_di_forza: aggiorna con valori concreti se li trovi (es: "Massimale RC fino a 2.500.000 €")"""
 
 
 async def _extract_single_chunk(text_chunk: str, filename: str, chunk_info: str = "") -> dict:
@@ -435,6 +444,29 @@ def _merge_extractions(results: list) -> dict:
                     if sum(1 for v in g.values() if v not in (None, 0, "")) > \
                        sum(1 for v in existing.values() if v not in (None, 0, "")):
                         all_garanzie[nome] = g
+
+    # Secondo passaggio: per ogni garanzia nel merged, arricchisci con dati
+    # complementari da altri chunk (franchigia, note, scoperto) anche quando il
+    # massimale coincide — non perdiamo informazioni preziose dai chunk successivi.
+    all_garanzie_by_chunk: dict[str, list] = {}
+    for r in results:
+        for g in r.get("garanzie", []):
+            nome = (g.get("nome") or "").strip()
+            if not nome:
+                continue
+            all_garanzie_by_chunk.setdefault(nome, []).append(g)
+
+    for nome, best_g in all_garanzie.items():
+        for g in all_garanzie_by_chunk.get(nome, []):
+            if g is best_g:
+                continue
+            # Integra franchigia/scoperto/note se nel best sono null
+            if g.get("franchigia") and not best_g.get("franchigia"):
+                best_g["franchigia"] = g["franchigia"]
+            if g.get("scoperto") and not best_g.get("scoperto"):
+                best_g["scoperto"] = g["scoperto"]
+            if g.get("note") and (not best_g.get("note") or best_g["note"] in (None, "null", "")):
+                best_g["note"] = g["note"]
 
     merged["garanzie"] = list(all_garanzie.values())
 
@@ -583,6 +615,69 @@ async def _extract_all_chunks(chunks: list[tuple[str, str]], filename: str, batc
     return all_results
 
 
+def _extract_dense_sections(text: str, max_chars: int = 150_000) -> str:
+    """
+    Trova le sezioni del documento più ricche di dati numerici (massimali, tabelle, franchigie).
+    Per ogni paragrafo calcola uno score basato su keyword assicurative e valori Euro.
+    Restituisce le sezioni più dense fino a max_chars, mantenendo l'ordine originale.
+    Questo permette a Opus di vedere le tabelle massimali anche in doc da 2M chars.
+    """
+    KEYWORDS_HIGH = [
+        'massimale', 'massimali', 'somma assicurata', 'somme assicurate',
+        'limite di indennizzo', 'limite massimo', 'indennizzo massimo',
+        'capitale assicurato', 'capitali assicurati', 'limite per sinistro',
+        'limite per evento', 'DIP', 'documento informativo precontrattuale',
+    ]
+    KEYWORDS_MED = [
+        'franchigia', 'scoperto', 'limite minimo', 'soglia', 'scoperti',
+        'condizioni specifiche', 'scheda tecnica', 'tabella', 'prospetto',
+    ]
+
+    # Pattern per valori monetari italiani: 500.000 € o € 1.000 o 2.500.000,00
+    MONEY_PATTERN = re.compile(r'(?:€\s*[\d\.]+|[\d\.]{4,}(?:,\d{2})?\s*€|\d+\.\d{3})')
+
+    paragraphs = re.split(r'\n{2,}', text)
+    scored: list[tuple[int, int, str]] = []  # (score, original_index, text)
+
+    for idx, para in enumerate(paragraphs):
+        if len(para.strip()) < 20:
+            continue
+        para_lower = para.lower()
+        score = 0
+        for kw in KEYWORDS_HIGH:
+            score += para_lower.count(kw.lower()) * 3
+        for kw in KEYWORDS_MED:
+            score += para_lower.count(kw.lower()) * 2
+        score += len(MONEY_PATTERN.findall(para)) * 2  # ogni valore Euro +2 punti
+        if score > 0:
+            scored.append((score, idx, para))
+
+    # Ordina per score decrescente
+    scored.sort(key=lambda x: -x[0])
+
+    # Raccoglie le sezioni migliori rispettando il budget di caratteri
+    selected: list[tuple[int, str]] = []
+    total = 0
+    # Includi sempre i primi 30k chars (DIP e intestazione sempre all'inizio)
+    header = text[:30_000]
+    total += len(header)
+
+    for score, orig_idx, para in scored:
+        if total >= max_chars:
+            break
+        remaining = max_chars - total
+        if len(para) > remaining:
+            para = para[:remaining]
+        selected.append((orig_idx, para))
+        total += len(para)
+
+    # Riordina per posizione originale nel documento e unisci
+    selected.sort(key=lambda x: x[0])
+    body = '\n\n'.join(s for _, s in selected)
+
+    return header + "\n\n[... sezioni dense estratte ...]\n\n" + body
+
+
 async def _refine_with_opus(merged: dict, text: str, filename: str) -> dict:
     """
     Pass finale con Opus: arricchisce massimali e franchigie mancanti
@@ -594,9 +689,11 @@ async def _refine_with_opus(merged: dict, text: str, filename: str) -> dict:
         logger.info(f"[refine] '{filename}' — tutti i massimali già presenti, skip Opus")
         return merged
 
-    # Usa i primi 120k chars (DIP e indice garanzie) + campione dal centro del doc
-    mid = len(text) // 2
-    dense_text = text[:120_000] + "\n\n[...]\n\n" + text[mid:mid + 60_000]
+    # Estrai le sezioni più dense di dati (massimali, tabelle, valori Euro)
+    # da tutto il documento — questo garantisce di trovare anche tabelle in doc da 2M chars
+    logger.info(f"[refine] '{filename}' — estrazione sezioni dense (doc: {len(text)} chars, missing: {len(missing)})")
+    dense_text = _extract_dense_sections(text, max_chars=150_000)
+    logger.info(f"[refine] '{filename}' — sezioni dense estratte: {len(dense_text)} chars")
 
     prompt = _build_refinement_prompt(merged, dense_text, filename)
     try:
