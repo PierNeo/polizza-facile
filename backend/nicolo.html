@@ -1788,7 +1788,15 @@ async function startComparison() {
  const extracted = [...libPolicies];
  for(let i=0;i<newFiles.length;i++){
  steps[i].status='active'; renderSteps(steps);
+ const isLarge = (newFiles[i].text||'').length > 1_000_000;
+ if (isLarge) {
+  document.getElementById('loadingSubtitle').textContent =
+   '📄 Documento molto grande rilevato — lettura completa in corso, potrebbero volerci fino a 60 secondi...';
+ }
  const data=await callExtract(newFiles[i].text,newFiles[i].name);
+ if (isLarge) {
+  document.getElementById('loadingSubtitle').textContent = "L'AI sta leggendo e confrontando le polizze...";
+ }
  newFiles[i].extracted=data; extracted.push(data);
  steps[i].status='done'; renderSteps(steps);
  }

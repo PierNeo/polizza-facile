@@ -335,9 +335,10 @@ Regole CRITICHE:
 - presente: true se la garanzia è inclusa nel pacchetto base; false altrimenti
 - opzionale: true se è un supplemento acquistabile a pagamento; false se è completamente assente dal prodotto
 - Includi TUTTE le garanzie menzionate nel testo, anche quelle opzionali
+- PRODOTTI MODULARI: se il prodotto è composto da moduli (es. Modulo Casa, Modulo Salute, Modulo Armonia), estrai le garanzie di OGNI modulo — trattale tutte come parte dello stesso prodotto
 - punti_di_forza: 3 vantaggi concreti e specifici, NON generici
 - esclusioni: massimo 6, solo le più rilevanti per un cliente medio
-- Se il testo è parziale (brochure, DIP), estrai comunque tutto il possibile"""
+- Se il testo è parziale (brochure, DIP, set informativo), estrai comunque tutto il possibile"""
 
 
 async def _extract_single_chunk(text_chunk: str, filename: str, chunk_info: str = "") -> dict:
@@ -501,45 +502,70 @@ async def serve_nicolo():
         })
 
 
+def _build_sequential_chunks(text: str, chunk_size: int, overlap: int) -> list[tuple[str, str]]:
+    """
+    Divide il testo in chunk sequenziali sovrapposti che coprono TUTTO il documento.
+    Nessun limite al numero di chunk — legge ogni parte del testo.
+    Restituisce lista di (testo_chunk, descrizione).
+    """
+    total_len = len(text)
+    chunks = []
+    start = 0
+    while start < total_len:
+        end = min(start + chunk_size, total_len)
+        chunks.append(text[start:end])
+        if end == total_len:
+            break
+        start += chunk_size - overlap
+
+    total = len(chunks)
+    return [(chunks[i], f"parte {i+1} di {total}") for i in range(total)]
+
+
+async def _extract_all_chunks(chunks: list[tuple[str, str]], filename: str, batch_size: int = 8) -> list:
+    """
+    Estrae dati da tutti i chunk in batch paralleli per evitare di
+    sovraccaricare l'API su documenti molto grandi.
+    """
+    all_results = []
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i:i + batch_size]
+        batch_results = await asyncio.gather(*[
+            _extract_single_chunk(chunk_text, filename, chunk_info)
+            for chunk_text, chunk_info in batch
+        ])
+        all_results.extend(batch_results)
+    return all_results
+
+
 @app.post("/api/extract")
 async def extract_policy(req: ExtractRequest):
     """
     Estrae struttura garanzie/franchigie/scoperti da testo di polizza.
-    Per documenti lunghi (>50.000 caratteri) divide in chunk sovrapposti
-    ed estrae in parallelo, poi unisce i risultati.
+    Legge TUTTO il documento senza limiti di dimensione:
+    - Documenti brevi (≤60k): singola estrazione
+    - Documenti lunghi: chunk sequenziali sovrapposti che coprono ogni parte,
+      processati in batch paralleli da 8 per gestire anche set informativi enormi.
     """
     text = req.text.strip() if req.text else ""
     if len(text) < 100:
         raise HTTPException(400, "Testo polizza troppo breve o vuoto")
 
-    CHUNK_SIZE = 50_000   # caratteri per chunk
-    OVERLAP    =  3_000   # sovrapposizione tra chunk consecutivi
-    MAX_CHUNKS =      3   # massimo 3 chunk → copertura fino a ~144.000 caratteri
+    CHUNK_SIZE = 60_000  # caratteri per chunk
+    OVERLAP    =  3_000  # sovrapposizione tra chunk consecutivi
+    BATCH_SIZE =      8  # chunk processati in parallelo per batch
 
     try:
         if len(text) <= CHUNK_SIZE:
             # Documento breve: singola estrazione
             result = await _extract_single_chunk(text, req.filename)
         else:
-            # Documento lungo: chunking con overlap, estrazione parallela
-            chunks = []
-            start = 0
-            while start < len(text) and len(chunks) < MAX_CHUNKS:
-                end = min(start + CHUNK_SIZE, len(text))
-                chunks.append(text[start:end])
-                if end == len(text):
-                    break
-                start += CHUNK_SIZE - OVERLAP
-
+            chunks = _build_sequential_chunks(text, CHUNK_SIZE, OVERLAP)
             total = len(chunks)
-            logger.info(f"[extract] '{req.filename}' → {total} chunk(s), {len(text)} chars totali")
+            logger.info(f"[extract] '{req.filename}' → {total} chunk(s) su {len(text)} chars — lettura completa")
 
-            chunk_infos = [f"parte {i+1} di {total}" for i in range(total)]
-            results = await asyncio.gather(*[
-                _extract_single_chunk(chunks[i], req.filename, chunk_infos[i])
-                for i in range(total)
-            ])
-            result = _merge_extractions(list(results))
+            results = await _extract_all_chunks(chunks, req.filename, BATCH_SIZE)
+            result = _merge_extractions(results)
 
         return result
 
