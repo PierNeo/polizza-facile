@@ -630,7 +630,7 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 
 <!-- SIDEBAR -->
 <nav class="sidebar" id="sidebar">
- <div class="sidebar-brand">
+ <div class="sidebar-brand" onclick="navTo('pagDashboard')" style="cursor:pointer">
  <img class="sidebar-logo-img"
  src="https://www.polobassano.it/wp-content/uploads/2023/04/Polo_-Assicurativo_Bassano_logo_white.png"
  onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"
@@ -653,17 +653,9 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  <span class="nav-badge" id="badgeLibreria">0</span>
  </div>
 
- <div class="nav-section-label" style="margin-top:8px">Azioni</div>
- <div class="nav-item" onclick="startQuestionnaire()">
- <span class="nav-icon"></span> Nuovo questionario
- </div>
- <div class="nav-item" onclick="startDirectComparison()">
- <span class="nav-icon"></span> Confronto rapido
- </div>
-
- <div class="nav-section-label" style="margin-top:8px">AI</div>
- <div class="nav-item" id="nav-match" onclick="navTo('pagMatch')">
- <span class="nav-icon"></span> Match AI
+ <div class="nav-section-label" style="margin-top:8px">Strumenti</div>
+ <div class="nav-item" id="nav-comparatore" onclick="startDirectComparison()">
+ <span class="nav-icon"></span> Comparatore polizze
  </div>
 
  <div class="nav-section-label" style="margin-top:8px">Configura</div>
@@ -1310,7 +1302,7 @@ const ALL_PAGES = ['pagDashboard','pagClienti','pagClienteDetail','pagLibreria',
 
 function navTo(id) {
  ALL_PAGES.forEach(p => document.getElementById(p).style.display = p===id ? 'block' : 'none');
- const navMap = { pagDashboard:'nav-dashboard', pagClienti:'nav-clienti', pagLibreria:'nav-libreria' };
+ const navMap = { pagDashboard:'nav-dashboard', pagClienti:'nav-clienti', pagLibreria:'nav-libreria', pagUpload:'nav-comparatore' };
  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
  if (navMap[id]) document.getElementById(navMap[id])?.classList.add('active');
  window.scrollTo(0,0);
@@ -1319,10 +1311,6 @@ function navTo(id) {
  if (id === 'pagClienti') renderClientList();
  if (id === 'pagLibreria') renderLibreria();
  if (id === 'pagImpostazioni') renderImpostazioni();
- if (id === 'pagMatch') renderMatchPage();
- // highlight nav
- const navMap2 = { pagMatch:'nav-match' };
- if (navMap2[id]) document.getElementById(navMap2[id])?.classList.add('active');
 }
 
 function toggleSidebar() {
@@ -1475,10 +1463,14 @@ function openClient(id) {
  <div class="detail-avatar">${initials}</div>
  <div><div class="detail-name">${esc(client.nome)}</div><div class="detail-meta">Profilato il ${date}</div></div>`;
 
+ const hasRecs = !!(client.raccomandazioni?.raccomandazioni?.length);
  document.getElementById('detailActions').innerHTML = `
- <button class="btn btn-ghost btn-sm" onclick="loadAndEditClient('${id}')"> Modifica profilo</button>
- <button class="btn btn-sm" style="background:var(--gold);color:#fff" onclick="exportSavedClientPDF('${id}')"> Esporta PDF</button>
- <button class="btn btn-primary btn-sm" onclick="startDirectComparison()"> Confronta polizze</button>
+ <button class="btn btn-ghost btn-sm" onclick="loadAndEditClient('${id}')"> Modifica</button>
+ ${hasRecs ? `<button class="btn btn-sm" style="background:var(--gold);color:#fff" onclick="exportSavedClientPDF('${id}')"> PDF</button>` : ''}
+ <button id="btnGeneraRecs" class="btn btn-sm" style="background:var(--purple);color:#fff" onclick="generateRecsForClient('${id}')">
+  ${hasRecs ? ' Rigenera AI' : ' Genera raccomandazioni AI'}
+ </button>
+ ${hasRecs ? `<button class="btn btn-primary btn-sm" onclick="startDirectComparison(true)"> Confronta polizze</button>` : ''}
  <button class="btn btn-danger btn-sm" onclick="confirmDeleteClient('${id}','${esc(client.nome)}');navTo('pagClienti')"></button>`;
 
  // Re-use recommendation rendering
@@ -1577,7 +1569,12 @@ function startQuestionnaire() {
  navTo('pagQuestionario');
 }
 
-function startDirectComparison() {
+function startDirectComparison(withClient) {
+ // Se chiamato dalla sidebar (senza cliente), pulisce il contesto cliente
+ if (!withClient) {
+ clientAnswers = {};
+ currentClientId = null;
+ }
  const nome = clientAnswers['nome'];
  const ctx = document.getElementById('uploadContext');
  if (nome) {
@@ -1644,7 +1641,7 @@ function renderSection(idx) {
   document.getElementById('progressFill').style.width = `${(idx/total)*100}%`;
   document.getElementById('btnBack').style.visibility = idx===0 ? 'hidden' : 'visible';
   const isLast = idx === total-1;
-  document.getElementById('btnNext').textContent = isLast ? 'Genera raccomandazioni ' : 'Continua →';
+  document.getElementById('btnNext').textContent = isLast ? 'Salva profilo →' : 'Continua →';
   const container = document.getElementById('questionsContainer');
   container.innerHTML = sez.domande.map(q => renderQuestion(q)).join('');
   sez.domande.forEach(q => restoreAnswer(q));
@@ -1701,28 +1698,74 @@ function prevSection() { if(currentSectionIdx>0){currentSectionIdx--;renderSecti
 async function nextSection() { if(!validateSection()) return; const total=QUESTIONNAIRE_CONFIG.sezioni.length; if(currentSectionIdx<total-1){currentSectionIdx++;renderSection(currentSectionIdx);}else{await submitQuestionnaire();} }
 
 // 
-// SUBMIT QUESTIONNAIRE → RECOMMENDATIONS
-// 
-async function submitQuestionnaire() {
- const risposte = buildProfilePayload();
- navTo('pagLoading');
- document.getElementById('loadingTitle').textContent = 'Analisi del profilo';
- document.getElementById('loadingSubtitle').textContent = "L'AI sta elaborando le raccomandazioni personalizzate...";
- document.getElementById('progressSteps').innerHTML = `<li class="active"><span class="step-dot"></span>→ Elaborazione profilo cliente</li><li><span class="step-dot"></span>Generazione raccomandazioni</li>`;
- try {
- const res = await fetch(`${BACKEND}/api/raccomanda`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({risposte,agenzia:'polo-bassano'})});
- if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.detail||`Errore server (${res.status})`);}
- clientRecs = await res.json();
- currentClientId = saveClient(clientAnswers, clientRecs);
+// SUBMIT QUESTIONNAIRE → SALVA PROFILO (senza AI — le raccomandazioni si generano dal profilo)
+//
+function submitQuestionnaire() {
+ if (!validateSection(currentSectionIdx)) return;
+ currentClientId = saveClient(clientAnswers, null);
  openClient(currentClientId);
- toast(' Profilo salvato! Seleziona "Confronta polizze" quando sei pronto.');
- } catch(e) { renderSection(currentSectionIdx); navTo('pagQuestionario'); toast('Errore: '+(e.message||'Riprova'),5000); }
+ toast(' Profilo salvato!');
+}
+
+// Genera raccomandazioni AI per un cliente salvato (chiamata on-demand dal profilo)
+async function generateRecsForClient(clientId) {
+ const client = getClients().find(c => c.id === clientId);
+ if (!client) return;
+ const risposte = buildProfilePayloadFromAnswers(client.answers);
+ // Mostra spinner nel dettaglio
+ const btn = document.getElementById('btnGeneraRecs');
+ if (btn) { btn.disabled = true; btn.textContent = 'Generazione in corso...'; }
+ try {
+  const res = await fetch(`${BACKEND}/api/raccomanda`, {
+   method:'POST', headers:{'Content-Type':'application/json'},
+   body: JSON.stringify({risposte, agenzia:'polo-bassano'})
+  });
+  if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.detail||`Errore (${res.status})`); }
+  const recs = await res.json();
+  // Salva le raccomandazioni nel cliente
+  const clients = getClients();
+  const idx = clients.findIndex(c => c.id === clientId);
+  if (idx >= 0) { clients[idx].raccomandazioni = recs; saveClients(clients); }
+  clientRecs = recs;
+  // Riapri il profilo con le raccomandazioni aggiornate
+  openClient(clientId);
+  toast(' Raccomandazioni generate!');
+ } catch(e) {
+  toast('Errore: ' + (e.message||'Riprova'), 5000);
+  if (btn) { btn.disabled = false; btn.textContent = ' Genera raccomandazioni AI'; }
+ }
+}
+
+function buildProfilePayloadFromAnswers(answers) {
+ const out = {};
+ QUESTIONNAIRE_CONFIG.sezioni.forEach(sez => {
+  sez.domande.forEach(q => {
+   const val = answers?.[q.id];
+   if (!val || (Array.isArray(val) && val.length===0)) return;
+   out[`[${sez.titolo}] ${q.label}`] = Array.isArray(val) ? val.join(', ') : val;
+  });
+ });
+ return out;
 }
 
 function buildProfilePayload() {
- const out = {};
- QUESTIONNAIRE_CONFIG.sezioni.forEach(sez => { sez.domande.forEach(q => { const val=clientAnswers[q.id]; if(!val||(Array.isArray(val)&&val.length===0)) return; out[`[${sez.titolo}] ${q.label}`]=Array.isArray(val)?val.join(', '):val; }); });
- return out;
+ return buildProfilePayloadFromAnswers(clientAnswers);
+}
+
+function validateSection(idx) {
+ // Controlla che i campi obbligatori dell'ultima sezione siano compilati
+ const sezioni = QUESTIONNAIRE_CONFIG.sezioni;
+ const sez = sezioni[idx];
+ if (!sez) return true;
+ for (const q of sez.domande) {
+  if (q.obbligatoria === false) continue;
+  const val = clientAnswers[q.id];
+  if (!val || (Array.isArray(val) && val.length === 0) || val === '') {
+   toast(`Compila il campo "${q.label}" prima di continuare`, 3000);
+   return false;
+  }
+ }
+ return true;
 }
 
 // 
