@@ -1943,6 +1943,13 @@ function buildTable(policies,cols) {
  categoryOrder.forEach(cat=>{ byCategory[cat]=[]; });
  Object.entries(nameToCategory).forEach(([nome,cat])=>{ byCategory[cat].push(nome); });
 
+ // Pre-calcola le categorie coperte da ogni polizza
+ const policyCoveredCats = policies.map(p => {
+  const cats = new Set();
+  (p.garanzie||[]).forEach(g => { if(g.presente||g.opzionale) cats.add((g.categoria||'').trim()); });
+  return cats;
+ });
+
  let html='<thead><tr><th style="text-align:left">Garanzia</th>';
  policies.forEach((p,i)=>html+=`<th style="border-top:3px solid ${cols[i]}"><span class="th-company">${esc(p.compagnia||'')}</span><span class="th-product">${esc(p.prodotto||'')}</span></th>`);
  html+='</tr></thead><tbody>';
@@ -1958,6 +1965,9 @@ function buildTable(policies,cols) {
      if(g&&g.opzionale){
       const optNote=g.note?`<span style="font-size:10px;color:var(--gray-500);margin-top:3px;line-height:1.4;text-align:center">${esc(g.note)}</span>`:'';
       html+=`<td class="cell c-optional"><div class="cell-inner"><span class="comp-optional-tag">+ Opzionale</span>${optNote}</div></td>`;
+     } else if(!policyCoveredCats[i].has(cat)){
+      const tipoLabel = (policies[i].tipo||'').split('/')[0].trim() || 'questo prodotto';
+      html+=`<td class="cell c-absent" title="Garanzia non prevista da polizze di tipo ${esc(tipoLabel)}"><div class="cell-inner"><span class="absent-x" style="font-size:11px;color:var(--gray-200)">—</span><span style="font-size:9px;color:var(--gray-300);margin-top:1px">Polizza ${esc(tipoLabel)}</span></div></td>`;
      } else {
       html+=`<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;
      }
