@@ -344,7 +344,7 @@ Regole CRITICHE:
 - punti_di_forza: 3 vantaggi concreti e specifici con valori numerici dove disponibili, NON generici
 - esclusioni: massimo 6, solo le più rilevanti per un cliente medio
 - Se il testo è parziale (brochure, DIP, set informativo), estrai comunque tutto il possibile
-- VIETATO scrivere "verificare tabella riepilogativa" o "verificare scheda di polizza" nel campo note — estrai i valori concreti se sono nel testo. Usa "verificare scheda di polizza" SOLO per somme assicurate personalizzate dal cliente. I limiti fissi come €250/evento assistenza, massimale RC €5.000.000, sublimiti furto (gioielli max €15.000, valori max €2.500) sono nelle CG e vanno estratti."""
+- REGOLA ASSOLUTA SUL CAMPO NOTE: è VIETATO scrivere qualsiasi frase del tipo "verificare ...", "da verificare ...", "non dettagliato nel testo", "vedere scheda di polizza", "vedere condizioni di assicurazione" — queste frasi sono inutili per l'utente. Se trovi il valore nel testo, scrivilo. Se NON lo trovi, lascia note=null. L'unica eccezione: per la Somma Assicurata (importo scelto dal cliente) scrivi massimale="Somma assicurata" e non mettere nulla nel note. I valori FISSI come €250/evento assistenza, massimale RC €5.000.000, sublimiti furto (gioielli max €15.000, valori max €2.500) SONO nelle CG — estraili e scrivili esplicitamente."""
 
 
 def _build_refinement_prompt(merged: dict, dense_text: str, filename: str) -> str:
@@ -436,7 +436,7 @@ Regole:
 - Se un valore non è nel testo, lascia null/0 — MAI inventare
 - Mantieni tutti gli altri campi invariati se non hai informazioni migliori
 - punti_di_forza: aggiorna con valori concreti (es: "RC con massimale fino a €5.000.000", "Assistenza €250/intervento h24")
-- VIETATO scrivere "verificare tabella riepilogativa" o "verificare scheda di polizza" nel campo note — se i valori sono nel testo che stai analizzando, estraili e scrivili. Usa "verificare scheda di polizza" SOLO per valori personalizzati dal cliente (es: importo SA scelto dal contraente). I sublimiti fissi come €250/intervento, massimale RC €5.000.000, gioielli max €15.000 sono nelle condizioni generali — DEVONO essere estratti se presenti nel testo."""
+- REGOLA ASSOLUTA SUL CAMPO NOTE: è VIETATO scrivere qualsiasi frase del tipo "verificare ...", "da verificare ...", "non dettagliato nel testo", "vedere scheda di polizza", "vedere condizioni di assicurazione" — queste frasi sono inutili per l'utente. Se trovi il valore nel testo, scrivilo. Se NON lo trovi, lascia note=null. I valori FISSI come €250/intervento assistenza, massimale RC €5.000.000, gioielli max €15.000 SONO nel testo originale — DEVONO essere estratti e scritti. Per la Somma Assicurata (sola eccezione) usa massimale="Somma assicurata" e note=null."""
 
 
 async def _extract_single_chunk(text_chunk: str, filename: str, chunk_info: str = "") -> dict:
