@@ -395,7 +395,9 @@ TESTO ORIGINALE DELLA POLIZZA (sezioni più dense con massimali e tabelle):
 {dense_text}
 </testo_polizza>
 
-COMPITO — RICERCA PRECISA IN 3 AREE:
+COMPITO — RICERCA PRECISA IN 4 AREE:
+
+NOTA TECNICA: il testo sotto è estratto da PDF italiano. Le tabelle possono essere "garbled" (colonne unite in righe), es: "Garanzia Massimale Franchigia Responsabilità Civile 5.000.000 € nessuna" tutto su una riga. Leggi i valori numerici nel loro contesto: il numero Euro dopo il nome della garanzia è il suo massimale.
 
 **AREA 1 — MASSIMALI FISSI:**
 Cerca per ogni garanzia con massimale mancante:
@@ -404,7 +406,8 @@ Cerca per ogni garanzia con massimale mancante:
    - Sezioni: "Limiti di indennizzo", "Somme assicurate", "Capitali assicurati", "Massimali"
    - Schede tecniche per modulo (es: Modulo Casa, Modulo Salute, Modulo Persona)
    - Valori come: "fino a €", "massimo €", "non oltre €", "pari a €"
-   - Massimale RC: cerca "limite massimo di risarcimento", "massimale per sinistro" (es: €5.000.000)
+   - MASSIMALE RC (CRITICO): cerca "limite massimo di risarcimento", "massimale per sinistro", "massimale di garanzia", "per sinistro €" nella sezione "Responsabilità Civile". Valore tipico per polizze casa: €5.000.000. Scrivi massimale="5.000.000 €" e massimale_num=5000000. NON lasciare RC con massimale=null se hai trovato un valore Euro vicino a "Responsabilità Civile" nel testo.
+   - MASSIMALE TUTELA LEGALE: cerca "massimale tutela legale", "limite massimo spese legali", "fino a €" nella sezione "Tutela Legale". Scrivi massimale e massimale_num corrispondenti.
 
 **AREA 2 — SUBLIMITI PERCENTUALI (importantissimo per polizze casa):**
 Per le garanzie Furto, Incendio, RC, Assistenza cerca SPECIFICAMENTE:
@@ -414,7 +417,7 @@ Per le garanzie Furto, Incendio, RC, Assistenza cerca SPECIFICAMENTE:
    - Pattern "fino ad un massimo di € ZZZ per evento" → scrivi "max €ZZZ/evento"
    - Sublimiti specifici per: preziosi, gioielli, valori, oggetti pregiati, dipendenze, lavoratori domestici,
      alloggio sostitutivo, spese demolizione/sgombero, rifacimento documenti, furto all'esterno
-   - Limiti assistenza: importo per ogni tipo di intervento (idraulico, elettricista, ecc.)
+   - ASSISTENZA CASA (CRITICO): cerca nella sezione "Assistenza Casa" o "Pronto Intervento" i limiti per tipo di servizio. Tipico: "fino a €250 per intervento" o "massimo €250 per evento". Scrivi nel campo note: "Sublimiti: Intervento tecnico max €250/evento | ..." . Se non trovi il valore esatto, cerca "€ 250", "euro 250", "duecentocinquanta euro" vicino a "intervento" o "assistenza".
    Metti tutti questi sublimiti nel campo "note" con formato: "Sublimiti: [voce] max [limite] | [voce] max [limite]"
 
 **AREA 3 — SCOPERTI CON MINIMO (casa E infortuni):**
@@ -426,19 +429,21 @@ FONDAMENTALE — cerca TUTTE le sezioni "TABELLA RIASSUNTIVA DI LIMITI, FRANCHIG
    - Terremoto: tipicamente "10% min. €10.000 per abitazione; 10% min. €3.000 per contenuto"
    - Alluvione/Allagamento: cerca minimi separati per abitazione e contenuto
    - Furto dipendenze: tipicamente "10% min. €250"
-   POLIZZE INFORTUNI:
-   - Pattern "Scoperto X% con il minimo di € YYY per spese" → scoperto="X% min. €YYY" sulla garanzia Rimborso spese mediche
-   - Tipicamente: Rimborso spese mediche → "20% min. €75"
-   - Se trovi uno scoperto su una garanzia infortuni, aggiorna il campo scoperto di quella garanzia
+   POLIZZE INFORTUNI — RIMBORSO SPESE MEDICHE (CRITICO):
+   - Cerca nella sezione "TABELLA RIASSUNTIVA" o nelle condizioni del "Rimborso spese mediche" la riga con "Scoperto" o "%"
+   - Pattern specifico: "Scoperto del 20% con il minimo di € 75" oppure "scoperto 20% min €75" → scrivi scoperto="20% min. €75" sulla garanzia "Rimborso spese mediche"
+   - Cerca anche: "20%", "€ 75", "euro 75" vicino a "spese mediche", "rimborso", "scoperto"
+   - Se trovi qualsiasi % di scoperto su una garanzia infortuni, aggiorna il campo scoperto di quella garanzia
    Aggiorna il campo "scoperto" con il valore COMPLETO includendo il minimo in €.
 
 **AREA 4 — FRANCHIGIE IN GIORNI (solo polizze infortuni):**
-Cerca nelle tabelle riassuntive franchigie espresse in giorni per le garanzie Diaria:
-   - Pattern "N giorni se la diaria scelta è pari o inferiore a euro X; N giorni se... superiore a euro X" → scrivi "N/N/N giorni (in base alla diaria scelta)"
-   - Pattern "franchigia di N giorni" → scrivi "N giorni"
-   - Tipicamente: Diaria inabilità temporanea → "5/10/15 giorni (in base alla diaria scelta)"
-   - Invalidità permanente: franchigia in percentuale (es: "Franchigia 65%" per rendita vitalizia/IP grave)
-   Aggiorna il campo "franchigia" delle garanzie Diaria con questo valore.
+CRITICO — cerca nelle sezioni "TABELLA RIASSUNTIVA", "Diaria per inabilità temporanea", "franchigie" franchigie espresse in giorni:
+   - Cerca la riga relativa a "Inabilità temporanea" o "Diaria" nella tabella riassuntiva
+   - Pattern: "5 giorni se la diaria scelta è pari o inferiore a euro 50; 10 giorni se... superiore a euro 50 e non superiore a euro 80; 15 giorni se superiore a euro 80" → scrivi franchigia="5/10/15 giorni (in base alla diaria scelta)"
+   - Pattern semplice: "franchigia di N giorni" → scrivi "N giorni"
+   - Pattern garbled: "5 giorni 10 giorni 15 giorni" vicino a "diaria" o "inabilità" → scrivi "5/10/15 giorni (in base alla diaria scelta)"
+   - Invalidità permanente grave / Rendita vitalizia: cerca "Franchigia 65%" o "65%" vicino a queste garanzie → scrivi franchigia="65%"
+   Aggiorna il campo "franchigia" delle garanzie Diaria/Inabilità con questo valore.
 
 Aggiorna SOLO i campi che trovi ESPLICITAMENTE nel testo — NON inventare o stimare valori.
 Restituisci l'array COMPLETO delle garanzie aggiornato (incluse quelle già corrette).
@@ -687,12 +692,13 @@ async def _extract_all_chunks(chunks: list[tuple[str, str]], filename: str, batc
     return all_results
 
 
-def _extract_dense_sections(text: str, max_chars: int = 150_000) -> str:
+def _extract_dense_sections(text: str, max_chars: int = 160_000) -> str:
     """
     Trova le sezioni del documento più ricche di dati numerici (massimali, tabelle, franchigie).
     Per ogni paragrafo calcola uno score basato su keyword assicurative e valori Euro.
+    Include un "context window" di 12 paragrafi dopo ogni sezione critica (RC, tabelle riassuntive)
+    per catturare le righe-dati che seguono le intestazioni di sezione.
     Restituisce le sezioni più dense fino a max_chars, mantenendo l'ordine originale.
-    Questo permette a Opus di vedere le tabelle massimali anche in doc da 2M chars.
     """
     KEYWORDS_HIGH = [
         'massimale', 'massimali', 'somma assicurata', 'somme assicurate',
@@ -707,20 +713,27 @@ def _extract_dense_sections(text: str, max_chars: int = 150_000) -> str:
         'condizioni specifiche', 'scheda tecnica', 'tabella', 'prospetto',
         'responsabilità civile', 'tutela legale', 'assistenza',
     ]
-    # Sezioni da includere sempre per garantire RC, tabelle riassuntive e assistenza
+    # Pattern force-include: intestazioni di sezioni critiche + righe specifiche di tabelle
     FORCE_INCLUDE_PATTERNS = [
         re.compile(r'responsabilit[àa]\s+civile', re.IGNORECASE),
         re.compile(r'tabella\s+riassuntiva', re.IGNORECASE),
         re.compile(r'limite\s+massimo\s+di\s+risarcimento', re.IGNORECASE),
         re.compile(r'limiti.*franchigie.*scoperti', re.IGNORECASE),
+        re.compile(r'scoperto.*minim', re.IGNORECASE),            # "Scoperto X% con il minimo di €YYY"
+        re.compile(r'franchigia.*giorni|giorni.*franchigia', re.IGNORECASE),  # franchigie in giorni
+        re.compile(r'rimborso\s+spese\s+medich', re.IGNORECASE),  # sezione rimborso spese
+        re.compile(r'tutela\s+legale', re.IGNORECASE),             # sezione tutela legale
+        re.compile(r'assistenza\s+casa|pronto\s+intervento', re.IGNORECASE),  # sezione assistenza
     ]
 
     # Pattern per valori monetari italiani: 500.000 € o € 1.000 o 2.500.000,00
     MONEY_PATTERN = re.compile(r'(?:€\s*[\d\.]+|[\d\.]{4,}(?:,\d{2})?\s*€|\d+\.\d{3})')
 
     paragraphs = re.split(r'\n{2,}', text)
-    scored: list[tuple[int, int, str]] = []  # (score, original_index, text)
+    # scores[idx] = (score, para_text)  — dict per O(1) lookup nel context window
+    scores: dict[int, tuple[int, str]] = {}
 
+    # Fase 1: scoring base per ogni paragrafo
     for idx, para in enumerate(paragraphs):
         if len(para.strip()) < 20:
             continue
@@ -731,16 +744,36 @@ def _extract_dense_sections(text: str, max_chars: int = 150_000) -> str:
         for kw in KEYWORDS_MED:
             score += para_lower.count(kw.lower()) * 2
         score += len(MONEY_PATTERN.findall(para)) * 2  # ogni valore Euro +2 punti
-        # Force-include sezioni critiche anche se poco dense (RC, tabelle riassuntive)
+        # Force-include sezioni critiche
         for pattern in FORCE_INCLUDE_PATTERNS:
             if pattern.search(para):
                 score += 50  # garantisce la selezione
                 break
         if score > 0:
-            scored.append((score, idx, para))
+            scores[idx] = (score, para)
+
+    # Fase 2: context window attorno ai force-include (score≥50)
+    # Le intestazioni di sezione (RC, TABELLA RIASSUNTIVA) si trovano in un paragrafo,
+    # ma i valori reali (€5.000.000, scoperto 20% min €75, franchigia 5/10/15 giorni)
+    # sono nei paragrafi SUCCESSIVI. Boostiamo i prossimi 12 paragrafi con score decrescente.
+    force_include_indices = [idx for idx, (s, _) in scores.items() if s >= 50]
+    for fi_idx in force_include_indices:
+        for j in range(1, 13):  # prossimi 12 paragrafi come contesto
+            ctx_idx = fi_idx + j
+            if ctx_idx >= len(paragraphs):
+                break
+            para = paragraphs[ctx_idx]
+            if len(para.strip()) < 10:
+                continue
+            ctx_boost = max(5, 42 - j * 4)  # 38, 34, 30, 26, 22, 18, 14, 10, 6, 5, 5, 5
+            if ctx_idx in scores:
+                old_s, old_p = scores[ctx_idx]
+                scores[ctx_idx] = (old_s + ctx_boost, old_p)
+            else:
+                scores[ctx_idx] = (ctx_boost, para)
 
     # Ordina per score decrescente
-    scored.sort(key=lambda x: -x[0])
+    scored_list = sorted(scores.items(), key=lambda x: -x[1][0])
 
     # Raccoglie le sezioni migliori rispettando il budget di caratteri
     selected: list[tuple[int, str]] = []
@@ -749,7 +782,7 @@ def _extract_dense_sections(text: str, max_chars: int = 150_000) -> str:
     header = text[:30_000]
     total += len(header)
 
-    for score, orig_idx, para in scored:
+    for orig_idx, (score, para) in scored_list:
         if total >= max_chars:
             break
         remaining = max_chars - total
@@ -760,7 +793,7 @@ def _extract_dense_sections(text: str, max_chars: int = 150_000) -> str:
 
     # Riordina per posizione originale nel documento e unisci
     selected.sort(key=lambda x: x[0])
-    body = '\n\n'.join(s for _, s in selected)
+    body = '\n\n'.join(p for _, p in selected)
 
     return header + "\n\n[... sezioni dense estratte ...]\n\n" + body
 
