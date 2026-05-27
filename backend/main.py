@@ -334,10 +334,11 @@ Regole CRITICHE:
 - massimale_num: valore numerico puro (es: 500000), 0 se non trovato o non applicabile
 - massimale: cerca ATTIVAMENTE i valori Euro nelle TABELLE del DIP, nelle Schede Tecniche, nei "Limiti di indennizzo", nelle "Somme assicurate", nei "Capitali assicurati", nelle "Condizioni specifiche", nelle righe "Massimale per sinistro", "Limite per evento", "Indennizzo massimo" — riporta il valore ESATTO trovato (es: "500.000 €", "2.500.000 €")
 - POLIZZE CASA / MULTIRISCHIO: Per queste polizze il massimale principale (Incendio, Furto) è la "Somma Assicurata" (SA), un valore scelto dal cliente non presente nel testo. In questo caso usa massimale="Somma assicurata" e massimale_num=0. PERÒ estrai OBBLIGATORIAMENTE nel campo note tutti i sublimiti trovati con formato "Sublimiti: X | Y | Z": es. gioielli, valori, preziosi, dipendenze, lavoratori domestici, alloggio sostitutivo, spese demolizione, etc.
-- ECCEZIONE CRITICA: RC (Responsabilità Civile) e Tutela Legale NON usano "Somma assicurata" — hanno massimali FISSI nel testo (es: RC tipicamente €5.000.000/sinistro). Estraili sempre. Idem per Assistenza: ha limiti fissi per tipo di intervento (es: €250/evento) da mettere nel campo note come "Sublimiti: ...".
+- ECCEZIONE CRITICA CASA: RC (Responsabilità Civile) e Tutela Legale NON usano "Somma assicurata" — hanno massimali FISSI nel testo (es: RC tipicamente €5.000.000/sinistro). Estraili sempre. Idem per Assistenza casa: ha limiti fissi per tipo di intervento (es: €250/evento) da mettere nel campo note come "Sublimiti: ...".
+- POLIZZE INFORTUNI: Tutte le garanzie (Decesso, Invalidità permanente, Diaria, Rimborso spese) hanno massimale = "Somma assicurata" (importo scelto dal cliente). USA SEMPRE massimale="Somma assicurata" per queste. MA cerca nella sezione "TABELLA RIASSUNTIVA DI LIMITI, FRANCHIGIE E/O SCOPERTI" tutti gli scoperti e franchigie: es. "Scoperto 20% con il minimo di €75 per rimborso spese" → scoperto="20% min. €75"; "5 giorni se diaria ≤ €50; 10 giorni se €50-€80; 15 giorni se >€80" → franchigia="5/10/15 giorni (in base alla diaria scelta)". Franchigia invalidità permanente: "Franchigia 5%" o "Franchigia 0% per IP ≥ 20%".
 - TABELLE: le tabelle PDF si presentano spesso come righe di testo allineato — cerca pattern come "Garanzia | Massimale | Franchigia" o "Nome garanzia ... €XXX.XXX" e leggi i valori numerici corrispondenti a ogni garanzia
-- franchigia: cerca nelle tabelle "Franchigie", "Scoperti", "Limitazioni", "Soglie", "Minimale" — riporta il valore ESATTO. ATTENZIONE: una franchigia può essere per sotto-garanzia (es: "Franchigia €250 per acqua piovana/allagamenti" va riportata anche se l'incendio in sé non ha franchigia)
-- scoperto: FONDAMENTALE — includi SEMPRE il minimo in € quando presente. Es: "10% min. €10.000" NON solo "10%". Questo è critico per garanzie Terremoto, Alluvione e Furto.
+- franchigia: cerca nelle tabelle "Franchigie", "Scoperti", "Limitazioni", "Soglie", "Minimale" — riporta il valore ESATTO. ATTENZIONE: una franchigia può essere per sotto-garanzia (es: "Franchigia €250 per acqua piovana/allagamenti" va riportata anche se l'incendio in sé non ha franchigia). Per POLIZZE INFORTUNI: la franchigia può essere espressa in GIORNI (es: "franchigia di 5 giorni" per diaria) — scrivi "5 giorni" oppure "5/10/15 giorni (in base all'importo scelto)" se la franchigia è variabile.
+- scoperto: FONDAMENTALE — includi SEMPRE il minimo in € quando presente. Es: "10% min. €10.000" NON solo "10%". Questo è critico per: Terremoto, Alluvione, Furto (polizze casa) E ANCHE per Rimborso spese mediche (polizze infortuni: tipicamente "20% min. €75"). Pattern da cercare: "Scoperto X% con il minimo di €YYY" → scrivi "X% min. €YYY".
 - presente: true se la garanzia è inclusa nel pacchetto base; false altrimenti
 - opzionale: true se è un supplemento acquistabile a pagamento; false se è completamente assente dal prodotto
 - Includi TUTTE le garanzie menzionate nel testo, anche quelle opzionali
@@ -354,7 +355,7 @@ def _build_refinement_prompt(merged: dict, dense_text: str, filename: str) -> st
         g["nome"] for g in merged.get("garanzie", [])
         if not g.get("massimale_num") or g.get("massimale_num") == 0
     ]
-    # Trova anche garanzie con note mancanti o scoperto senza minimo
+    # Garanzie casa con sublimiti mancanti nelle note
     garanzie_note_incomplete = [
         g["nome"] for g in merged.get("garanzie", [])
         if not g.get("note") or ("Sublimiti" not in (g.get("note") or "") and g.get("nome") in [
@@ -362,6 +363,15 @@ def _build_refinement_prompt(merged: dict, dense_text: str, filename: str) -> st
             "Responsabilità civile verso terzi", "Assistenza casa",
             "Terremoto", "Alluvione e inondazione"
         ])
+    ]
+    # Garanzie infortuni con scoperto o franchigia in giorni mancante
+    garanzie_infortuni_da_completare = [
+        g["nome"] for g in merged.get("garanzie", [])
+        if g.get("nome") in [
+            "Rimborso spese mediche", "Diaria per inabilità temporanea al lavoro",
+            "Diaria da ricovero", "Diaria post ricovero", "Diaria da immobilizzazione",
+            "Invalidità permanente da infortunio", "Rendita vitalizia"
+        ] and (not g.get("scoperto") or not g.get("franchigia"))
     ]
     garanzie_json = json.dumps(merged.get("garanzie", []), ensure_ascii=False, indent=2)
     return f"""Sei un esperto di polizze assicurative italiane con capacità di lettura precisa di tabelle e condizioni contrattuali.
@@ -374,8 +384,11 @@ GARANZIE GIÀ ESTRATTE (JSON attuale):
 GARANZIE CON MASSIMALE MANCANTE (massimale_num = 0):
 {json.dumps(garanzie_mancanti, ensure_ascii=False)}
 
-GARANZIE CON NOTE DA COMPLETARE (cerca sublimiti):
+GARANZIE CON NOTE DA COMPLETARE — CASA (cerca sublimiti):
 {json.dumps(garanzie_note_incomplete, ensure_ascii=False)}
+
+GARANZIE INFORTUNI DA COMPLETARE (cerca scoperto con minimo, franchigie in giorni):
+{json.dumps(garanzie_infortuni_da_completare, ensure_ascii=False)}
 
 TESTO ORIGINALE DELLA POLIZZA (sezioni più dense con massimali e tabelle):
 <testo_polizza>
@@ -404,16 +417,28 @@ Per le garanzie Furto, Incendio, RC, Assistenza cerca SPECIFICAMENTE:
    - Limiti assistenza: importo per ogni tipo di intervento (idraulico, elettricista, ecc.)
    Metti tutti questi sublimiti nel campo "note" con formato: "Sublimiti: [voce] max [limite] | [voce] max [limite]"
 
-**AREA 3 — SCOPERTI CON MINIMO:**
-FONDAMENTALE — cerca tutti gli scoperti con minimo in €:
+**AREA 3 — SCOPERTI CON MINIMO (casa E infortuni):**
+FONDAMENTALE — cerca TUTTE le sezioni "TABELLA RIASSUNTIVA DI LIMITI, FRANCHIGIE E/O SCOPERTI" e ogni tabella di franchigie:
+   POLIZZE CASA:
    - Pattern "Scoperto pari al X% minimo di €.YYY" → scrivi "X% min. €YYY"
    - Pattern "scoperto del X% con un minimo non indennizzabile pari a € YYY" → "X% min. €YYY"
    - Pattern "X% con il minimo di euro YYY" → "X% min. €YYY"
    - Terremoto: tipicamente "10% min. €10.000 per abitazione; 10% min. €3.000 per contenuto"
    - Alluvione/Allagamento: cerca minimi separati per abitazione e contenuto
    - Furto dipendenze: tipicamente "10% min. €250"
-   - Furto mezzi chiusura non conformi: tipicamente "20%"
+   POLIZZE INFORTUNI:
+   - Pattern "Scoperto X% con il minimo di € YYY per spese" → scoperto="X% min. €YYY" sulla garanzia Rimborso spese mediche
+   - Tipicamente: Rimborso spese mediche → "20% min. €75"
+   - Se trovi uno scoperto su una garanzia infortuni, aggiorna il campo scoperto di quella garanzia
    Aggiorna il campo "scoperto" con il valore COMPLETO includendo il minimo in €.
+
+**AREA 4 — FRANCHIGIE IN GIORNI (solo polizze infortuni):**
+Cerca nelle tabelle riassuntive franchigie espresse in giorni per le garanzie Diaria:
+   - Pattern "N giorni se la diaria scelta è pari o inferiore a euro X; N giorni se... superiore a euro X" → scrivi "N/N/N giorni (in base alla diaria scelta)"
+   - Pattern "franchigia di N giorni" → scrivi "N giorni"
+   - Tipicamente: Diaria inabilità temporanea → "5/10/15 giorni (in base alla diaria scelta)"
+   - Invalidità permanente: franchigia in percentuale (es: "Franchigia 65%" per rendita vitalizia/IP grave)
+   Aggiorna il campo "franchigia" delle garanzie Diaria con questo valore.
 
 Aggiorna SOLO i campi che trovi ESPLICITAMENTE nel testo — NON inventare o stimare valori.
 Restituisci l'array COMPLETO delle garanzie aggiornato (incluse quelle già corrette).
