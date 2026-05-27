@@ -1983,8 +1983,11 @@ function buildTable(policies,cols) {
     const isBest=nums[i]===maxNum&&maxNum>0;
     html+=`<td class="cell ${isBest?'c-best':'c-mid'}"><div class="cell-inner">`;
     const _hasDipRef=!g.massimale&&g.note&&/\b(DIP|Condizioni Specifiche|modulo|formula|singoli Moduli)\b/i.test(g.note);
-    if(g.massimale){
+    const _isSA = g.massimale && /somma assicurata/i.test(g.massimale); // polizze casa: massimale variabile
+    if(g.massimale && !_isSA){
      html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
+    } else if(_isSA){
+     html+=`<span style="font-size:11px;color:var(--gray-500);font-style:italic;">Somma assicurata</span>`;
     } else if(_hasDipRef){
      const tipText=g.note.length>100?g.note.slice(0,97)+'…':g.note;
      html+=`<span class="dip-badge" title="${esc(tipText)}">📄 Vedi DIP modulo</span>`;
@@ -1995,7 +1998,18 @@ function buildTable(policies,cols) {
     if(!g.franchigia&&!g.scoperto&&!_hasDipRef) det.push(`<span class="detail-tag niente">Senza franchigia</span>`);
     if(det.length) html+=`<div class="detail-row">${det.join('')}</div>`;
     if(isBest) html+=`<span class="best-pill">migliore</span>`;
-    if(g.note&&!_hasDipRef) html+=`<div class="note-text">${esc(g.note)}</div>`;
+    // Nota: se contiene "Sublimiti:" la formatta con line-breaks invece di testo piatto
+    if(g.note&&!_hasDipRef){
+     const noteTxt=g.note||'';
+     const subMatch=noteTxt.match(/Sublimiti:\s*(.+)/i);
+     if(subMatch){
+      const items=subMatch[1].split('|').map(s=>s.trim()).filter(Boolean);
+      const subHtml=items.map(s=>`<span style="display:block;font-size:10px;color:var(--gray-500);line-height:1.5;">· ${esc(s)}</span>`).join('');
+      html+=`<div style="margin-top:4px;">${subHtml}</div>`;
+     } else {
+      html+=`<div class="note-text">${esc(noteTxt)}</div>`;
+     }
+    }
     html+='</div></td>';
    });
    html+='</tr>';

@@ -316,11 +316,11 @@ Schema JSON richiesto:
       "nome": "nome NORMALIZZATO dalla tassonomia garanzie — usa ESATTAMENTE uno dei termini elencati se applicabile",
       "presente": true,
       "opzionale": false,
-      "massimale": "importo ESATTO scritto nel documento es: 500.000 € — oppure null se non trovato",
+      "massimale": "importo ESATTO scritto nel documento es: 500.000 € — oppure 'Somma assicurata' per polizze casa/multirischio — oppure null",
       "massimale_num": 500000,
       "franchigia": "es: 250 € o 5% — oppure null",
-      "scoperto": "es: 10% — oppure null",
-      "note": "informazione rilevante breve (es: valida in tutto il mondo, solo ricovero >3gg) oppure null"
+      "scoperto": "es: 10% min. 250 € — includi SEMPRE il minimo in € se presente (es: '10% min. €10.000') — oppure null",
+      "note": "IMPORTANTE: per polizze casa includi TUTTI i sublimiti in questo campo nel formato: 'Sublimiti: [voce]: [limite]'. Es: 'Sublimiti: Preziosi max 10% SA/€10.000 | Valori max 5% SA/€2.500 | Dipendenze max 20% SA scoperto 10% min €250 | Lavoratori domestici max 50% SA/€10.000'. Includi anche: massimale RC (es: €5.000.000), limiti assistenza (es: €250/intervento, €300/albergo)."
     }}
   ],
   "punti_di_forza": ["punto concreto e specifico 1", "punto concreto 2", "punto concreto 3"],
@@ -333,8 +333,10 @@ Regole CRITICHE:
 - categoria: usa SEMPRE uno dei 9 valori dalla tassonomia categorie — MAI inventare categorie nuove
 - massimale_num: valore numerico puro (es: 500000), 0 se non trovato o non applicabile
 - massimale: cerca ATTIVAMENTE i valori Euro nelle TABELLE del DIP, nelle Schede Tecniche, nei "Limiti di indennizzo", nelle "Somme assicurate", nei "Capitali assicurati", nelle "Condizioni specifiche", nelle righe "Massimale per sinistro", "Limite per evento", "Indennizzo massimo" — riporta il valore ESATTO trovato (es: "500.000 €", "2.500.000 €")
+- POLIZZE CASA / MULTIRISCHIO: Per queste polizze il massimale principale è la "Somma Assicurata" (SA), un valore scelto dal cliente non presente nel testo. In questo caso usa massimale="Somma assicurata" e massimale_num=0. PERÒ estrai OBBLIGATORIAMENTE nel campo note tutti i sublimiti trovati: es. gioielli, valori, preziosi, dipendenze, lavoratori domestici, alloggio sostitutivo, spese demolizione, etc.
 - TABELLE: le tabelle PDF si presentano spesso come righe di testo allineato — cerca pattern come "Garanzia | Massimale | Franchigia" o "Nome garanzia ... €XXX.XXX" e leggi i valori numerici corrispondenti a ogni garanzia
-- franchigia: cerca nelle tabelle "Franchigie", "Scoperti", "Limitazioni", "Soglie", "Minimale" — riporta il valore ESATTO
+- franchigia: cerca nelle tabelle "Franchigie", "Scoperti", "Limitazioni", "Soglie", "Minimale" — riporta il valore ESATTO. ATTENZIONE: una franchigia può essere per sotto-garanzia (es: "Franchigia €250 per acqua piovana/allagamenti" va riportata anche se l'incendio in sé non ha franchigia)
+- scoperto: FONDAMENTALE — includi SEMPRE il minimo in € quando presente. Es: "10% min. €10.000" NON solo "10%". Questo è critico per garanzie Terremoto, Alluvione e Furto.
 - presente: true se la garanzia è inclusa nel pacchetto base; false altrimenti
 - opzionale: true se è un supplemento acquistabile a pagamento; false se è completamente assente dal prodotto
 - Includi TUTTE le garanzie menzionate nel testo, anche quelle opzionali
@@ -345,10 +347,19 @@ Regole CRITICHE:
 
 
 def _build_refinement_prompt(merged: dict, dense_text: str, filename: str) -> str:
-    """Prompt per il pass di raffinamento con Opus: arricchisce massimali e franchigie mancanti."""
+    """Prompt per il pass di raffinamento con Opus: arricchisce massimali, sublimiti e franchigie mancanti."""
     garanzie_mancanti = [
         g["nome"] for g in merged.get("garanzie", [])
         if not g.get("massimale_num") or g.get("massimale_num") == 0
+    ]
+    # Trova anche garanzie con note mancanti o scoperto senza minimo
+    garanzie_note_incomplete = [
+        g["nome"] for g in merged.get("garanzie", [])
+        if not g.get("note") or ("Sublimiti" not in (g.get("note") or "") and g.get("nome") in [
+            "Furto e rapina in casa", "Incendio e danni alla proprietà",
+            "Responsabilità civile verso terzi", "Assistenza casa",
+            "Terremoto", "Alluvione e inondazione"
+        ])
     ]
     garanzie_json = json.dumps(merged.get("garanzie", []), ensure_ascii=False, indent=2)
     return f"""Sei un esperto di polizze assicurative italiane con capacità di lettura precisa di tabelle e condizioni contrattuali.
@@ -361,23 +372,52 @@ GARANZIE GIÀ ESTRATTE (JSON attuale):
 GARANZIE CON MASSIMALE MANCANTE (massimale_num = 0):
 {json.dumps(garanzie_mancanti, ensure_ascii=False)}
 
+GARANZIE CON NOTE DA COMPLETARE (cerca sublimiti):
+{json.dumps(garanzie_note_incomplete, ensure_ascii=False)}
+
 TESTO ORIGINALE DELLA POLIZZA (sezioni più dense con massimali e tabelle):
 <testo_polizza>
 {dense_text}
 </testo_polizza>
 
-COMPITO — RICERCA PRECISA:
-1. Per ogni garanzia con massimale mancante, cerca ATTIVAMENTE nel testo:
+COMPITO — RICERCA PRECISA IN 3 AREE:
+
+**AREA 1 — MASSIMALI FISSI:**
+Cerca per ogni garanzia con massimale mancante:
    - Tabelle DIP con colonne "Garanzia | Massimale | Franchigia"
-   - Righe con pattern: "[nome garanzia] ... [€ XXX.XXX]" o "[€ XXX.XXX] ... [nome garanzia]"
+   - Righe: "[nome garanzia] ... [€ XXX.XXX]" o "[€ XXX.XXX] ... [nome garanzia]"
    - Sezioni: "Limiti di indennizzo", "Somme assicurate", "Capitali assicurati", "Massimali"
    - Schede tecniche per modulo (es: Modulo Casa, Modulo Salute, Modulo Persona)
-   - Condizioni specifiche e particolari condizioni
    - Valori come: "fino a €", "massimo €", "non oltre €", "pari a €"
-2. Per ogni garanzia con franchigia null, cerca: "Franchigia:", "Scoperto:", "Limite minimo:", percentuali dopo il nome garanzia
-3. Aggiorna SOLO i campi che trovi ESPLICITAMENTE nel testo — NON inventare o stimare valori
-4. Restituisci l'array COMPLETO delle garanzie aggiornato (incluse quelle già corrette)
-5. Se una garanzia ha massimale "illimitato" o "nessun massimale", usa massimale="Illimitato" e massimale_num=0
+   - Massimale RC: cerca "limite massimo di risarcimento", "massimale per sinistro" (es: €5.000.000)
+
+**AREA 2 — SUBLIMITI PERCENTUALI (importantissimo per polizze casa):**
+Per le garanzie Furto, Incendio, RC, Assistenza cerca SPECIFICAMENTE:
+   - Pattern "X% della somma assicurata per il contenuto con il massimo di € YYY" → scrivi "max X% SA contenuto / €YYY"
+   - Pattern "X% della somma assicurata per il fabbricato" → scrivi "max X% SA fabbricato"
+   - Pattern "fino ad un massimo di € ZZZ per sinistro" → scrivi "max €ZZZ/sinistro"
+   - Pattern "fino ad un massimo di € ZZZ per evento" → scrivi "max €ZZZ/evento"
+   - Sublimiti specifici per: preziosi, gioielli, valori, oggetti pregiati, dipendenze, lavoratori domestici,
+     alloggio sostitutivo, spese demolizione/sgombero, rifacimento documenti, furto all'esterno
+   - Limiti assistenza: importo per ogni tipo di intervento (idraulico, elettricista, ecc.)
+   Metti tutti questi sublimiti nel campo "note" con formato: "Sublimiti: [voce] max [limite] | [voce] max [limite]"
+
+**AREA 3 — SCOPERTI CON MINIMO:**
+FONDAMENTALE — cerca tutti gli scoperti con minimo in €:
+   - Pattern "Scoperto pari al X% minimo di €.YYY" → scrivi "X% min. €YYY"
+   - Pattern "scoperto del X% con un minimo non indennizzabile pari a € YYY" → "X% min. €YYY"
+   - Pattern "X% con il minimo di euro YYY" → "X% min. €YYY"
+   - Terremoto: tipicamente "10% min. €10.000 per abitazione; 10% min. €3.000 per contenuto"
+   - Alluvione/Allagamento: cerca minimi separati per abitazione e contenuto
+   - Furto dipendenze: tipicamente "10% min. €250"
+   - Furto mezzi chiusura non conformi: tipicamente "20%"
+   Aggiorna il campo "scoperto" con il valore COMPLETO includendo il minimo in €.
+
+Aggiorna SOLO i campi che trovi ESPLICITAMENTE nel testo — NON inventare o stimare valori.
+Restituisci l'array COMPLETO delle garanzie aggiornato (incluse quelle già corrette).
+Se una garanzia ha massimale "illimitato" o "nessun massimale", usa massimale="Illimitato" e massimale_num=0.
+
+Per polizze CASA dove il massimale è la Somma Assicurata (variabile): usa massimale="Somma assicurata" e massimale_num=0, ma COMPLETA le note con tutti i sublimiti trovati.
 
 Restituisci SOLO un JSON valido con questa struttura:
 {{
@@ -388,11 +428,13 @@ Restituisci SOLO un JSON valido con questa struttura:
 }}
 
 Regole:
-- massimale: riporta il valore ESATTO dal testo (es: "500.000 €", "2.500.000 €", "50% del capitale")
-- massimale_num: numero puro corrispondente (es: 500000, 2500000) — usa il numero intero senza simboli
+- massimale: riporta il valore ESATTO dal testo (es: "500.000 €", "2.500.000 €", "Somma assicurata")
+- massimale_num: numero puro corrispondente (es: 500000, 2500000) — usa 0 per "Somma assicurata"
+- scoperto: SEMPRE con il minimo in € quando presente (es: "10% min. €10.000") — non solo la percentuale
+- note: per polizze casa deve contenere "Sublimiti: ..." con tutti i sottolimiti trovati
 - Se un valore non è nel testo, lascia null/0 — MAI inventare
 - Mantieni tutti gli altri campi invariati se non hai informazioni migliori
-- punti_di_forza: aggiorna con valori concreti se li trovi (es: "Massimale RC fino a 2.500.000 €")"""
+- punti_di_forza: aggiorna con valori concreti (es: "RC con massimale fino a €5.000.000", "Assistenza €250/intervento h24")"""
 
 
 async def _extract_single_chunk(text_chunk: str, filename: str, chunk_info: str = "") -> dict:
@@ -840,9 +882,12 @@ async def extract_policy_stream(req: ExtractRequest):
                 result = await _refine_with_opus(result, text, req.filename)
                 await queue.put({"type": "result", "data": result})
 
+            except HTTPException as he:
+                logger.error(f"[stream] HTTPException per '{req.filename}': {he.detail}")
+                await queue.put({"type": "error", "message": str(he.detail) or "Errore AI"})
             except Exception as e:
                 logger.error(f"[stream] Errore per '{req.filename}': {e}")
-                await queue.put({"type": "error", "message": str(e)})
+                await queue.put({"type": "error", "message": str(e) or "Errore durante l'analisi"})
 
         task = asyncio.create_task(do_extract())
         try:

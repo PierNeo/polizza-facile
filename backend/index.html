@@ -1669,14 +1669,20 @@ function buildTable(policies,cols) {
  if(!g||!g.presente){html+=`<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;return;}
  const isBest=nums[i]===maxNum&&maxNum>0;
  html+=`<td class="cell ${isBest?'c-best':'c-mid'}"><div class="cell-inner">`;
- if(g.massimale) html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
+ const _isSA=g.massimale&&/somma assicurata/i.test(g.massimale);
+ if(g.massimale&&!_isSA) html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
+ else if(_isSA) html+=`<span style="font-size:11px;color:var(--gray-500);font-style:italic;">Somma assicurata</span>`;
  const det=[];
  if(g.franchigia) det.push(`<span class="detail-tag franchigia">Fr. ${esc(g.franchigia)}</span>`);
  if(g.scoperto) det.push(`<span class="detail-tag scoperto">Sc. ${esc(g.scoperto)}</span>`);
  if(!g.franchigia&&!g.scoperto) det.push(`<span class="detail-tag niente">Senza franchigia</span>`);
  if(det.length) html+=`<div class="detail-row">${det.join('')}</div>`;
  if(isBest) html+=`<span class="best-pill">migliore</span>`;
- if(g.note) html+=`<div class="note-text">${esc(g.note)}</div>`;
+ if(g.note){
+  const subMatch=(g.note||'').match(/Sublimiti:\s*(.+)/i);
+  if(subMatch){const items=subMatch[1].split('|').map(s=>s.trim()).filter(Boolean);html+=`<div style="margin-top:4px;">${items.map(s=>`<span style="display:block;font-size:10px;color:var(--gray-500);line-height:1.5;">· ${esc(s)}</span>`).join('')}</div>`;}
+  else html+=`<div class="note-text">${esc(g.note)}</div>`;
+ }
  html+='</div></td>';
  });
  html+='</tr>';
