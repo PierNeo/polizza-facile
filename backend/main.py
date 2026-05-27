@@ -346,7 +346,7 @@ Regole CRITICHE:
 - punti_di_forza: 3 vantaggi concreti e specifici con valori numerici dove disponibili, NON generici
 - esclusioni: massimo 6, solo le più rilevanti per un cliente medio
 - Se il testo è parziale (brochure, DIP, set informativo), estrai comunque tutto il possibile
-- REGOLA ASSOLUTA SUL CAMPO NOTE: è VIETATO scrivere qualsiasi frase del tipo "verificare ...", "da verificare ...", "non dettagliato nel testo", "vedere scheda di polizza", "vedere condizioni di assicurazione" — queste frasi sono inutili per l'utente. Se trovi il valore nel testo, scrivilo. Se NON lo trovi, lascia note=null. L'unica eccezione: per la Somma Assicurata (importo scelto dal cliente) scrivi massimale="Somma assicurata" e non mettere nulla nel note. I valori FISSI come €250/evento assistenza, massimale RC €5.000.000, sublimiti furto (gioielli max €15.000, valori max €2.500) SONO nelle CG — estraili e scrivili esplicitamente."""
+- REGOLA ASSOLUTA SUL CAMPO NOTE E DESCRIZIONE: è VIETATO scrivere qualsiasi frase del tipo "verificare ...", "da verificare ...", "non dettagliato nel testo", "non riportato nel testo estratto", "vedere scheda di polizza", "vedere tabella sezione", "vedere condizioni di assicurazione", "presente nella tabella sezione X" — queste frasi sono inutili per l'utente. Se trovi il valore nel testo, scrivilo. Se NON lo trovi, lascia note=null (non spiegare perché non l'hai trovato). I valori FISSI come €250/evento assistenza, massimale RC €5.000.000, sublimiti furto (gioielli max €15.000, valori max €2.500) SONO nelle CG — estraili e scrivili esplicitamente."""
 
 
 def _build_refinement_prompt(merged: dict, dense_text: str, filename: str) -> str:
@@ -463,7 +463,7 @@ Regole:
 - Mantieni tutti gli altri campi invariati se non hai informazioni migliori
 - punti_di_forza: aggiorna con valori concreti (es: "RC con massimale fino a €5.000.000", "Assistenza €250/intervento h24")
 - esclusioni: MASSIMO 6, solo le più sorprendenti/rilevanti per un cliente medio — NON elencare esclusioni tecniche ovvie (guerra, nucleare, dolo). Scegli quelle che un cliente tipicamente non si aspetta.
-- REGOLA ASSOLUTA SUL CAMPO NOTE: è VIETATO scrivere qualsiasi frase del tipo "verificare ...", "da verificare ...", "non dettagliato nel testo", "vedere scheda di polizza", "vedere condizioni di assicurazione" — queste frasi sono inutili per l'utente. Se trovi il valore nel testo, scrivilo. Se NON lo trovi, lascia note=null. I valori FISSI come €250/intervento assistenza, massimale RC €5.000.000, gioielli max €15.000 SONO nel testo originale — DEVONO essere estratti e scritti. Per la Somma Assicurata (sola eccezione) usa massimale="Somma assicurata" e note=null.
+- REGOLA ASSOLUTA SUL CAMPO NOTE E MASSIMALE: è VIETATO scrivere qualsiasi frase del tipo "verificare ...", "da verificare ...", "non dettagliato nel testo", "non riportato nel testo estratto", "vedere scheda di polizza", "vedere tabella sezione", "vedere condizioni di assicurazione", "presente nella tabella sezione X" — se non trovi il valore lascia null/0, non scrivere spiegazioni. I valori FISSI come €250/intervento assistenza, massimale RC €5.000.000, gioielli max €15.000 SONO nel testo originale — cerca nella sezione "Responsabilità Civile", "limite massimo di risarcimento", "tabella riassuntiva". Per la Somma Assicurata (sola eccezione) usa massimale="Somma assicurata" e note=null.
 - ECCEZIONE CRITICA NOTE: RC e Tutela Legale hanno massimali FISSI — NON usare "Somma assicurata" per queste garanzie. Estrai il valore esatto (es: RC €5.000.000/sinistro). Per Assistenza cerca il limite per tipo di intervento (es: €250/evento) e scrivilo come "Sublimiti: ..."."""
 
 
@@ -699,10 +699,20 @@ def _extract_dense_sections(text: str, max_chars: int = 150_000) -> str:
         'limite di indennizzo', 'limite massimo', 'indennizzo massimo',
         'capitale assicurato', 'capitali assicurati', 'limite per sinistro',
         'limite per evento', 'DIP', 'documento informativo precontrattuale',
+        'limite massimo di risarcimento', 'massimale per sinistro',
+        'tabella riassuntiva', 'riepilogo', 'riepilogativa',
     ]
     KEYWORDS_MED = [
         'franchigia', 'scoperto', 'limite minimo', 'soglia', 'scoperti',
         'condizioni specifiche', 'scheda tecnica', 'tabella', 'prospetto',
+        'responsabilità civile', 'tutela legale', 'assistenza',
+    ]
+    # Sezioni da includere sempre per garantire RC, tabelle riassuntive e assistenza
+    FORCE_INCLUDE_PATTERNS = [
+        re.compile(r'responsabilit[àa]\s+civile', re.IGNORECASE),
+        re.compile(r'tabella\s+riassuntiva', re.IGNORECASE),
+        re.compile(r'limite\s+massimo\s+di\s+risarcimento', re.IGNORECASE),
+        re.compile(r'limiti.*franchigie.*scoperti', re.IGNORECASE),
     ]
 
     # Pattern per valori monetari italiani: 500.000 € o € 1.000 o 2.500.000,00
@@ -721,6 +731,11 @@ def _extract_dense_sections(text: str, max_chars: int = 150_000) -> str:
         for kw in KEYWORDS_MED:
             score += para_lower.count(kw.lower()) * 2
         score += len(MONEY_PATTERN.findall(para)) * 2  # ogni valore Euro +2 punti
+        # Force-include sezioni critiche anche se poco dense (RC, tabelle riassuntive)
+        for pattern in FORCE_INCLUDE_PATTERNS:
+            if pattern.search(para):
+                score += 50  # garantisce la selezione
+                break
         if score > 0:
             scored.append((score, idx, para))
 
