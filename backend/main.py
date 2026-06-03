@@ -882,7 +882,7 @@ def _extract_dense_sections(text: str, max_chars: int = 160_000) -> str:
         re.compile(r'rimborso\s+spese\s+medich', re.IGNORECASE),  # sezione rimborso spese
         re.compile(r'tutela\s+legale', re.IGNORECASE),             # sezione tutela legale
         re.compile(r'assistenza\s+casa|pronto\s+intervento', re.IGNORECASE),
-        re.compile(r'(?:idraulic|elettric|fabbr|vetrai).*€\s*2[0-9]\d|€\s*2[0-9]\d.*(?:idraulic|elettric|fabbr|vetrai)', re.IGNORECASE),  # €250 vicino a idraulico/elettricista
+        re.compile(r'(?:idraulic|elettric|fabbr|vetrai|intervento\s+tecnic).*€\s*\d+|€\s*\d+.*(?:idraulic|elettric|fabbr|vetrai|per\s+intervento)', re.IGNORECASE),  # qualsiasi importo vicino a idraulico/elettricista
     ]
 
     # Pattern per valori monetari italiani: 500.000 € o € 1.000 o 2.500.000,00
