@@ -596,6 +596,53 @@ def _merge_extractions(results: list) -> dict:
     return merged
 
 
+def _sanitize_extraction(result: dict) -> dict:
+    """
+    Post-processing: rimuove frasi di rimando a documenti esterni dai campi
+    massimale, franchigia, scoperto, note delle garanzie.
+    Questo garantisce che frasi come "indicato in scheda di polizza",
+    "convenuto nella scheda", "vedere sezione X" non compaiano mai nell'output,
+    indipendentemente da cosa genera il modello.
+    """
+    # Pattern che indicano un rimando a un documento esterno — non un valore reale
+    REFERENCE_PATTERNS = [
+        re.compile(r'scheda\s+di\s+polizza', re.IGNORECASE),
+        re.compile(r'posizione\s+assicurativa', re.IGNORECASE),
+        re.compile(r'indicat[oa]\s+in\s+', re.IGNORECASE),
+        re.compile(r'convenuto\s+(nella|in)\s+scheda', re.IGNORECASE),
+        re.compile(r'vedere\s+(la\s+)?sezione', re.IGNORECASE),
+        re.compile(r'nella\s+sezione\s+assistenza', re.IGNORECASE),
+        re.compile(r'non\s+disponibil[ei]\s+in\s+questa\s+parte', re.IGNORECASE),
+        re.compile(r'dettagli\s+(limiti|nella)\s+sezione', re.IGNORECASE),
+        re.compile(r'nella\s+tabella\s+sezione', re.IGNORECASE),
+        re.compile(r'come\s+da\s+(scheda|posizione)', re.IGNORECASE),
+        re.compile(r'definit[oa]\s+in\s+polizza', re.IGNORECASE),
+        re.compile(r'riportat[oa]\s+nella\s+sezione', re.IGNORECASE),
+        re.compile(r'verific[a-z]+\s+(nella|in|la)', re.IGNORECASE),
+        re.compile(r'da\s+verificare', re.IGNORECASE),
+        re.compile(r'non\s+riportat[oa]\s+nel\s+testo', re.IGNORECASE),
+        re.compile(r'non\s+dettagliat[oa]\s+nel\s+testo', re.IGNORECASE),
+    ]
+
+    FIELDS_TO_SANITIZE = ["massimale", "franchigia", "scoperto", "note"]
+
+    def _contains_reference(value: str) -> bool:
+        if not value or not isinstance(value, str):
+            return False
+        return any(p.search(value) for p in REFERENCE_PATTERNS)
+
+    for g in result.get("garanzie", []):
+        for field in FIELDS_TO_SANITIZE:
+            val = g.get(field)
+            if _contains_reference(val):
+                logger.info(f"[sanitize] Rimosso valore di rimando nel campo '{field}': {val[:80]!r}")
+                g[field] = None
+                if field == "massimale":
+                    g["massimale_num"] = 0
+
+    return result
+
+
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -911,8 +958,10 @@ async def extract_policy(req: ExtractRequest):
             result = _merge_extractions(results)
 
         # Fase 3: raffinamento Opus SEMPRE (se ci sono massimali mancanti)
-        # ma lavora solo sui primi 120k chars (DIP + tabelle massimali sono sempre all'inizio)
         result = await _refine_with_opus(result, text, req.filename)
+
+        # Fase 4: sanitizzazione — rimuove frasi di rimando a documenti esterni
+        result = _sanitize_extraction(result)
 
         return result
 
@@ -976,6 +1025,8 @@ async def extract_policy_stream(req: ExtractRequest):
                 # Opus refinement
                 await queue.put({"type": "progress", "step": "Verifica massimali con AI avanzata...", "pct": 82})
                 result = await _refine_with_opus(result, text, req.filename)
+                # Sanitizzazione finale — rimuove frasi di rimando a documenti esterni
+                result = _sanitize_extraction(result)
                 await queue.put({"type": "result", "data": result})
 
             except HTTPException as he:
