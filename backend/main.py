@@ -477,14 +477,24 @@ async def _extract_single_chunk(text_chunk: str, filename: str, chunk_info: str 
     prompt = _build_extraction_prompt(text_chunk, filename, chunk_info)
     msg = await call_claude(
         model="claude-sonnet-4-6",
-        max_tokens=4000,
+        max_tokens=5000,
         messages=[{"role": "user", "content": prompt}]
     )
     raw = msg.content[0].text.strip()
     match = re.search(r'\{[\s\S]*\}', raw)
     if not match:
-        raise ValueError("JSON non trovato nella risposta")
-    return json.loads(match.group(0))
+        logger.warning(f"[extract] JSON non trovato nel chunk '{chunk_info}' di '{filename}' — chunk ignorato")
+        return {}
+    try:
+        return json.loads(match.group(0))
+    except json.JSONDecodeError as e:
+        logger.warning(f"[extract] JSON malformato nel chunk '{chunk_info}' di '{filename}': {e} — chunk ignorato")
+        # Tentativo di recupero: tronca al punto di errore e riprova
+        raw_truncated = match.group(0)[:e.pos].rsplit(',', 1)[0] + "\n}}"
+        try:
+            return json.loads(raw_truncated)
+        except Exception:
+            return {}
 
 
 def _merge_extractions(results: list) -> dict:
