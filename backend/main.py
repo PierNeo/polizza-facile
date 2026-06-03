@@ -325,15 +325,11 @@ Schema JSON richiesto:
       "nome": "nome NORMALIZZATO dalla tassonomia garanzie — usa ESATTAMENTE uno dei termini elencati se applicabile",
       "presente": true,
       "opzionale": false,
-      "massimale": "importo ESATTO scritto nel documento es: 500.000 € — oppure 'Somma assicurata' — oppure null",
+      "massimale": "importo ESATTO scritto nel documento es: 500.000 € — oppure 'Somma assicurata' per polizze casa/multirischio — oppure null",
       "massimale_num": 500000,
-      "massimale_cite": "copia breve della frase esatta nel testo (max 120 chars) da cui hai estratto il massimale — null se massimale è SA/Illimitato/null",
-      "franchigia": "es: 5% o 250 € o 5/10/15 giorni — oppure null",
-      "franchigia_cite": "copia breve della frase esatta da cui hai estratto la franchigia — null se franchigia è null o 'Senza franchigia'",
-      "scoperto": "es: 10% min. €250 — includi SEMPRE il minimo in € — oppure null",
-      "scoperto_cite": "copia breve della frase esatta da cui hai estratto lo scoperto — null se scoperto è null",
-      "note": "per polizze casa: 'Sublimiti: [voce] max [limite] | ...'. Per assistenza: 'Sublimiti: Idraulico max €250/evento | Elettricista max €250/evento | ...'. Per RC: massimale e franchigie specifiche.",
-      "note_cite": "copia breve della frase esatta che conferma i sublimiti in note — null se note è null"
+      "franchigia": "es: 250 € o 5% — oppure null",
+      "scoperto": "es: 10% min. €250 — includi SEMPRE il minimo in € se presente (es: '10% min. €10.000') — oppure null",
+      "note": "IMPORTANTE: per polizze casa includi TUTTI i sublimiti in questo campo nel formato: 'Sublimiti: [voce]: [limite]'. Es: 'Sublimiti: Preziosi max 10% SA/€10.000 | Valori max 5% SA/€2.500 | Dipendenze max 20% SA scoperto 10% min €250 | Lavoratori domestici max 50% SA/€10.000'. Includi anche: massimale RC (es: €5.000.000), limiti assistenza (es: €250/intervento, €300/albergo)."
     }}
   ],
   "punti_di_forza": ["punto concreto e specifico 1", "punto concreto 2", "punto concreto 3"],
@@ -351,7 +347,6 @@ Regole CRITICHE:
 - POLIZZE INFORTUNI: Tutte le garanzie (Decesso, Invalidità permanente, Diaria, Rimborso spese) hanno massimale = "Somma assicurata" (importo scelto dal cliente). USA SEMPRE massimale="Somma assicurata" per queste. MA cerca nella sezione "TABELLA RIASSUNTIVA DI LIMITI, FRANCHIGIE E/O SCOPERTI" tutti gli scoperti e franchigie: es. "Scoperto 20% con il minimo di €75 per rimborso spese" → scoperto="20% min. €75"; "5 giorni se diaria ≤ €50; 10 giorni se €50-€80; 15 giorni se >€80" → franchigia="5/10/15 giorni (in base alla diaria scelta)". Franchigia invalidità permanente: "Franchigia 5%" o "Franchigia 0% per IP ≥ 20%".
 - TABELLE: le tabelle PDF si presentano spesso come righe di testo allineato — cerca pattern come "Garanzia | Massimale | Franchigia" o "Nome garanzia ... €XXX.XXX" e leggi i valori numerici corrispondenti a ogni garanzia
 - franchigia: cerca nelle tabelle "Franchigie", "Scoperti", "Limitazioni", "Soglie", "Minimale" — riporta il valore ESATTO. ATTENZIONE: una franchigia può essere per sotto-garanzia (es: "Franchigia €250 per acqua piovana/allagamenti" va riportata anche se l'incendio in sé non ha franchigia). Per POLIZZE INFORTUNI: la franchigia può essere espressa in GIORNI (es: "franchigia di 5 giorni" per diaria) — scrivi "5 giorni" oppure "5/10/15 giorni (in base all'importo scelto)" se la franchigia è variabile.
-- CITAZIONI OBBLIGATORIE: i campi *_cite sono la prova che il valore è nel testo. Se estrai un massimale numerico specifico (es: €5.000.000), DEVI compilare massimale_cite con la frase del testo. Se estrai sublimiti in note (Sublimiti: ...), DEVI compilare note_cite. Se estrai uno scoperto, DEVI compilare scoperto_cite. Senza citazione il valore verrà considerato non affidabile e scartato. "Somma assicurata", "Senza franchigia", "Illimitato" NON richiedono citazione.
 - scoperto: FONDAMENTALE — includi SEMPRE il minimo in € quando presente. Es: "10% min. €10.000" NON solo "10%". Questo è critico per: Terremoto, Alluvione, Furto (polizze casa) E ANCHE per Rimborso spese mediche (polizze infortuni: tipicamente "20% min. €75"). Pattern da cercare: "Scoperto X% con il minimo di €YYY" → scrivi "X% min. €YYY".
 - presente: true se la garanzia è inclusa nel pacchetto base; false altrimenti
 - opzionale: true se è un supplemento acquistabile a pagamento; false se è completamente assente dal prodotto
@@ -1051,7 +1046,6 @@ async def extract_policy(req: ExtractRequest):
             results = await _extract_all_chunks(chunks, req.filename, BATCH_SIZE)
             result = _merge_extractions(results)
 
-        result = _apply_citation_filter(result)   # scarta valori senza prova testuale
         result = await _refine_with_opus(result, text, req.filename)
         result = _sanitize_extraction(result)
 
@@ -1138,7 +1132,6 @@ async def extract_policy_stream(req: ExtractRequest):
 
                     result = _merge_extractions(all_results)
 
-                result = _apply_citation_filter(result)   # scarta valori senza prova testuale
                 await queue.put({"type": "progress", "step": "Verifica massimali e sublimiti...", "pct": 82})
                 result = await _refine_with_opus(result, text, req.filename)
                 result = _sanitize_extraction(result)
