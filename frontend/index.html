@@ -1854,20 +1854,41 @@ function renderChips() {
 
 function removeFile(i) { files.splice(i,1); renderChips(); }
 
+// ── V2: usa Native PDF API se USE_V2_EXTRACTION = true in config ────────────
+const USE_V2 = !!(window.AGENZIA_CONFIG && window.AGENZIA_CONFIG.useV2Extraction);
+
 async function extractAll() {
  for(let i=0;i<files.length;i++) {
- if(files[i].text!==null) continue;
- try { files[i].text=await readPdf(files[i].file); files[i].status='ready'; }
- catch { files[i].status='error'; }
- renderChips();
+  if(files[i].text!==null || files[i].pdfBase64!==undefined) continue;
+  try {
+   if(USE_V2) {
+    files[i].pdfBase64 = await readPdfBase64(files[i].file);
+    files[i].text = '__v2__'; // placeholder per il check status
+   } else {
+    files[i].text = await readPdf(files[i].file);
+   }
+   files[i].status='ready';
+  } catch { files[i].status='error'; }
+  renderChips();
  }
 }
 
+// V1: estrae testo con pdfjs (comportamento attuale)
 async function readPdf(file) {
  const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise;
  let out=''; const pages=Math.min(pdf.numPages,80);
  for(let p=1;p<=pages;p++){const pg=await pdf.getPage(p);const ct=await pg.getTextContent();out+=ct.items.map(i=>i.str).join(' ')+'\n';}
- return out; // nessun troncamento: il backend gestisce i chunk
+ return out;
+}
+
+// V2: legge il PDF come base64 (nessuna estrazione testo — lo fa Claude visivamente)
+async function readPdfBase64(file) {
+ return new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result.split(',')[1]); // rimuove "data:...;base64,"
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+ });
 }
 
 // 
@@ -1901,7 +1922,7 @@ async function startComparison() {
    _setProgressBar(Math.min(globalPct, 90));
    if (step) document.getElementById('loadingSubtitle').textContent = step;
   };
-  const data = await callExtract(newFiles[i].text, newFiles[i].name, onProg);
+  const data = await callExtract(newFiles[i].text, newFiles[i].name, onProg, newFiles[i].pdfBase64);
   newFiles[i].extracted = data; extracted.push(data);
   steps[i].status='done'; renderSteps(steps);
  }
@@ -1986,12 +2007,16 @@ function confirmVerifica() {
  navTo('pagResults');
 }
 
-async function callExtract(text, filename, onProgress) {
- // SSE streaming — il backend invia ping ogni 3s → nessun timeout Cloudflare/Railway.
- const res = await fetch(`${BACKEND}/api/extract-stream`, {
+async function callExtract(text, filename, onProgress, pdfBase64) {
+ // V2: usa native PDF API se flag abilitato e base64 disponibile
+ const endpoint = (USE_V2 && pdfBase64) ? '/api/extract-stream-v2' : '/api/extract-stream';
+ const body = (USE_V2 && pdfBase64)
+  ? JSON.stringify({pdf_base64: pdfBase64, filename})
+  : JSON.stringify({text, filename});
+ const res = await fetch(`${BACKEND}${endpoint}`, {
   method: 'POST',
   headers: {'Content-Type': 'application/json'},
-  body: JSON.stringify({text, filename})
+  body
  });
  if (!res.ok) {
   const e = await res.json().catch(() => ({}));
