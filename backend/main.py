@@ -468,7 +468,7 @@ Regole:
 - Mantieni tutti gli altri campi invariati se non hai informazioni migliori
 - punti_di_forza: aggiorna con valori concreti (es: "RC con massimale fino a €5.000.000", "Assistenza €250/intervento h24")
 - esclusioni: MASSIMO 6, solo le più sorprendenti/rilevanti per un cliente medio — NON elencare esclusioni tecniche ovvie (guerra, nucleare, dolo). Scegli quelle che un cliente tipicamente non si aspetta.
-- REGOLA ASSOLUTA SUL CAMPO NOTE E MASSIMALE: è VIETATO scrivere qualsiasi frase del tipo "verificare ...", "da verificare ...", "non dettagliato nel testo", "non riportato nel testo estratto", "vedere scheda di polizza", "vedere tipologia scelta in scheda", "vedere tabella sezione", "vedere condizioni di assicurazione", "presente nella tabella sezione X", "tipologia scelta in polizza", "in base alla tipologia scelta", "definita in polizza", "come da scheda" — se non trovi il valore lascia null/0, non scrivere spiegazioni. Per garanzie con più opzioni di franchigia: scrivi la franchigia standard nel campo franchigia, le varianti nel campo note — MAI riferirsi alla scheda. I valori FISSI come €250/intervento assistenza, massimale RC €5.000.000, gioielli max €15.000 SONO nel testo originale — cerca nella sezione "Responsabilità Civile", "limite massimo di risarcimento", "tabella riassuntiva". Per la Somma Assicurata (sola eccezione) usa massimale="Somma assicurata" e note=null.
+- REGOLA ASSOLUTA SUL CAMPO NOTE E MASSIMALE: è VIETATO scrivere qualsiasi frase del tipo "verificare ...", "da verificare ...", "non dettagliato nel testo", "non riportato nel testo estratto", "vedere scheda di polizza", "vedere tipologia scelta in scheda", "vedere tabella sezione", "vedere condizioni di assicurazione", "presente nella tabella sezione X", "tipologia scelta in polizza", "in base alla tipologia scelta", "definita in polizza", "come da scheda", "indicato in posizione assicurativa", "indicato in scheda", "scoperto indicato in", "come da posizione" — se non trovi il valore lascia null/0, non scrivere spiegazioni. Per garanzie con più opzioni di franchigia: scrivi la franchigia standard nel campo franchigia, le varianti nel campo note — MAI riferirsi alla scheda. I valori FISSI come €250/intervento assistenza, massimale RC €5.000.000, gioielli max €15.000 SONO nel testo originale — cerca nella sezione "Responsabilità Civile", "limite massimo di risarcimento", "tabella riassuntiva". Per la Somma Assicurata (sola eccezione) usa massimale="Somma assicurata" e note=null.
 - ECCEZIONE CRITICA NOTE: RC e Tutela Legale hanno massimali FISSI — NON usare "Somma assicurata" per queste garanzie. Estrai il valore esatto (es: RC €5.000.000/sinistro). Per Assistenza cerca il limite per tipo di intervento (es: €250/evento) e scrivilo come "Sublimiti: ..."."""
 
 
@@ -514,12 +514,20 @@ def _merge_extractions(results: list) -> dict:
                 existing = all_garanzie[nome]
                 new_mass = g.get("massimale_num") or 0
                 ex_mass = existing.get("massimale_num") or 0
+                # Una garanzia BASE (presente=true, opzionale=false) è sempre preferita
+                # a una garanzia OPZIONALE con lo stesso massimale_num.
+                # Questo evita che "Incendio Extra" (opzionale) sovrascriva la base.
+                g_is_base = g.get("presente", False) and not g.get("opzionale", False)
+                ex_is_base = existing.get("presente", False) and not existing.get("opzionale", False)
                 if new_mass > ex_mass:
                     all_garanzie[nome] = g
                 elif new_mass == ex_mass:
-                    # Preferisce il record con più campi valorizzati
-                    if sum(1 for v in g.values() if v not in (None, 0, "")) > \
-                       sum(1 for v in existing.values() if v not in (None, 0, "")):
+                    if ex_is_base and not g_is_base:
+                        pass  # mantieni existing (base batte opzionale)
+                    elif g_is_base and not ex_is_base:
+                        all_garanzie[nome] = g  # nuovo è base, sostituisce
+                    elif sum(1 for v in g.values() if v not in (None, 0, "")) > \
+                         sum(1 for v in existing.values() if v not in (None, 0, "")):
                         all_garanzie[nome] = g
 
     # Secondo passaggio: per ogni garanzia nel merged, arricchisci con dati
