@@ -325,11 +325,15 @@ Schema JSON richiesto:
       "nome": "nome NORMALIZZATO dalla tassonomia garanzie — usa ESATTAMENTE uno dei termini elencati se applicabile",
       "presente": true,
       "opzionale": false,
-      "massimale": "importo ESATTO scritto nel documento es: 500.000 € — oppure 'Somma assicurata' per polizze casa/multirischio — oppure null",
+      "massimale": "importo ESATTO scritto nel documento es: 500.000 € — oppure 'Somma assicurata' — oppure null",
       "massimale_num": 500000,
-      "franchigia": "es: 250 € o 5% — oppure null",
-      "scoperto": "es: 10% min. 250 € — includi SEMPRE il minimo in € se presente (es: '10% min. €10.000') — oppure null",
-      "note": "IMPORTANTE: per polizze casa includi TUTTI i sublimiti in questo campo nel formato: 'Sublimiti: [voce]: [limite]'. Es: 'Sublimiti: Preziosi max 10% SA/€10.000 | Valori max 5% SA/€2.500 | Dipendenze max 20% SA scoperto 10% min €250 | Lavoratori domestici max 50% SA/€10.000'. Includi anche: massimale RC (es: €5.000.000), limiti assistenza (es: €250/intervento, €300/albergo)."
+      "massimale_cite": "copia breve della frase esatta nel testo (max 120 chars) da cui hai estratto il massimale — null se massimale è SA/Illimitato/null",
+      "franchigia": "es: 5% o 250 € o 5/10/15 giorni — oppure null",
+      "franchigia_cite": "copia breve della frase esatta da cui hai estratto la franchigia — null se franchigia è null o 'Senza franchigia'",
+      "scoperto": "es: 10% min. €250 — includi SEMPRE il minimo in € — oppure null",
+      "scoperto_cite": "copia breve della frase esatta da cui hai estratto lo scoperto — null se scoperto è null",
+      "note": "per polizze casa: 'Sublimiti: [voce] max [limite] | ...'. Per assistenza: 'Sublimiti: Idraulico max €250/evento | Elettricista max €250/evento | ...'. Per RC: massimale e franchigie specifiche.",
+      "note_cite": "copia breve della frase esatta che conferma i sublimiti in note — null se note è null"
     }}
   ],
   "punti_di_forza": ["punto concreto e specifico 1", "punto concreto 2", "punto concreto 3"],
@@ -347,6 +351,7 @@ Regole CRITICHE:
 - POLIZZE INFORTUNI: Tutte le garanzie (Decesso, Invalidità permanente, Diaria, Rimborso spese) hanno massimale = "Somma assicurata" (importo scelto dal cliente). USA SEMPRE massimale="Somma assicurata" per queste. MA cerca nella sezione "TABELLA RIASSUNTIVA DI LIMITI, FRANCHIGIE E/O SCOPERTI" tutti gli scoperti e franchigie: es. "Scoperto 20% con il minimo di €75 per rimborso spese" → scoperto="20% min. €75"; "5 giorni se diaria ≤ €50; 10 giorni se €50-€80; 15 giorni se >€80" → franchigia="5/10/15 giorni (in base alla diaria scelta)". Franchigia invalidità permanente: "Franchigia 5%" o "Franchigia 0% per IP ≥ 20%".
 - TABELLE: le tabelle PDF si presentano spesso come righe di testo allineato — cerca pattern come "Garanzia | Massimale | Franchigia" o "Nome garanzia ... €XXX.XXX" e leggi i valori numerici corrispondenti a ogni garanzia
 - franchigia: cerca nelle tabelle "Franchigie", "Scoperti", "Limitazioni", "Soglie", "Minimale" — riporta il valore ESATTO. ATTENZIONE: una franchigia può essere per sotto-garanzia (es: "Franchigia €250 per acqua piovana/allagamenti" va riportata anche se l'incendio in sé non ha franchigia). Per POLIZZE INFORTUNI: la franchigia può essere espressa in GIORNI (es: "franchigia di 5 giorni" per diaria) — scrivi "5 giorni" oppure "5/10/15 giorni (in base all'importo scelto)" se la franchigia è variabile.
+- CITAZIONI OBBLIGATORIE: i campi *_cite sono la prova che il valore è nel testo. Se estrai un massimale numerico specifico (es: €5.000.000), DEVI compilare massimale_cite con la frase del testo. Se estrai sublimiti in note (Sublimiti: ...), DEVI compilare note_cite. Se estrai uno scoperto, DEVI compilare scoperto_cite. Senza citazione il valore verrà considerato non affidabile e scartato. "Somma assicurata", "Senza franchigia", "Illimitato" NON richiedono citazione.
 - scoperto: FONDAMENTALE — includi SEMPRE il minimo in € quando presente. Es: "10% min. €10.000" NON solo "10%". Questo è critico per: Terremoto, Alluvione, Furto (polizze casa) E ANCHE per Rimborso spese mediche (polizze infortuni: tipicamente "20% min. €75"). Pattern da cercare: "Scoperto X% con il minimo di €YYY" → scrivi "X% min. €YYY".
 - presente: true se la garanzia è inclusa nel pacchetto base; false altrimenti
 - opzionale: true se è un supplemento acquistabile a pagamento; false se è completamente assente dal prodotto
@@ -661,6 +666,10 @@ def _sanitize_extraction(result: dict) -> dict:
         re.compile(r'limiti\s+specific[io]\s+in\s+tabella', re.IGNORECASE),
         re.compile(r'specifici?\s+nella\s+(sezione|tabella)', re.IGNORECASE),
         re.compile(r'massimal[ei]\s+in\s+tabella', re.IGNORECASE),
+        re.compile(r'convenuto\s+(in|nella)\s+polizza', re.IGNORECASE),  # "convenuto in polizza"
+        re.compile(r'riferimento.*art\.\s*\d', re.IGNORECASE),           # "Riferimento: Art. 2.5.1"
+        re.compile(r'art\.\s*\d+\.\d+.*p[g.]?\s*\d+', re.IGNORECASE),   # "Art. 2.5.1 pg. 24"
+        re.compile(r'vedere\s+sezione\s+infortuni', re.IGNORECASE),
     ]
 
     FIELDS_TO_SANITIZE = ["massimale", "franchigia", "scoperto", "note"]
@@ -678,6 +687,51 @@ def _sanitize_extraction(result: dict) -> dict:
                 g[field] = None
                 if field == "massimale":
                     g["massimale_num"] = 0
+
+    return result
+
+
+def _apply_citation_filter(result: dict) -> dict:
+    """
+    Filtra i valori estratti che non hanno una citazione testuale di supporto.
+    Funziona solo sulla fase di estrazione (chunk) — dopo il merge ma prima del refinement.
+    La logica: se il modello ha estratto un valore numerico specifico ma non ha fornito
+    la frase del testo che lo giustifica, il valore è probabilmente inventato.
+    Valori "sicuri" (SA, Senza franchigia, Illimitato) non richiedono citazione.
+    """
+    SAFE_VALUES = {None, "", "Somma assicurata", "somma assicurata", "Illimitato", "illimitato",
+                   "Senza franchigia", "senza franchigia", "null"}
+
+    for g in result.get("garanzie", []):
+        # Massimale: richiede citazione se è un numero specifico (massimale_num > 0)
+        if g.get("massimale_num", 0) > 0 and not g.get("massimale_cite"):
+            logger.debug(f"[cite] massimale senza citazione azzerato: {g.get('nome')} → {g.get('massimale')}")
+            g["massimale"] = None
+            g["massimale_num"] = 0
+
+        # Note: richiede citazione se contiene Sublimiti (valori specifici)
+        note = g.get("note") or ""
+        if "Sublimiti" in note and not g.get("note_cite"):
+            logger.debug(f"[cite] note/sublimiti senza citazione azzerati: {g.get('nome')}")
+            g["note"] = None
+
+        # Scoperto: richiede citazione se non è null
+        scoperto = g.get("scoperto")
+        if scoperto and scoperto not in SAFE_VALUES and not g.get("scoperto_cite"):
+            logger.debug(f"[cite] scoperto senza citazione azzerato: {g.get('nome')} → {scoperto}")
+            g["scoperto"] = None
+
+        # Franchigia: richiede citazione solo per valori complessi (giorni, % con note)
+        franchigia = g.get("franchigia") or ""
+        if ("giorni" in franchigia.lower() or ("%" in franchigia and "min" in franchigia.lower())) \
+                and not g.get("franchigia_cite"):
+            logger.debug(f"[cite] franchigia complessa senza citazione azzerata: {g.get('nome')} → {franchigia}")
+            g["franchigia"] = None
+
+    # Rimuovi i campi _cite dall'output (sono interni, non vanno al frontend)
+    for g in result.get("garanzie", []):
+        for field in ["massimale_cite", "note_cite", "scoperto_cite", "franchigia_cite"]:
+            g.pop(field, None)
 
     return result
 
@@ -827,7 +881,8 @@ def _extract_dense_sections(text: str, max_chars: int = 160_000) -> str:
         re.compile(r'franchigia.*giorni|giorni.*franchigia', re.IGNORECASE),  # franchigie in giorni
         re.compile(r'rimborso\s+spese\s+medich', re.IGNORECASE),  # sezione rimborso spese
         re.compile(r'tutela\s+legale', re.IGNORECASE),             # sezione tutela legale
-        re.compile(r'assistenza\s+casa|pronto\s+intervento', re.IGNORECASE),  # sezione assistenza
+        re.compile(r'assistenza\s+casa|pronto\s+intervento', re.IGNORECASE),
+        re.compile(r'(?:idraulic|elettric|fabbr|vetrai).*€\s*2[0-9]\d|€\s*2[0-9]\d.*(?:idraulic|elettric|fabbr|vetrai)', re.IGNORECASE),  # €250 vicino a idraulico/elettricista
     ]
 
     # Pattern per valori monetari italiani: 500.000 € o € 1.000 o 2.500.000,00
@@ -999,10 +1054,11 @@ async def extract_policy(req: ExtractRequest):
             results = await _extract_all_chunks(chunks, req.filename, BATCH_SIZE)
             result = _merge_extractions(results)
 
+        result = _apply_citation_filter(result)   # scarta valori senza prova testuale
         result = await _refine_with_opus(result, text, req.filename)
         result = _sanitize_extraction(result)
 
-        _extraction_cache[cache_key] = result  # salva in cache
+        _extraction_cache[cache_key] = result
         return result
 
     except HTTPException:
@@ -1085,6 +1141,7 @@ async def extract_policy_stream(req: ExtractRequest):
 
                     result = _merge_extractions(all_results)
 
+                result = _apply_citation_filter(result)   # scarta valori senza prova testuale
                 await queue.put({"type": "progress", "step": "Verifica massimali e sublimiti...", "pct": 82})
                 result = await _refine_with_opus(result, text, req.filename)
                 result = _sanitize_extraction(result)
