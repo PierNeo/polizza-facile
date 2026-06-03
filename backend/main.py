@@ -481,6 +481,30 @@ Regole:
 - ECCEZIONE CRITICA NOTE: RC e Tutela Legale hanno massimali FISSI — NON usare "Somma assicurata" per queste garanzie. Estrai il valore esatto (es: RC €5.000.000/sinistro). Per Assistenza cerca il limite per tipo di intervento (es: €250/evento) e scrivilo come "Sublimiti: ..."."""
 
 
+def _score_chunk(text: str) -> int:
+    """
+    Calcola lo score di rilevanza assicurativa di un chunk (puro Python, veloce).
+    Usato per filtrare i chunk da mandare all'AI: solo quelli con score > soglia.
+    """
+    KEYWORDS_HIGH = [
+        'massimale', 'somma assicurata', 'limite di indennizzo', 'limite massimo',
+        'capitale assicurato', 'limite per sinistro', 'indennizzo massimo',
+        'responsabilità civile', 'tutela legale', 'tabella riassuntiva',
+        'garanzie', 'copertura', 'assicurazione', 'polizza',
+    ]
+    KEYWORDS_MED = [
+        'franchigia', 'scoperto', 'sublimite', 'sinistro', 'indennizzo',
+        'incendio', 'furto', 'assistenza', 'infortunio', 'invalidità',
+        'diaria', 'rimborso', 'decesso', 'premio',
+    ]
+    MONEY_PAT = re.compile(r'(?:€\s*[\d\.]+|[\d\.]{4,}(?:,\d{2})?\s*€|\d+\.\d{3})')
+    t = text.lower()
+    score = sum(t.count(kw) * 3 for kw in KEYWORDS_HIGH)
+    score += sum(t.count(kw) * 2 for kw in KEYWORDS_MED)
+    score += len(MONEY_PAT.findall(text)) * 2
+    return score
+
+
 async def _extract_single_chunk(text_chunk: str, filename: str, chunk_info: str = "") -> dict:
     """Estrae dati strutturati da un singolo chunk di testo polizza."""
     prompt = _build_extraction_prompt(text_chunk, filename, chunk_info)
@@ -631,6 +655,12 @@ def _sanitize_extraction(result: dict) -> dict:
         re.compile(r'da\s+verificare', re.IGNORECASE),
         re.compile(r'non\s+riportat[oa]\s+nel\s+testo', re.IGNORECASE),
         re.compile(r'non\s+dettagliat[oa]\s+nel\s+testo', re.IGNORECASE),
+        re.compile(r'\bda\s+scheda\b', re.IGNORECASE),                  # "limiti da scheda"
+        re.compile(r'in\s+tabella\s+art', re.IGNORECASE),               # "in tabella art. 24"
+        re.compile(r'da\s+estrarre\s+nella', re.IGNORECASE),            # "da estrarre nella parte"
+        re.compile(r'limiti\s+specific[io]\s+in\s+tabella', re.IGNORECASE),
+        re.compile(r'specifici?\s+nella\s+(sezione|tabella)', re.IGNORECASE),
+        re.compile(r'massimal[ei]\s+in\s+tabella', re.IGNORECASE),
     ]
 
     FIELDS_TO_SANITIZE = ["massimale", "franchigia", "scoperto", "note"]
@@ -1018,10 +1048,25 @@ async def extract_policy_stream(req: ExtractRequest):
                     await queue.put({"type": "progress", "step": "Analisi documento...", "pct": 30})
                     result = await _extract_single_chunk(text, req.filename)
                 else:
-                    chunks = _build_sequential_chunks(text, CHUNK_SIZE, OVERLAP)
+                    all_chunks = _build_sequential_chunks(text, CHUNK_SIZE, OVERLAP)
+                    total_raw = len(all_chunks)
+
+                    # Selective chunking: scorare tutti i chunk (Python puro, veloce)
+                    # e mandare all'AI solo i più rilevanti + i primi 2 (header/DIP)
+                    scored = sorted(
+                        enumerate(all_chunks),
+                        key=lambda x: _score_chunk(x[1][0]),
+                        reverse=True
+                    )
+                    # Sempre includi i primi 3 chunk (intestazione, DIP) + top 15 per score
+                    keep_indices = set(range(min(3, total_raw)))
+                    for idx, _ in scored[:15]:
+                        keep_indices.add(idx)
+                    chunks = [all_chunks[i] for i in sorted(keep_indices)]
                     total = len(chunks)
-                    logger.info(f"[stream] '{req.filename}' → {total} chunk(s) su {len(text)} chars")
-                    await queue.put({"type": "progress", "step": f"Lettura documento ({total} sezioni)...", "pct": 5})
+                    skipped = total_raw - total
+                    logger.info(f"[stream] '{req.filename}' → {total}/{total_raw} chunk(s) selezionati ({skipped} saltati)")
+                    await queue.put({"type": "progress", "step": f"Analisi {total} sezioni chiave su {total_raw}...", "pct": 5})
 
                     all_results = []
                     for i in range(0, total, BATCH_SIZE):
