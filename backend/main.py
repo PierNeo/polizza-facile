@@ -4,8 +4,11 @@ import re
 import json
 import asyncio
 import logging
+import base64
+import io
 import anthropic
 import httpx
+from pypdf import PdfReader, PdfWriter
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -661,10 +664,17 @@ def _sanitize_extraction(result: dict) -> dict:
         re.compile(r'limiti\s+specific[io]\s+in\s+tabella', re.IGNORECASE),
         re.compile(r'specifici?\s+nella\s+(sezione|tabella)', re.IGNORECASE),
         re.compile(r'massimal[ei]\s+in\s+tabella', re.IGNORECASE),
-        re.compile(r'convenuto\s+(in|nella)\s+polizza', re.IGNORECASE),  # "convenuto in polizza"
-        re.compile(r'riferimento.*art\.\s*\d', re.IGNORECASE),           # "Riferimento: Art. 2.5.1"
-        re.compile(r'art\.\s*\d+\.\d+.*p[g.]?\s*\d+', re.IGNORECASE),   # "Art. 2.5.1 pg. 24"
+        re.compile(r'convenuto\s+(in|nella)\s+polizza', re.IGNORECASE),
+        re.compile(r'riferimento.*art\.\s*\d', re.IGNORECASE),
+        re.compile(r'art\.\s*\d+\.\d+.*p[g.]?\s*\d+', re.IGNORECASE),
         re.compile(r'vedere\s+sezione\s+infortuni', re.IGNORECASE),
+        # Nuovi pattern scoperti nel test v2
+        re.compile(r'non\s+disponibil[ei]\s+nel\s+testo\s+estratto', re.IGNORECASE),
+        re.compile(r'presenti?\s+nelle?\s+tabelle?\s+della?\s+sezione', re.IGNORECASE),
+        re.compile(r'sublimiti\s+specific[io]\s+presenti', re.IGNORECASE),
+        re.compile(r'limiti\s+per\s+intervento\s+presenti', re.IGNORECASE),
+        re.compile(r'come\s+da\s+sezione\s+furto', re.IGNORECASE),
+        re.compile(r'da\s+tabella\s+sezione', re.IGNORECASE),
     ]
 
     FIELDS_TO_SANITIZE = ["massimale", "franchigia", "scoperto", "note"]
@@ -727,6 +737,227 @@ def _apply_citation_filter(result: dict) -> dict:
 
     return result
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── V2 — NATIVE PDF + TOOL USE ────────────────────────────────────────────────
+# Architettura v2: Claude legge il PDF nativo (visivamente, tabelle incluse)
+# e usa tool_use per garantire JSON strutturato senza errori di parsing.
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ExtractRequestV2(BaseModel):
+    pdf_base64: str   # PDF codificato in base64
+    filename: str
+
+
+# Schema tool use: garantisce output JSON valido che rispetta esattamente la struttura
+EXTRACTION_TOOL_V2 = {
+    "name": "extract_policy_data",
+    "description": "Estrae la struttura completa di una polizza assicurativa italiana dal documento PDF. Leggi tabelle, DIP, schede tecniche e condizioni generali con massima precisione.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "compagnia":  {"type": ["string", "null"], "description": "Nome della compagnia assicuratrice"},
+            "prodotto":   {"type": ["string", "null"], "description": "Nome commerciale del prodotto"},
+            "tipo": {
+                "type": "string",
+                "enum": ["RC Auto", "Casa", "Vita", "Infortuni", "Salute", "Multirischio", "Risparmio", "altro"],
+                "description": "Categoria principale della polizza"
+            },
+            "premio": {"type": ["string", "null"], "description": "Importo e periodicità del premio, null se non trovato"},
+            "garanzie": {
+                "type": "array",
+                "description": "Lista completa di tutte le garanzie presenti o opzionali nella polizza",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "categoria": {
+                            "type": "string",
+                            "enum": ["Danni alla proprietà", "Responsabilità Civile", "Infortuni",
+                                     "Salute e Malattia", "Assistenza", "Tutela Legale",
+                                     "Vita e Risparmio", "Veicoli", "Altro"]
+                        },
+                        "nome":        {"type": "string", "description": "Nome normalizzato dalla tassonomia garanzie"},
+                        "presente":    {"type": "boolean", "description": "true se inclusa nel pacchetto base"},
+                        "opzionale":   {"type": "boolean", "description": "true se acquistabile come supplemento a pagamento"},
+                        "massimale":   {"type": ["string", "null"], "description": "Es: '5.000.000 €' o 'Somma assicurata' o null"},
+                        "massimale_num": {"type": "number",  "description": "Valore numerico puro, 0 per SA/null"},
+                        "franchigia":  {"type": ["string", "null"], "description": "Es: '250 €' o '5%' o '5/10/15 giorni' o null"},
+                        "scoperto":    {"type": ["string", "null"], "description": "Es: '10% min. €250' — includi SEMPRE il minimo in €"},
+                        "note":        {"type": ["string", "null"], "description": "Sublimiti e dettagli: 'Sublimiti: voce max €X | voce max €Y'"}
+                    },
+                    "required": ["nome", "categoria", "presente", "opzionale", "massimale_num"]
+                }
+            },
+            "punti_di_forza": {
+                "type": "array", "items": {"type": "string"},
+                "description": "Max 5 punti di forza concreti con valori numerici"
+            },
+            "esclusioni": {
+                "type": "array", "items": {"type": "string"},
+                "description": "Max 6 esclusioni rilevanti e sorprendenti per il cliente"
+            },
+            "consigliata_per": {"type": ["string", "null"], "description": "Profilo cliente ideale in 1 frase"}
+        },
+        "required": ["tipo", "garanzie"]
+    }
+}
+
+
+def _split_pdf_bytes(pdf_bytes: bytes, pages_per_chunk: int = 60) -> list[tuple[bytes, int, int, int]]:
+    """
+    Divide un PDF in chunk di N pagine per rispettare i limiti dell'API Claude.
+    Restituisce lista di (chunk_bytes, page_start, page_end, total_pages).
+    """
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    total = len(reader.pages)
+    chunks = []
+    for start in range(0, total, pages_per_chunk):
+        end = min(start + pages_per_chunk, total)
+        writer = PdfWriter()
+        for i in range(start, end):
+            writer.add_page(reader.pages[i])
+        buf = io.BytesIO()
+        writer.write(buf)
+        chunks.append((buf.getvalue(), start, end, total))
+    return chunks
+
+
+async def _extract_pdf_chunk_native(chunk_bytes: bytes, page_start: int, page_end: int,
+                                     total_pages: int, filename: str) -> dict:
+    """
+    Estrae garanzie da un chunk PDF usando Claude native PDF + tool use.
+    Claude legge il PDF visivamente: tabelle, layout, formattazione sono preservati.
+    Tool use garantisce JSON strutturato senza errori di parsing.
+    """
+    chunk_b64 = base64.b64encode(chunk_bytes).decode()
+    chunk_info = f"pagine {page_start + 1}-{page_end} di {total_pages}"
+
+    prompt = f"""Sei un esperto di polizze assicurative italiane. Analizza questo PDF (file: {filename}, {chunk_info}).
+
+{TASSONOMIA_GARANZIE}
+{TASSONOMIA_CATEGORIE}
+
+Estrai TUTTE le garanzie presenti usando la funzione extract_policy_data.
+
+REGOLE CRITICHE:
+— POLIZZE CASA/MULTIRISCHIO: massimale principale (Incendio, Furto) = "Somma assicurata". Estrai TUTTI i sublimiti nel campo note: "Sublimiti: voce max €X | voce max €Y"
+— ECCEZIONE: RC e Tutela Legale hanno massimali FISSI nel testo (RC tipicamente €5.000.000/sinistro) — estraili esplicitamente come massimale_num=5000000
+— ASSISTENZA CASA: leggi la tabella dei limiti per tipo di intervento (idraulico, elettricista, fabbro, vetraio, collaboratrice, albergo) e scrivi in note: "Sublimiti: Idraulico max €XXX/evento | Elettricista max €XXX/evento | ..."
+— POLIZZE INFORTUNI: massimale = "Somma assicurata". Leggi la TABELLA RIASSUNTIVA DI LIMITI per scoperti (es: "20% min. €75") e franchigie in giorni (es: "5/10/15 giorni in base alla diaria scelta")
+— scoperto: includi SEMPRE il minimo in € (es: "10% min. €250", non solo "10%")
+— esclusioni: MAX 6, solo le più sorprendenti/rilevanti per un cliente normale
+— opzionale=true per garanzie acquistabili a pagamento, presente=false se assente dalla base
+— NON inventare valori: se non trovi una cifra specifica, usa null/0"""
+
+    try:
+        msg = await client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=4096,
+            tools=[EXTRACTION_TOOL_V2],
+            tool_choice={"type": "tool", "name": "extract_policy_data"},
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "document",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "application/pdf",
+                            "data": chunk_b64
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": prompt
+                    }
+                ]
+            }]
+        )
+        for block in msg.content:
+            if block.type == "tool_use":
+                return block.input
+        logger.warning(f"[v2] nessun tool_use nella risposta per chunk {chunk_info} di '{filename}'")
+        return {}
+    except Exception as e:
+        logger.error(f"[v2] errore estrazione chunk {chunk_info} di '{filename}': {e}")
+        return {}
+
+
+@app.post("/api/extract-stream-v2")
+async def extract_policy_stream_v2(req: ExtractRequestV2):
+    """
+    V2 — Estrazione con native PDF + tool use.
+    Invia eventi SSE progress/result come il v1.
+    """
+    try:
+        pdf_bytes = base64.b64decode(req.pdf_base64)
+    except Exception:
+        raise HTTPException(400, "pdf_base64 non valido")
+
+    if len(pdf_bytes) < 100:
+        raise HTTPException(400, "PDF troppo piccolo o vuoto")
+
+    async def generate():
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def do_extract():
+            try:
+                # Cache check
+                cache_key = _cache_key(req.pdf_base64[:2000] + str(len(pdf_bytes)))
+                if cache_key in _extraction_cache:
+                    logger.info(f"[v2 stream] '{req.filename}' — cache hit")
+                    await queue.put({"type": "progress", "step": "Risultato dalla cache...", "pct": 95})
+                    await queue.put({"type": "result", "data": _extraction_cache[cache_key]})
+                    return
+
+                chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
+                total = len(chunks)
+                logger.info(f"[v2 stream] '{req.filename}' → {total} chunk(s) PDF, {len(pdf_bytes)//1024}KB")
+                await queue.put({"type": "progress", "step": f"Lettura PDF ({total} sezioni, {len(pdf_bytes)//1024}KB)...", "pct": 5})
+
+                # Processa tutti i chunk in parallelo
+                results = await asyncio.gather(*[
+                    _extract_pdf_chunk_native(chunk_b, p_start, p_end, p_tot, req.filename)
+                    for chunk_b, p_start, p_end, p_tot in chunks
+                ])
+                await queue.put({"type": "progress", "step": "Merge risultati...", "pct": 80})
+
+                # Filtra chunk vuoti e merge
+                results = [r for r in results if r]
+                if not results:
+                    await queue.put({"type": "error", "message": "Nessun dato estratto dal PDF"})
+                    return
+
+                result = _merge_extractions(results) if len(results) > 1 else results[0]
+                await queue.put({"type": "progress", "step": "Pulizia e verifica...", "pct": 92})
+
+                result = _sanitize_extraction(result)
+                _extraction_cache[cache_key] = result
+                await queue.put({"type": "result", "data": result})
+
+            except Exception as e:
+                logger.error(f"[v2 stream] errore '{req.filename}': {e}")
+                await queue.put({"type": "error", "message": str(e) or "Errore durante l'analisi"})
+
+        task = asyncio.create_task(do_extract())
+        try:
+            while True:
+                try:
+                    msg = await asyncio.wait_for(queue.get(), timeout=3.0)
+                    yield f"data: {json.dumps(msg, ensure_ascii=False)}\n\n"
+                    if msg["type"] in ("result", "error"):
+                        break
+                except asyncio.TimeoutError:
+                    yield 'data: {"type":"ping"}\n\n'
+        finally:
+            if not task.done():
+                task.cancel()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ── FINE V2 ───────────────────────────────────────────────────────────────────
 
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
 
@@ -949,11 +1180,42 @@ def _extract_dense_sections(text: str, max_chars: int = 160_000) -> str:
     return header + "\n\n[... sezioni dense estratte ...]\n\n" + body
 
 
+# Tool use per il refinement: garantisce JSON valido senza parsing manuale
+REFINEMENT_TOOL = {
+    "name": "update_policy_data",
+    "description": "Aggiorna i valori mancanti nelle garanzie già estratte cercandoli nel testo della polizza.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "garanzie": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "nome":         {"type": "string"},
+                        "massimale":    {"type": ["string", "null"]},
+                        "massimale_num":{"type": "number"},
+                        "franchigia":   {"type": ["string", "null"]},
+                        "scoperto":     {"type": ["string", "null"]},
+                        "note":         {"type": ["string", "null"]}
+                    },
+                    "required": ["nome", "massimale_num"]
+                }
+            },
+            "premio":        {"type": ["string", "null"]},
+            "punti_di_forza":{"type": "array", "items": {"type": "string"}},
+            "esclusioni":    {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["garanzie"]
+    }
+}
+
+
 async def _refine_with_opus(merged: dict, text: str, filename: str) -> dict:
     """
-    Pass finale di raffinamento: arricchisce massimali, sublimiti e franchigie mancanti
-    cercando nelle sezioni più dense del documento (DIP, schede tecniche, tabelle riassuntive).
-    Usa Sonnet per velocità — la qualità è mantenuta dal dense text ben selezionato.
+    Pass finale di raffinamento con tool use: arricchisce massimali, sublimiti e franchigie
+    mancanti cercando nelle sezioni dense del documento.
+    Tool use garantisce JSON valido senza parsing manuale — nessun rischio di crash.
     """
     missing = [g for g in merged.get("garanzie", []) if not g.get("massimale_num")]
     if not missing:
@@ -966,17 +1228,24 @@ async def _refine_with_opus(merged: dict, text: str, filename: str) -> dict:
 
     prompt = _build_refinement_prompt(merged, dense_text, filename)
     try:
-        msg = await call_claude(
+        msg = await client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=5000,
+            tools=[REFINEMENT_TOOL],
+            tool_choice={"type": "tool", "name": "update_policy_data"},
             messages=[{"role": "user", "content": prompt}]
         )
-        raw = msg.content[0].text.strip()
-        match = re.search(r'\{[\s\S]*\}', raw)
-        if not match:
-            logger.warning(f"[refine] JSON non trovato nella risposta per '{filename}' — uso merged originale")
+
+        # Tool use: il risultato è già un dict valido — nessun json.loads necessario
+        refined = None
+        for block in msg.content:
+            if block.type == "tool_use":
+                refined = block.input
+                break
+
+        if not refined:
+            logger.warning(f"[refine] tool_use non trovato per '{filename}' — uso merged originale")
             return merged
-        refined = json.loads(match.group(0))
 
         # Applica gli aggiornamenti al merged originale
         if "garanzie" in refined:
@@ -985,7 +1254,6 @@ async def _refine_with_opus(merged: dict, text: str, filename: str) -> dict:
                 nome = g.get("nome", "")
                 if nome in refined_map:
                     r = refined_map[nome]
-                    # Aggiorna solo se il valore raffinato è migliore
                     if r.get("massimale_num", 0) > g.get("massimale_num", 0):
                         g["massimale"] = r.get("massimale")
                         g["massimale_num"] = r.get("massimale_num", 0)
@@ -1004,11 +1272,11 @@ async def _refine_with_opus(merged: dict, text: str, filename: str) -> dict:
             merged["esclusioni"] = refined["esclusioni"]
 
         missing_after = sum(1 for g in merged["garanzie"] if not g.get("massimale_num"))
-        logger.info(f"[refine] '{filename}' — Opus completato. Massimali mancanti: {len(missing)} → {missing_after}")
+        logger.info(f"[refine] '{filename}' — completato. Massimali mancanti: {len(missing)} → {missing_after}")
         return merged
 
     except Exception as e:
-        logger.warning(f"[refine] Errore Opus per '{filename}': {e} — uso merged originale")
+        logger.warning(f"[refine] Errore per '{filename}': {e} — uso merged originale")
         return merged
 
 
