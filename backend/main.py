@@ -271,6 +271,15 @@ TASSONOMIA CATEGORIE STANDARD — usa ESATTAMENTE uno di questi valori per il ca
 - "Altro"                     (qualsiasi garanzia che non rientra nelle categorie sopra)
 """
 
+# ── CACHE ─────────────────────────────────────────────────────────────────────
+import hashlib
+_extraction_cache: dict[str, dict] = {}  # hash → risultato estratto
+
+def _cache_key(text: str) -> str:
+    """Chiave cache basata su hash MD5 del testo (primi 2000 + lunghezza totale)."""
+    fingerprint = f"{len(text)}:{text[:2000]}:{text[-500:]}"
+    return hashlib.md5(fingerprint.encode()).hexdigest()
+
 # ── MODELS ────────────────────────────────────────────────────────────────────
 class ExtractRequest(BaseModel):
     text: str
@@ -865,32 +874,30 @@ def _extract_dense_sections(text: str, max_chars: int = 160_000) -> str:
 
 async def _refine_with_opus(merged: dict, text: str, filename: str) -> dict:
     """
-    Pass finale con Opus: arricchisce massimali e franchigie mancanti
-    cercando nei chunk più densi di dati (DIP, schede tecniche).
-    Usato solo quando ci sono garanzie con massimale_num = 0.
+    Pass finale di raffinamento: arricchisce massimali, sublimiti e franchigie mancanti
+    cercando nelle sezioni più dense del documento (DIP, schede tecniche, tabelle riassuntive).
+    Usa Sonnet per velocità — la qualità è mantenuta dal dense text ben selezionato.
     """
     missing = [g for g in merged.get("garanzie", []) if not g.get("massimale_num")]
     if not missing:
-        logger.info(f"[refine] '{filename}' — tutti i massimali già presenti, skip Opus")
+        logger.info(f"[refine] '{filename}' — tutti i massimali già presenti, skip refinement")
         return merged
 
-    # Estrai le sezioni più dense di dati (massimali, tabelle, valori Euro)
-    # da tutto il documento — questo garantisce di trovare anche tabelle in doc da 2M chars
     logger.info(f"[refine] '{filename}' — estrazione sezioni dense (doc: {len(text)} chars, missing: {len(missing)})")
-    dense_text = _extract_dense_sections(text, max_chars=150_000)
+    dense_text = _extract_dense_sections(text, max_chars=100_000)
     logger.info(f"[refine] '{filename}' — sezioni dense estratte: {len(dense_text)} chars")
 
     prompt = _build_refinement_prompt(merged, dense_text, filename)
     try:
         msg = await call_claude(
-            model="claude-opus-4-6",
-            max_tokens=6000,
+            model="claude-sonnet-4-6",
+            max_tokens=5000,
             messages=[{"role": "user", "content": prompt}]
         )
         raw = msg.content[0].text.strip()
         match = re.search(r'\{[\s\S]*\}', raw)
         if not match:
-            logger.warning(f"[refine] JSON non trovato nella risposta Opus per '{filename}' — uso merged originale")
+            logger.warning(f"[refine] JSON non trovato nella risposta per '{filename}' — uso merged originale")
             return merged
         refined = json.loads(match.group(0))
 
@@ -941,28 +948,31 @@ async def extract_policy(req: ExtractRequest):
     if len(text) < 100:
         raise HTTPException(400, "Testo polizza troppo breve o vuoto")
 
-    CHUNK_SIZE = 60_000  # caratteri per chunk
-    OVERLAP    =  3_000  # sovrapposizione tra chunk consecutivi
-    BATCH_SIZE =     16  # chunk processati in parallelo per batch (aumentato per ridurre latenza)
+    CHUNK_SIZE = 90_000  # caratteri per chunk (aumentato per meno chiamate AI)
+    OVERLAP    =  4_000  # sovrapposizione tra chunk consecutivi
+    BATCH_SIZE =     16  # chunk processati in parallelo
+
+    # Cache: se lo stesso documento è già stato analizzato, restituisce subito il risultato
+    cache_key = _cache_key(text)
+    if cache_key in _extraction_cache:
+        logger.info(f"[extract] '{req.filename}' — cache hit, skip estrazione")
+        return _extraction_cache[cache_key]
 
     try:
         if len(text) <= CHUNK_SIZE:
-            # Documento breve: singola estrazione
             result = await _extract_single_chunk(text, req.filename)
         else:
             chunks = _build_sequential_chunks(text, CHUNK_SIZE, OVERLAP)
             total = len(chunks)
-            logger.info(f"[extract] '{req.filename}' → {total} chunk(s) su {len(text)} chars — lettura completa")
+            logger.info(f"[extract] '{req.filename}' → {total} chunk(s) su {len(text)} chars")
 
             results = await _extract_all_chunks(chunks, req.filename, BATCH_SIZE)
             result = _merge_extractions(results)
 
-        # Fase 3: raffinamento Opus SEMPRE (se ci sono massimali mancanti)
         result = await _refine_with_opus(result, text, req.filename)
-
-        # Fase 4: sanitizzazione — rimuove frasi di rimando a documenti esterni
         result = _sanitize_extraction(result)
 
+        _extraction_cache[cache_key] = result  # salva in cache
         return result
 
     except HTTPException:
@@ -987,8 +997,8 @@ async def extract_policy_stream(req: ExtractRequest):
     if len(text) < 100:
         raise HTTPException(400, "Testo polizza troppo breve o vuoto")
 
-    CHUNK_SIZE = 60_000
-    OVERLAP    =  3_000
+    CHUNK_SIZE = 90_000
+    OVERLAP    =  4_000
     BATCH_SIZE =     16
 
     async def generate():
@@ -996,6 +1006,14 @@ async def extract_policy_stream(req: ExtractRequest):
 
         async def do_extract():
             try:
+                # Cache hit: risultato immediato
+                cache_key = _cache_key(text)
+                if cache_key in _extraction_cache:
+                    logger.info(f"[stream] '{req.filename}' — cache hit")
+                    await queue.put({"type": "progress", "step": "Risultato dalla cache...", "pct": 95})
+                    await queue.put({"type": "result", "data": _extraction_cache[cache_key]})
+                    return
+
                 if len(text) <= CHUNK_SIZE:
                     await queue.put({"type": "progress", "step": "Analisi documento...", "pct": 30})
                     result = await _extract_single_chunk(text, req.filename)
@@ -1022,11 +1040,10 @@ async def extract_policy_stream(req: ExtractRequest):
 
                     result = _merge_extractions(all_results)
 
-                # Opus refinement
-                await queue.put({"type": "progress", "step": "Verifica massimali con AI avanzata...", "pct": 82})
+                await queue.put({"type": "progress", "step": "Verifica massimali e sublimiti...", "pct": 82})
                 result = await _refine_with_opus(result, text, req.filename)
-                # Sanitizzazione finale — rimuove frasi di rimando a documenti esterni
                 result = _sanitize_extraction(result)
+                _extraction_cache[cache_key] = result  # salva in cache
                 await queue.put({"type": "result", "data": result})
 
             except HTTPException as he:
