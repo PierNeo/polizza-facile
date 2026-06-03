@@ -694,41 +694,38 @@ def _sanitize_extraction(result: dict) -> dict:
 def _apply_citation_filter(result: dict) -> dict:
     """
     Filtra i valori estratti che non hanno una citazione testuale di supporto.
-    Funziona solo sulla fase di estrazione (chunk) — dopo il merge ma prima del refinement.
-    La logica: se il modello ha estratto un valore numerico specifico ma non ha fornito
-    la frase del testo che lo giustifica, il valore è probabilmente inventato.
-    Valori "sicuri" (SA, Senza franchigia, Illimitato) non richiedono citazione.
+    CONSERVATIVO: applica il filtro SOLO se il modello ha esplicitamente restituito
+    il campo *_cite con valore null — NON se il campo è assente.
+    Questo evita di azzerare valori corretti estratti da modelli che non compilano
+    sempre le citazioni.
     """
-    SAFE_VALUES = {None, "", "Somma assicurata", "somma assicurata", "Illimitato", "illimitato",
-                   "Senza franchigia", "senza franchigia", "null"}
-
     for g in result.get("garanzie", []):
-        # Massimale: richiede citazione se è un numero specifico (massimale_num > 0)
-        if g.get("massimale_num", 0) > 0 and not g.get("massimale_cite"):
-            logger.debug(f"[cite] massimale senza citazione azzerato: {g.get('nome')} → {g.get('massimale')}")
-            g["massimale"] = None
-            g["massimale_num"] = 0
+        # Solo se il campo _cite è PRESENTE ed è esplicitamente null
+        # (il modello l'ha visto e ha detto "non ho trovato la fonte")
+        if "massimale_cite" in g and g["massimale_cite"] is None:
+            if g.get("massimale_num", 0) > 0:
+                logger.info(f"[cite] massimale ESPLICITAMENTE senza fonte: {g.get('nome')} → azzerato")
+                g["massimale"] = None
+                g["massimale_num"] = 0
 
-        # Note: richiede citazione se contiene Sublimiti (valori specifici)
-        note = g.get("note") or ""
-        if "Sublimiti" in note and not g.get("note_cite"):
-            logger.debug(f"[cite] note/sublimiti senza citazione azzerati: {g.get('nome')}")
-            g["note"] = None
+        if "note_cite" in g and g["note_cite"] is None:
+            note = g.get("note") or ""
+            if "Sublimiti" in note:
+                logger.info(f"[cite] note/sublimiti ESPLICITAMENTE senza fonte: {g.get('nome')} → azzerati")
+                g["note"] = None
 
-        # Scoperto: richiede citazione se non è null
-        scoperto = g.get("scoperto")
-        if scoperto and scoperto not in SAFE_VALUES and not g.get("scoperto_cite"):
-            logger.debug(f"[cite] scoperto senza citazione azzerato: {g.get('nome')} → {scoperto}")
-            g["scoperto"] = None
+        if "scoperto_cite" in g and g["scoperto_cite"] is None:
+            if g.get("scoperto"):
+                logger.info(f"[cite] scoperto ESPLICITAMENTE senza fonte: {g.get('nome')} → azzerato")
+                g["scoperto"] = None
 
-        # Franchigia: richiede citazione solo per valori complessi (giorni, % con note)
-        franchigia = g.get("franchigia") or ""
-        if ("giorni" in franchigia.lower() or ("%" in franchigia and "min" in franchigia.lower())) \
-                and not g.get("franchigia_cite"):
-            logger.debug(f"[cite] franchigia complessa senza citazione azzerata: {g.get('nome')} → {franchigia}")
-            g["franchigia"] = None
+        if "franchigia_cite" in g and g["franchigia_cite"] is None:
+            franchigia = g.get("franchigia") or ""
+            if "giorni" in franchigia.lower():
+                logger.info(f"[cite] franchigia giorni ESPLICITAMENTE senza fonte: {g.get('nome')} → azzerata")
+                g["franchigia"] = None
 
-    # Rimuovi i campi _cite dall'output (sono interni, non vanno al frontend)
+    # Rimuovi i campi _cite dall'output finale
     for g in result.get("garanzie", []):
         for field in ["massimale_cite", "note_cite", "scoperto_cite", "franchigia_cite"]:
             g.pop(field, None)
