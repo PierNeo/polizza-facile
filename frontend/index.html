@@ -1863,7 +1863,8 @@ async function extractAll() {
  for(let i=0;i<files.length;i++) {
   if(files[i].text!==null || files[i].pdfBase64!==undefined) continue;
   try {
-   if(USE_V2) {
+   if(USE_SEZIONI || USE_V2) {
+    // Sezioni (v3) e V2 usano entrambi il PDF in base64
     files[i].pdfBase64 = await readPdfBase64(files[i].file);
     files[i].text = '__v2__'; // placeholder per il check status
    } else {
