@@ -223,7 +223,7 @@ POLIZZE CASA / MULTIRISCHIO:
 
 POLIZZE INFORTUNI / SALUTE / PERSONA:
 - "Invalidità permanente da infortunio"
-- "Decesso da infortunio"
+- "Decesso da infortunio"           (include: "morte da infortuni", "capitale caso morte da infortuni" — mappa SEMPRE a questo nome standard)
 - "Invalidità permanente da malattia"
 - "Invalidità permanente da ictus o infarto"
 - "Invalidità permanente grave da malattia"
@@ -429,7 +429,7 @@ Per le garanzie Furto, Incendio, RC, Assistenza cerca SPECIFICAMENTE:
    - Pattern "fino ad un massimo di € ZZZ per evento" → scrivi "max €ZZZ/evento"
    - Sublimiti specifici per: preziosi, gioielli, valori, oggetti pregiati, dipendenze, lavoratori domestici,
      alloggio sostitutivo, spese demolizione/sgombero, rifacimento documenti, furto all'esterno
-   - ASSISTENZA CASA (CRITICO): cerca nella sezione "Assistenza Casa" o "Pronto Intervento" i limiti per tipo di servizio. Tipico: "fino a €250 per intervento" o "massimo €250 per evento". Scrivi nel campo note: "Sublimiti: Intervento tecnico max €250/evento | ..." . Se non trovi il valore esatto, cerca "€ 250", "euro 250", "duecentocinquanta euro" vicino a "intervento" o "assistenza".
+   - ASSISTENZA CASA (CRITICO): cerca nella sezione "Assistenza Casa", "Pronto Intervento" o nella tabella "SINTESI DEI LIMITI DI INDENNIZZO" i limiti per tipo di servizio. I valori variano per prodotto (es: Unipol UNICA ha "massimo complessivo €400 per evento, max €200 per artigiano"). Scrivi nel campo note tutti i sublimiti trovati: "Sublimiti: Artigiani max €X/evento (max €Y/singolo) | Asciugatura max €Z/evento | Vigilanza max N ore | Deposito max €W/evento | ...". Cerca pattern "massimo" o "fino a" seguiti da un importo in Euro vicino a "intervento", "artigiano", "idraulico", "asciugatura", "vigilanza", "pernottamento".
    Metti tutti questi sublimiti nel campo "note" con formato: "Sublimiti: [voce] max [limite] | [voce] max [limite]"
 
 **AREA 3 — SCOPERTI CON MINIMO (casa E infortuni):**
@@ -498,7 +498,7 @@ def _score_chunk(text: str) -> int:
     KEYWORDS_MED = [
         'franchigia', 'scoperto', 'sublimite', 'sinistro', 'indennizzo',
         'incendio', 'furto', 'assistenza', 'infortunio', 'invalidità',
-        'diaria', 'rimborso', 'decesso', 'premio',
+        'diaria', 'rimborso', 'decesso', 'morte', 'premio',
     ]
     MONEY_PAT = re.compile(r'(?:€\s*[\d\.]+|[\d\.]{4,}(?:,\d{2})?\s*€|\d+\.\d{3})')
     t = text.lower()
@@ -842,7 +842,8 @@ Estrai TUTTE le garanzie presenti usando la funzione extract_policy_data.
 REGOLE CRITICHE:
 — POLIZZE CASA/MULTIRISCHIO: massimale principale (Incendio, Furto) = "Somma assicurata". Estrai TUTTI i sublimiti nel campo note: "Sublimiti: voce max €X | voce max €Y"
 — ECCEZIONE: RC e Tutela Legale hanno massimali FISSI nel testo (RC tipicamente €5.000.000/sinistro) — estraili esplicitamente come massimale_num=5000000
-— ASSISTENZA CASA: leggi la tabella dei limiti per tipo di intervento (idraulico, elettricista, fabbro, vetraio, collaboratrice, albergo) e scrivi in note: "Sublimiti: Idraulico max €XXX/evento | Elettricista max €XXX/evento | ..."
+— ASSISTENZA CASA: cerca "SINTESI DEI LIMITI" o i singoli articoli per trovare il limite per tipo di servizio (es: "massimo complessivo €400 per evento, massimo €200 per artigiano"). Scrivi in note: "Sublimiti: Artigiani max €400/evento (max €200/singolo) | Asciugatura max €400/evento | Vigilanza max 8h | Deposito contenuto max €1.000/evento" — adatta i valori a quelli trovati nel testo.
+— POLIZZE INFORTUNI — "MORTE DA INFORTUNI" (o "Decesso da infortuni"): alcuni prodotti (es. Tandem) usano "Morte" invece di "Decesso". Mappala SEMPRE alla tassonomia come "Decesso da infortuni".
 — POLIZZE INFORTUNI: massimale = "Somma assicurata". Leggi la TABELLA RIASSUNTIVA DI LIMITI per scoperti (es: "20% min. €75") e franchigie in giorni (es: "5/10/15 giorni in base alla diaria scelta")
 — scoperto: includi SEMPRE il minimo in € (es: "10% min. €250", non solo "10%")
 — esclusioni: MAX 6, solo le più sorprendenti/rilevanti per un cliente normale
@@ -1093,6 +1094,8 @@ def _extract_dense_sections(text: str, max_chars: int = 160_000) -> str:
         'franchigia', 'scoperto', 'limite minimo', 'soglia', 'scoperti',
         'condizioni specifiche', 'scheda tecnica', 'tabella', 'prospetto',
         'responsabilità civile', 'tutela legale', 'assistenza',
+        'decesso', 'invalidità permanente', 'inabilità temporanea',
+        'diaria', 'rendita vitalizia', 'rimborso spese',
     ]
     # Pattern force-include: intestazioni di sezioni critiche + righe specifiche di tabelle
     FORCE_INCLUDE_PATTERNS = [
@@ -1105,7 +1108,15 @@ def _extract_dense_sections(text: str, max_chars: int = 160_000) -> str:
         re.compile(r'rimborso\s+spese\s+medich', re.IGNORECASE),  # sezione rimborso spese
         re.compile(r'tutela\s+legale', re.IGNORECASE),             # sezione tutela legale
         re.compile(r'assistenza\s+casa|pronto\s+intervento', re.IGNORECASE),
-        re.compile(r'(?:idraulic|elettric|fabbr|vetrai|intervento\s+tecnic).*€\s*\d+|€\s*\d+.*(?:idraulic|elettric|fabbr|vetrai|per\s+intervento)', re.IGNORECASE),  # qualsiasi importo vicino a idraulico/elettricista
+        re.compile(r'(?:idraulic|elettric|fabbr|vetrai|intervento\s+tecnic).*€\s*\d+|€\s*\d+.*(?:idraulic|elettric|fabbr|vetrai|per\s+intervento)', re.IGNORECASE),
+        re.compile(r'\bdecesso\b', re.IGNORECASE),                         # "Decesso" generico
+        re.compile(r'decesso\s+da\s+infortun', re.IGNORECASE),           # sezione decesso infortuni (esplicita)
+        re.compile(r'morte\s+da\s+infortun', re.IGNORECASE),             # Tandem usa "Morte da infortuni" non "Decesso"
+        re.compile(r'sintesi\s+dei\s+limiti', re.IGNORECASE),            # tabella sommario limiti assistenza
+        re.compile(r'invalidit[àa]\s+permanente', re.IGNORECASE),        # sezione IP
+        re.compile(r'inabilit[àa]\s+temporanea', re.IGNORECASE),         # sezione inabilità
+        re.compile(r'diaria\s+(da\s+)?ricovero', re.IGNORECASE),         # sezione diaria
+        re.compile(r'rendita\s+vitalizia', re.IGNORECASE),               # rendita vitalizia
     ]
 
     # Pattern per valori monetari italiani: 500.000 € o € 1.000 o 2.500.000,00
@@ -1373,9 +1384,9 @@ async def extract_policy_stream(req: ExtractRequest):
                         key=lambda x: _score_chunk(x[1][0]),
                         reverse=True
                     )
-                    # Sempre includi i primi 3 chunk (intestazione, DIP) + top 15 per score
+                    # Sempre includi i primi 3 chunk (intestazione, DIP) + top 19 per score (tot ~22)
                     keep_indices = set(range(min(3, total_raw)))
-                    for idx, _ in scored[:15]:
+                    for idx, _ in scored[:19]:
                         keep_indices.add(idx)
                     chunks = [all_chunks[i] for i in sorted(keep_indices)]
                     total = len(chunks)
