@@ -346,7 +346,7 @@ Regole CRITICHE:
 - massimale_num: valore numerico puro (es: 500000), 0 se non trovato o non applicabile
 - massimale: cerca ATTIVAMENTE i valori Euro nelle TABELLE del DIP, nelle Schede Tecniche, nei "Limiti di indennizzo", nelle "Somme assicurate", nei "Capitali assicurati", nelle "Condizioni specifiche", nelle righe "Massimale per sinistro", "Limite per evento", "Indennizzo massimo" — riporta il valore ESATTO trovato (es: "500.000 €", "2.500.000 €")
 - POLIZZE CASA / MULTIRISCHIO: Per queste polizze il massimale principale (Incendio, Furto) è la "Somma Assicurata" (SA), un valore scelto dal cliente non presente nel testo. In questo caso usa massimale="Somma assicurata" e massimale_num=0. PERÒ estrai OBBLIGATORIAMENTE nel campo note tutti i sublimiti trovati con formato "Sublimiti: X | Y | Z": es. gioielli, valori, preziosi, dipendenze, lavoratori domestici, alloggio sostitutivo, spese demolizione, etc.
-- ECCEZIONE CRITICA CASA: RC (Responsabilità Civile) e Tutela Legale NON usano "Somma assicurata" — hanno massimali FISSI nel testo (es: RC tipicamente €5.000.000/sinistro). Estraili sempre. Idem per Assistenza casa: ha limiti fissi per tipo di intervento (es: €250/evento) da mettere nel campo note come "Sublimiti: ...".
+- ECCEZIONE CRITICA CASA: RC (Responsabilità Civile) e Tutela Legale NON usano "Somma assicurata" — di norma hanno massimali FISSI nel testo (es: RC tipicamente €5.000.000/sinistro). Estraili sempre. ATTENZIONE: alcune polizze (es. Zurich, ITAS) hanno il massimale RC "indicato in Polizza" (scelto dal cliente) — in questo caso usa massimale="Indicato in Polizza" e massimale_num=0. Idem per Assistenza casa: ha limiti fissi per tipo di intervento da mettere nel campo note come "Sublimiti: ...". Se l'assistenza è strutturata in "base" e "plus", riporta i sublimiti di entrambe nel campo note separandole: "BASE: Idraulico max €X | Vetraio max €Y | ... PLUS: Idraulico max €Z | Asciugatura max €W | ...".
 - POLIZZE INFORTUNI: Tutte le garanzie (Decesso, Invalidità permanente, Diaria, Rimborso spese) hanno massimale = "Somma assicurata" (importo scelto dal cliente). USA SEMPRE massimale="Somma assicurata" per queste. MA cerca nella sezione "TABELLA RIASSUNTIVA DI LIMITI, FRANCHIGIE E/O SCOPERTI" tutti gli scoperti e franchigie: es. "Scoperto 20% con il minimo di €75 per rimborso spese" → scoperto="20% min. €75"; "5 giorni se diaria ≤ €50; 10 giorni se €50-€80; 15 giorni se >€80" → franchigia="5/10/15 giorni (in base alla diaria scelta)". Franchigia invalidità permanente: "Franchigia 5%" o "Franchigia 0% per IP ≥ 20%".
 - TABELLE: le tabelle PDF si presentano spesso come righe di testo allineato — cerca pattern come "Garanzia | Massimale | Franchigia" o "Nome garanzia ... €XXX.XXX" e leggi i valori numerici corrispondenti a ogni garanzia
 - franchigia: cerca nelle tabelle "Franchigie", "Scoperti", "Limitazioni", "Soglie", "Minimale" — riporta il valore ESATTO. ATTENZIONE: una franchigia può essere per sotto-garanzia (es: "Franchigia €250 per acqua piovana/allagamenti" va riportata anche se l'incendio in sé non ha franchigia). Per POLIZZE INFORTUNI: la franchigia può essere espressa in GIORNI (es: "franchigia di 5 giorni" per diaria) — scrivi "5 giorni" oppure "5/10/15 giorni (in base all'importo scelto)" se la franchigia è variabile.
@@ -644,7 +644,7 @@ def _sanitize_extraction(result: dict) -> dict:
     REFERENCE_PATTERNS = [
         re.compile(r'scheda\s+di\s+polizza', re.IGNORECASE),
         re.compile(r'posizione\s+assicurativa', re.IGNORECASE),
-        re.compile(r'indicat[oa]\s+in\s+', re.IGNORECASE),
+        re.compile(r'indicat[oa]\s+in\s+(?!polizza\b)', re.IGNORECASE),  # escludi "Indicato in Polizza" (massimale RC variabile legittimo)
         re.compile(r'convenuto\s+(nella|in)\s+scheda', re.IGNORECASE),
         re.compile(r'vedere\s+(la\s+)?sezione', re.IGNORECASE),
         re.compile(r'nella\s+sezione\s+assistenza', re.IGNORECASE),
@@ -652,7 +652,7 @@ def _sanitize_extraction(result: dict) -> dict:
         re.compile(r'dettagli\s+(limiti|nella)\s+sezione', re.IGNORECASE),
         re.compile(r'nella\s+tabella\s+sezione', re.IGNORECASE),
         re.compile(r'come\s+da\s+(scheda|posizione)', re.IGNORECASE),
-        re.compile(r'definit[oa]\s+in\s+polizza', re.IGNORECASE),
+        re.compile(r'definit[oa]\s+in\s+polizza', re.IGNORECASE),         # "definito in polizza" → rimando (diverso da "Indicato in Polizza")
         re.compile(r'riportat[oa]\s+nella\s+sezione', re.IGNORECASE),
         re.compile(r'verific[a-z]+\s+(nella|in|la)', re.IGNORECASE),
         re.compile(r'da\s+verificare', re.IGNORECASE),
@@ -841,7 +841,7 @@ Estrai TUTTE le garanzie presenti usando la funzione extract_policy_data.
 
 REGOLE CRITICHE:
 — POLIZZE CASA/MULTIRISCHIO: massimale principale (Incendio, Furto) = "Somma assicurata". Estrai TUTTI i sublimiti nel campo note: "Sublimiti: voce max €X | voce max €Y"
-— ECCEZIONE: RC e Tutela Legale hanno massimali FISSI nel testo (RC tipicamente €5.000.000/sinistro) — estraili esplicitamente come massimale_num=5000000
+— RC e Tutela Legale hanno di norma massimali FISSI nel testo (es: €5.000.000/sinistro). Se però il testo dice "massimale indicato in Polizza" o "come da Polizza", usa massimale="Indicato in Polizza" e massimale_num=0 — NON inventare una cifra.
 — ASSISTENZA CASA: cerca "SINTESI DEI LIMITI" o i singoli articoli per trovare il limite ESATTO per tipo di servizio (varia da polizza a polizza). Scrivi in note tutti i sublimiti trovati: "Sublimiti: Artigiani max €X/evento | Asciugatura max €Y/evento | Vigilanza max N ore | Deposito max €Z/evento | ..." — usa i valori ESATTI del testo, non inventare cifre.
 — POLIZZE INFORTUNI — "MORTE DA INFORTUNI" (o "Decesso da infortuni"): alcuni prodotti (es. Tandem) usano "Morte" invece di "Decesso". Mappala SEMPRE alla tassonomia come "Decesso da infortuni".
 — POLIZZE INFORTUNI: massimale = "Somma assicurata". Leggi la TABELLA RIASSUNTIVA DI LIMITI per scoperti (es: "20% min. €75") e franchigie in giorni (es: "5/10/15 giorni in base alla diaria scelta")
@@ -1113,6 +1113,9 @@ def _extract_dense_sections(text: str, max_chars: int = 160_000) -> str:
         re.compile(r'decesso\s+da\s+infortun', re.IGNORECASE),           # sezione decesso infortuni (esplicita)
         re.compile(r'morte\s+da\s+infortun', re.IGNORECASE),             # Tandem usa "Morte da infortuni" non "Decesso"
         re.compile(r'sintesi\s+dei\s+limiti', re.IGNORECASE),            # tabella sommario limiti assistenza
+        re.compile(r'assistenza\s+casa\s+(base|plus)', re.IGNORECASE),   # Zurich: "Assistenza casa base/plus"
+        re.compile(r'massimale\s+di\s+\d+\s*euro|fino\s+a\s+un\s+massimale', re.IGNORECASE),  # limiti assistenza espliciti
+        re.compile(r'massimale\s+indicato\s+in\s+polizza', re.IGNORECASE),  # RC variabile (Zurich, ITAS)
         re.compile(r'invalidit[àa]\s+permanente', re.IGNORECASE),        # sezione IP
         re.compile(r'inabilit[àa]\s+temporanea', re.IGNORECASE),         # sezione inabilità
         re.compile(r'diaria\s+(da\s+)?ricovero', re.IGNORECASE),         # sezione diaria
@@ -1650,3 +1653,548 @@ Rispondi solo con il testo del paragrafo, nessun titolo o prefazione."""
     except Exception as e:
         logger.error(f"Error in /api/summary: {e}")
         raise HTTPException(500, "Errore nella generazione del riepilogo")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── ESTRAZIONE PER SEZIONI (v3) ───────────────────────────────────────────────
+# Pipeline parallela — non tocca nulla del vecchio codice.
+# Organizza l'output per sezioni (come le vere CG) invece di lista piatta.
+# Endpoint: POST /api/extract-sezioni  |  POST /api/extract-sezioni-stream
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── DIZIONARIO SINONIMI ───────────────────────────────────────────────────────
+# Per ogni sezione standard, lista di nomi alternativi usati dalle varie compagnie.
+# Il modello usa questo dizionario per normalizzare i nomi estratti.
+
+SINONIMI_SEZIONI_CASA: dict[str, dict] = {
+    "incendio": {
+        "id": "incendio",
+        "nome_standard": "Incendio e danni ai beni",
+        "sinonimi": [
+            "protezione casa", "sezione protezione casa", "danni diretti",
+            "incendio e altri danni", "sezione incendio", "garanzia incendio",
+            "incendio e danni ai beni", "incendio e danni alla proprietà",
+            "danni all'abitazione", "garanzia incendio e danni",
+        ],
+        "sotto_garanzie": [
+            "incendio_fulmine_scoppio", "eventi_atmosferici", "atti_vandalici",
+            "danni_acqua", "rottura_lastre", "ricerca_guasto", "spese_demolizione",
+        ],
+    },
+    "furto": {
+        "id": "furto",
+        "nome_standard": "Furto",
+        "sinonimi": [
+            "sezione furto", "rapina e furto", "furto del contenuto",
+            "furto e rapina", "garanzia furto", "furto e scippo",
+        ],
+        "sotto_garanzie": [
+            "furto", "rapina", "scippo", "gioielli_preziosi",
+            "denaro_valori", "furto_fuori_casa",
+        ],
+    },
+    "rc": {
+        "id": "rc",
+        "nome_standard": "Responsabilità civile",
+        "sinonimi": [
+            "rc capofamiglia", "rc vita privata", "rc fabbricato",
+            "rc abitazione", "responsabilità civile verso terzi",
+            "rc della vita privata", "responsabilità civile abitazione",
+            "responsabilità civile vita privata e animali",
+            "rc abitazione vita privata e animali domestici",
+        ],
+        "sotto_garanzie": [
+            "vita_privata", "proprieta_fabbricato", "conduzione_alloggi",
+            "figli_minori", "animali_domestici",
+        ],
+    },
+    "assistenza": {
+        "id": "assistenza",
+        "nome_standard": "Assistenza casa",
+        "sinonimi": [
+            "pronto intervento", "assistenza domiciliare", "sezione assistenza",
+            "assistenza casa base", "assistenza casa plus", "sezione assistenza casa",
+        ],
+        "sotto_garanzie": [
+            "artigiani", "asciugatura", "vigilanza", "deposito_contenuto",
+            "pernottamento", "rientro_anticipato",
+        ],
+    },
+    "tutela_legale": {
+        "id": "tutela_legale",
+        "nome_standard": "Tutela legale",
+        "sinonimi": [
+            "tutela legale immobile", "tutela legale vita privata",
+            "sezione tutela legale", "tutela legale e protezione digitale",
+            "tutela legale per i veicoli",
+        ],
+        "sotto_garanzie": [],
+    },
+    "terremoto_alluvione": {
+        "id": "terremoto_alluvione",
+        "nome_standard": "Terremoto e alluvione",
+        "sinonimi": [
+            "terremoto", "alluvione", "eventi catastrofali", "sezione terremoto",
+            "terremoto e alluvione", "catastrofi naturali", "sezione terremoto e alluvione",
+            "alluvione e inondazione",
+        ],
+        "sotto_garanzie": ["terremoto", "alluvione", "inondazione", "allagamento"],
+    },
+    "fotovoltaico": {
+        "id": "fotovoltaico",
+        "nome_standard": "Impianto fotovoltaico",
+        "sinonimi": [
+            "sezione fotovoltaico", "impianto solare", "fotovoltaico",
+            "impianto fotovoltaico danni diretti",
+        ],
+        "sotto_garanzie": [],
+    },
+}
+
+SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
+    "morte": {
+        "id": "morte",
+        "nome_standard": "Morte da infortuni",
+        "sinonimi": [
+            "decesso da infortuni", "morte da infortuni", "capitale caso morte",
+            "caso morte", "morte", "7.1 morte da infortuni",
+        ],
+        "sotto_garanzie": [],
+    },
+    "ip_infortuni": {
+        "id": "ip_infortuni",
+        "nome_standard": "Invalidità permanente da infortuni",
+        "sinonimi": [
+            "ip da infortuni", "invalidità permanente", "ip infortuni",
+            "capitale ip", "invalidità permanente da infortunio",
+            "invalidità permanente grave da infortuni",
+        ],
+        "sotto_garanzie": [],
+    },
+    "rss_infortuni": {
+        "id": "rss_infortuni",
+        "nome_standard": "Rimborso spese sanitarie da infortuni",
+        "sinonimi": [
+            "rimborso spese mediche", "rimborso spese di cura",
+            "spese sanitarie", "spese di cura", "rss",
+            "rimborso spese", "rimborso spese mediche da infortuni",
+        ],
+        "sotto_garanzie": [],
+    },
+    "diaria_gesso": {
+        "id": "diaria_gesso",
+        "nome_standard": "Diaria gesso / immobilizzazione",
+        "sinonimi": [
+            "diaria da immobilizzazione", "indennità gesso", "diaria ingessatura",
+            "diaria immobilizzazione", "diaria da ingessatura",
+        ],
+        "sotto_garanzie": [],
+    },
+    "diaria_ricovero": {
+        "id": "diaria_ricovero",
+        "nome_standard": "Diaria ricovero",
+        "sinonimi": [
+            "diaria da ricovero", "indennità ricovero", "diaria ospedaliera",
+            "diaria post ricovero", "diaria per ricovero",
+            "diaria da ricovero completa",
+        ],
+        "sotto_garanzie": [],
+    },
+    "diaria_inabilita": {
+        "id": "diaria_inabilita",
+        "nome_standard": "Diaria inabilità temporanea",
+        "sinonimi": [
+            "inabilità temporanea al lavoro", "diaria per inabilità",
+            "indennità giornaliera", "ita", "diaria inabilità",
+            "diaria per inabilità temporanea",
+        ],
+        "sotto_garanzie": [],
+    },
+    "ip_malattia": {
+        "id": "ip_malattia",
+        "nome_standard": "Invalidità permanente da malattia",
+        "sinonimi": [
+            "ip da malattia", "invalidità da malattia", "ip malattia",
+            "ip ictus/infarto", "invalidità permanente da malattia",
+            "invalidità permanente grave da malattia",
+        ],
+        "sotto_garanzie": [],
+    },
+    "rendita_vitalizia": {
+        "id": "rendita_vitalizia",
+        "nome_standard": "Rendita vitalizia",
+        "sinonimi": ["rendita vitalizia", "rendita"],
+        "sotto_garanzie": [],
+    },
+}
+
+# Indice inverso sinonimi → id sezione (per lookup veloce)
+def _build_synonym_index(mapping: dict) -> dict[str, str]:
+    idx = {}
+    for section_id, data in mapping.items():
+        idx[data["nome_standard"].lower()] = section_id
+        for syn in data["sinonimi"]:
+            idx[syn.lower()] = section_id
+    return idx
+
+_SYN_CASA = _build_synonym_index(SINONIMI_SEZIONI_CASA)
+_SYN_INFORTUNI = _build_synonym_index(SINONIMI_SEZIONI_INFORTUNI)
+
+
+# ── TOOL USE SCHEMA PER SEZIONI ───────────────────────────────────────────────
+
+def _sezione_schema(tipo_polizza: str) -> dict:
+    """Tool use schema per estrazione a sezioni. Cambia in base al tipo polizza."""
+
+    if tipo_polizza == "Casa":
+        sezioni_enum = [d["nome_standard"] for d in SINONIMI_SEZIONI_CASA.values()]
+        sotto_garanzie_desc = """
+Oggetto con le sotto-garanzie della sezione. Per INCENDIO: incendio_fulmine_scoppio, eventi_atmosferici,
+atti_vandalici, danni_acqua, rottura_lastre, ricerca_guasto, spese_demolizione.
+Per FURTO: furto, rapina, scippo, gioielli_preziosi, denaro_valori, furto_fuori_casa.
+Per RC: vita_privata, proprieta_fabbricato, conduzione_alloggi, figli_minori, animali_domestici.
+Per ASSISTENZA: artigiani, asciugatura, vigilanza, deposito_contenuto, pernottamento.
+"""
+    else:  # Infortuni
+        sezioni_enum = [d["nome_standard"] for d in SINONIMI_SEZIONI_INFORTUNI.values()]
+        sotto_garanzie_desc = "Non applicabile per infortuni — lascia null."
+
+    return {
+        "name": "extract_sezioni",
+        "description": f"Estrae la struttura a sezioni di una polizza assicurativa italiana di tipo {tipo_polizza}.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "compagnia":  {"type": ["string", "null"]},
+                "prodotto":   {"type": ["string", "null"]},
+                "tipo":       {"type": "string", "enum": ["RC Auto", "Casa", "Vita", "Infortuni", "Salute", "Multirischio", "Risparmio", "altro"]},
+                "premio":     {"type": ["string", "null"]},
+                "sezioni": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id":           {"type": "string", "description": "ID normalizzato (snake_case): incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico, morte, ip_infortuni, rss_infortuni, diaria_gesso, diaria_ricovero, diaria_inabilita, ip_malattia, rendita_vitalizia"},
+                            "nome":         {"type": "string", "description": f"Nome NORMALIZZATO. Usa ESATTAMENTE uno di: {', '.join(sezioni_enum)}. NON inventare nomi diversi — usa i sinonimi per riconoscere la sezione, poi metti il nome standard."},
+                            "inclusa":      {"type": "boolean", "description": "true se presente nel pacchetto base"},
+                            "opzionale":    {"type": "boolean", "description": "true se acquistabile come extra, false se assente"},
+                            "massimale":    {"type": ["string", "null"], "description": "Es: '5.000.000 €', 'Somma assicurata', 'Indicato in Polizza', null"},
+                            "massimale_num":{"type": "number",  "description": "Valore numerico puro, 0 per SA/variabile"},
+                            "franchigia":   {"type": ["string", "null"]},
+                            "scoperto":     {"type": ["string", "null"], "description": "SEMPRE con minimo in € se presente: '10% min. €250'"},
+                            "sublimiti":    {"type": ["string", "null"], "description": "Sublimiti chiave in formato: 'Gioielli max €15.000 | Valori max €2.500 | ...'"},
+                            "sotto_garanzie": {
+                                "type": ["object", "null"],
+                                "description": sotto_garanzie_desc,
+                                "additionalProperties": {"type": ["boolean", "string", "null"]}
+                            },
+                            "note": {"type": ["string", "null"], "description": "Info aggiuntive non coperte dagli altri campi"},
+                        },
+                        "required": ["id", "nome", "inclusa", "opzionale", "massimale_num"]
+                    }
+                },
+                "punti_di_forza": {"type": "array", "items": {"type": "string"}, "description": "Max 4 punti concreti con valori numerici"},
+                "esclusioni":     {"type": "array", "items": {"type": "string"}, "description": "Max 5 esclusioni sorprendenti per il cliente"},
+                "consigliata_per":{"type": ["string", "null"]},
+            },
+            "required": ["tipo", "sezioni"]
+        }
+    }
+
+
+# ── PROMPT PER ESTRAZIONE A SEZIONI ──────────────────────────────────────────
+
+def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
+    tipo_note = f"\nNOTA: questa polizza è probabilmente di tipo '{tipo_hint}'.\n" if tipo_hint else ""
+
+    sinonimi_casa_txt = "\n".join(
+        f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
+        for sid, d in SINONIMI_SEZIONI_CASA.items()
+    )
+    sinonimi_infortuni_txt = "\n".join(
+        f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
+        for sid, d in SINONIMI_SEZIONI_INFORTUNI.items()
+    )
+
+    return f"""Sei un esperto di polizze assicurative italiane. Analizza questo documento (file: {filename}) e usa la funzione extract_sezioni.
+{tipo_note}
+
+DIZIONARIO SINONIMI — le compagnie usano nomi diversi per le stesse sezioni. Usa questo mapping per riconoscere le sezioni e normalizzare al nome standard:
+
+POLIZZE CASA:
+{sinonimi_casa_txt}
+
+POLIZZE INFORTUNI:
+{sinonimi_infortuni_txt}
+
+REGOLE CRITICHE:
+— id e nome: usa SEMPRE i valori standard dal dizionario sopra. Es: "Morte da infortuni" di Tandem → id="morte", nome="Morte da infortuni"
+— massimale: per Incendio/Furto/Infortuni usa "Somma assicurata". Per RC cerca il valore fisso (es: €5.000.000). Se il testo dice "massimale indicato in polizza" usa "Indicato in Polizza" e massimale_num=0.
+— franchigia e scoperto: estrai SEMPRE con il minimo in € quando presente (es: "10% min. €250"). Per infortuni cerca la tabella riassuntiva.
+— sublimiti: formato "Voce max €X | Voce max €Y". Per Furto: gioielli, valori, scippo fuori. Per Assistenza: limiti per tipo intervento.
+— sotto_garanzie: per Casa indica quali sotto-garanzie sono incluse (true/false) o il loro valore (es: "max €15.000" per gioielli).
+— Se una sezione è ESCLUSA esplicitamente: inclusa=false, opzionale=false. Se è opzionale acquistabile: inclusa=false, opzionale=true.
+— Estrai TUTTE le sezioni presenti o esplicitamente escluse."""
+
+
+# ── MODELLO REQUEST ───────────────────────────────────────────────────────────
+
+class ExtractSezioniRequest(BaseModel):
+    pdf_base64: str
+    filename: str
+    tipo_hint: str = ""  # "Casa" | "Infortuni" | "" (auto)
+
+
+# ── CORE EXTRACTION FUNCTION ──────────────────────────────────────────────────
+
+async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: int,
+                                  total_pages: int, filename: str, tipo_hint: str) -> dict:
+    """Estrae sezioni da un chunk PDF usando Claude native PDF + tool use."""
+    chunk_b64 = base64.b64encode(chunk_bytes).decode()
+    chunk_info = f"pagine {page_start + 1}-{page_end} di {total_pages}"
+    prompt = _build_sezioni_prompt(filename, tipo_hint) + f"\n\n(stai analizzando {chunk_info})"
+
+    # Prima chiamata senza tipo per rilevarlo, poi con schema corretto
+    tipo_per_schema = tipo_hint if tipo_hint else "Casa"  # default Casa, poi merge decide
+
+    try:
+        msg = await client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=4096,
+            tools=[_sezione_schema(tipo_per_schema)],
+            tool_choice={"type": "tool", "name": "extract_sezioni"},
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}},
+                    {"type": "text", "text": prompt}
+                ]
+            }]
+        )
+        for block in msg.content:
+            if block.type == "tool_use":
+                return block.input
+        return {}
+    except Exception as e:
+        logger.error(f"[sezioni] errore chunk {chunk_info} di '{filename}': {e}")
+        return {}
+
+
+def _merge_sezioni(results: list[dict]) -> dict:
+    """
+    Unisce risultati da chunk multipli dello stesso documento.
+    Strategia: sezioni deduplicate per id, preferisce quella con più dati.
+    """
+    if not results:
+        return {}
+    if len(results) == 1:
+        return results[0]
+
+    merged = results[0].copy()
+
+    # Rileva il tipo dalla maggioranza
+    tipi = [r.get("tipo", "") for r in results if r.get("tipo")]
+    if tipi:
+        merged["tipo"] = max(set(tipi), key=tipi.count)
+
+    # Merge sezioni per id
+    sezioni_map: dict[str, dict] = {}
+    for r in results:
+        for s in r.get("sezioni", []):
+            sid = s.get("id", "").strip()
+            if not sid:
+                continue
+            if sid not in sezioni_map:
+                sezioni_map[sid] = s
+            else:
+                existing = sezioni_map[sid]
+                # Preferisce record più completo
+                def _score(x): return sum(1 for v in x.values() if v not in (None, 0, "", False))
+                if _score(s) > _score(existing):
+                    # Mantieni i campi non-null del vecchio se il nuovo li ha null
+                    for k, v in existing.items():
+                        if v not in (None, 0, "", False) and s.get(k) in (None, 0, "", False):
+                            s[k] = v
+                    sezioni_map[sid] = s
+                else:
+                    # Integra campi mancanti dal nuovo
+                    for k in ["franchigia", "scoperto", "sublimiti", "note", "sotto_garanzie"]:
+                        if s.get(k) and not existing.get(k):
+                            existing[k] = s[k]
+
+    merged["sezioni"] = list(sezioni_map.values())
+
+    # Metadati testuali dal primo non-null
+    for field in ["compagnia", "prodotto", "premio", "consigliata_per"]:
+        for r in results:
+            val = r.get(field)
+            if val and val != "null":
+                merged[field] = val
+                break
+
+    # Punti di forza ed esclusioni: unione senza duplicati
+    seen: set = set()
+    pf = []
+    for r in results:
+        for p in r.get("punti_di_forza", []):
+            if p and p not in seen:
+                seen.add(p); pf.append(p)
+    merged["punti_di_forza"] = pf[:4]
+
+    seen = set()
+    excl = []
+    for r in results:
+        for e in r.get("esclusioni", []):
+            if e and e not in seen:
+                seen.add(e); excl.append(e)
+    merged["esclusioni"] = excl[:5]
+
+    return merged
+
+
+def _normalize_sezioni(result: dict) -> dict:
+    """
+    Post-processing: normalizza gli id/nomi delle sezioni usando il dizionario sinonimi.
+    Se il modello ha usato un nome non standard, lo corregge.
+    """
+    tipo = result.get("tipo", "Casa")
+    syn_index = _SYN_INFORTUNI if tipo == "Infortuni" else _SYN_CASA
+    sezioni_map = SINONIMI_SEZIONI_INFORTUNI if tipo == "Infortuni" else SINONIMI_SEZIONI_CASA
+
+    for s in result.get("sezioni", []):
+        nome = (s.get("nome") or "").lower().strip()
+        # Cerca nel dizionario sinonimi
+        matched_id = syn_index.get(nome)
+        if matched_id and matched_id in sezioni_map:
+            s["id"] = matched_id
+            s["nome"] = sezioni_map[matched_id]["nome_standard"]
+        elif not s.get("id"):
+            # Genera un id snake_case dal nome
+            s["id"] = re.sub(r'[^a-z0-9]+', '_', nome)[:30].strip('_')
+
+    return result
+
+
+# ── ENDPOINT: POST /api/extract-sezioni ──────────────────────────────────────
+
+@app.post("/api/extract-sezioni")
+async def extract_sezioni(req: ExtractSezioniRequest):
+    """
+    Estrazione a sezioni — versione sincrona.
+    Input: PDF in base64 + filename + tipo_hint opzionale.
+    Output: JSON con sezioni (incendio, furto, RC, ecc.) invece di lista piatta.
+    """
+    try:
+        pdf_bytes = base64.b64decode(req.pdf_base64)
+    except Exception:
+        raise HTTPException(400, "pdf_base64 non valido")
+
+    if len(pdf_bytes) < 100:
+        raise HTTPException(400, "PDF troppo piccolo o vuoto")
+
+    # Cache
+    cache_key = _cache_key(req.pdf_base64[:2000] + str(len(pdf_bytes)) + "v3sezioni")
+    if cache_key in _extraction_cache:
+        logger.info(f"[sezioni] '{req.filename}' — cache hit")
+        return _extraction_cache[cache_key]
+
+    try:
+        chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
+        total = len(chunks)
+        logger.info(f"[sezioni] '{req.filename}' → {total} chunk(s), {len(pdf_bytes)//1024}KB")
+
+        results = await asyncio.gather(*[
+            _extract_sezioni_chunk(cb, ps, pe, pt, req.filename, req.tipo_hint)
+            for cb, ps, pe, pt in chunks
+        ])
+        results = [r for r in results if r]
+        if not results:
+            raise HTTPException(500, "Nessun dato estratto dal PDF")
+
+        result = _merge_sezioni(results) if len(results) > 1 else results[0]
+        result = _normalize_sezioni(result)
+        _extraction_cache[cache_key] = result
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[sezioni] errore '{req.filename}': {e}")
+        raise HTTPException(500, "Errore durante l'analisi per sezioni")
+
+
+# ── ENDPOINT: POST /api/extract-sezioni-stream ───────────────────────────────
+
+@app.post("/api/extract-sezioni-stream")
+async def extract_sezioni_stream(req: ExtractSezioniRequest):
+    """
+    Versione streaming SSE di /api/extract-sezioni.
+    Invia eventi progress/result come gli altri endpoint stream.
+    """
+    try:
+        pdf_bytes = base64.b64decode(req.pdf_base64)
+    except Exception:
+        raise HTTPException(400, "pdf_base64 non valido")
+
+    if len(pdf_bytes) < 100:
+        raise HTTPException(400, "PDF troppo piccolo o vuoto")
+
+    async def generate():
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def do_extract():
+            try:
+                cache_key = _cache_key(req.pdf_base64[:2000] + str(len(pdf_bytes)) + "v3sezioni")
+                if cache_key in _extraction_cache:
+                    await queue.put({"type": "progress", "step": "Risultato dalla cache...", "pct": 95})
+                    await queue.put({"type": "result", "data": _extraction_cache[cache_key]})
+                    return
+
+                chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
+                total = len(chunks)
+                await queue.put({"type": "progress", "step": f"Lettura PDF ({total} sezioni, {len(pdf_bytes)//1024}KB)...", "pct": 5})
+
+                results = await asyncio.gather(*[
+                    _extract_sezioni_chunk(cb, ps, pe, pt, req.filename, req.tipo_hint)
+                    for cb, ps, pe, pt in chunks
+                ])
+                await queue.put({"type": "progress", "step": "Normalizzazione sezioni...", "pct": 80})
+
+                results = [r for r in results if r]
+                if not results:
+                    await queue.put({"type": "error", "message": "Nessun dato estratto dal PDF"})
+                    return
+
+                result = _merge_sezioni(results) if len(results) > 1 else results[0]
+                await queue.put({"type": "progress", "step": "Applicazione dizionario sinonimi...", "pct": 92})
+                result = _normalize_sezioni(result)
+                _extraction_cache[cache_key] = result
+                await queue.put({"type": "result", "data": result})
+
+            except Exception as e:
+                logger.error(f"[sezioni stream] errore '{req.filename}': {e}")
+                await queue.put({"type": "error", "message": str(e) or "Errore durante l'analisi"})
+
+        task = asyncio.create_task(do_extract())
+        try:
+            while True:
+                try:
+                    msg = await asyncio.wait_for(queue.get(), timeout=3.0)
+                    yield f"data: {json.dumps(msg, ensure_ascii=False)}\n\n"
+                    if msg["type"] in ("result", "error"):
+                        break
+                except asyncio.TimeoutError:
+                    yield 'data: {"type":"ping"}\n\n'
+        finally:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no",
+                                      "Connection": "keep-alive"})
+
+# ── FINE ESTRAZIONE PER SEZIONI (v3) ─────────────────────────────────────────
