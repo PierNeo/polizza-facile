@@ -429,7 +429,7 @@ Per le garanzie Furto, Incendio, RC, Assistenza cerca SPECIFICAMENTE:
    - Pattern "fino ad un massimo di € ZZZ per evento" → scrivi "max €ZZZ/evento"
    - Sublimiti specifici per: preziosi, gioielli, valori, oggetti pregiati, dipendenze, lavoratori domestici,
      alloggio sostitutivo, spese demolizione/sgombero, rifacimento documenti, furto all'esterno
-   - ASSISTENZA CASA (CRITICO): cerca nella sezione "Assistenza Casa", "Pronto Intervento" o nella tabella "SINTESI DEI LIMITI DI INDENNIZZO" i limiti per tipo di servizio. I valori variano per prodotto (es: Unipol UNICA ha "massimo complessivo €400 per evento, max €200 per artigiano"). Scrivi nel campo note tutti i sublimiti trovati: "Sublimiti: Artigiani max €X/evento (max €Y/singolo) | Asciugatura max €Z/evento | Vigilanza max N ore | Deposito max €W/evento | ...". Cerca pattern "massimo" o "fino a" seguiti da un importo in Euro vicino a "intervento", "artigiano", "idraulico", "asciugatura", "vigilanza", "pernottamento".
+   - ASSISTENZA CASA (CRITICO): cerca nella sezione "Assistenza Casa", "Pronto Intervento" o nella tabella "SINTESI DEI LIMITI DI INDENNIZZO" i limiti per tipo di servizio. I valori variano da polizza a polizza — usa SEMPRE i valori ESATTI trovati nel testo. Scrivi nel campo note tutti i sublimiti trovati: "Sublimiti: Artigiani max €X/evento | Asciugatura max €Y/evento | Vigilanza max N ore | Deposito max €Z/evento | ...". Cerca pattern "massimo" o "fino a" seguiti da un importo in Euro vicino a "intervento", "artigiano", "idraulico", "asciugatura", "vigilanza", "pernottamento".
    Metti tutti questi sublimiti nel campo "note" con formato: "Sublimiti: [voce] max [limite] | [voce] max [limite]"
 
 **AREA 3 — SCOPERTI CON MINIMO (casa E infortuni):**
@@ -842,7 +842,7 @@ Estrai TUTTE le garanzie presenti usando la funzione extract_policy_data.
 REGOLE CRITICHE:
 — POLIZZE CASA/MULTIRISCHIO: massimale principale (Incendio, Furto) = "Somma assicurata". Estrai TUTTI i sublimiti nel campo note: "Sublimiti: voce max €X | voce max €Y"
 — ECCEZIONE: RC e Tutela Legale hanno massimali FISSI nel testo (RC tipicamente €5.000.000/sinistro) — estraili esplicitamente come massimale_num=5000000
-— ASSISTENZA CASA: cerca "SINTESI DEI LIMITI" o i singoli articoli per trovare il limite per tipo di servizio (es: "massimo complessivo €400 per evento, massimo €200 per artigiano"). Scrivi in note: "Sublimiti: Artigiani max €400/evento (max €200/singolo) | Asciugatura max €400/evento | Vigilanza max 8h | Deposito contenuto max €1.000/evento" — adatta i valori a quelli trovati nel testo.
+— ASSISTENZA CASA: cerca "SINTESI DEI LIMITI" o i singoli articoli per trovare il limite ESATTO per tipo di servizio (varia da polizza a polizza). Scrivi in note tutti i sublimiti trovati: "Sublimiti: Artigiani max €X/evento | Asciugatura max €Y/evento | Vigilanza max N ore | Deposito max €Z/evento | ..." — usa i valori ESATTI del testo, non inventare cifre.
 — POLIZZE INFORTUNI — "MORTE DA INFORTUNI" (o "Decesso da infortuni"): alcuni prodotti (es. Tandem) usano "Morte" invece di "Decesso". Mappala SEMPRE alla tassonomia come "Decesso da infortuni".
 — POLIZZE INFORTUNI: massimale = "Somma assicurata". Leggi la TABELLA RIASSUNTIVA DI LIMITI per scoperti (es: "20% min. €75") e franchigie in giorni (es: "5/10/15 giorni in base alla diaria scelta")
 — scoperto: includi SEMPRE il minimo in € (es: "10% min. €250", non solo "10%")
