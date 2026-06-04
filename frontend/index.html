@@ -1854,20 +1854,43 @@ function renderChips() {
 
 function removeFile(i) { files.splice(i,1); renderChips(); }
 
+// ── V2: usa Native PDF API se USE_V2_EXTRACTION = true in config ────────────
+const USE_V2 = !!(window.AGENZIA_CONFIG && window.AGENZIA_CONFIG.useV2Extraction);
+// ── V3: estrazione per SEZIONI (nuovo formato) — attivo di default ────────────
+const USE_SEZIONI = true;
+
 async function extractAll() {
  for(let i=0;i<files.length;i++) {
- if(files[i].text!==null) continue;
- try { files[i].text=await readPdf(files[i].file); files[i].status='ready'; }
- catch { files[i].status='error'; }
- renderChips();
+  if(files[i].text!==null || files[i].pdfBase64!==undefined) continue;
+  try {
+   if(USE_V2) {
+    files[i].pdfBase64 = await readPdfBase64(files[i].file);
+    files[i].text = '__v2__'; // placeholder per il check status
+   } else {
+    files[i].text = await readPdf(files[i].file);
+   }
+   files[i].status='ready';
+  } catch { files[i].status='error'; }
+  renderChips();
  }
 }
 
+// V1: estrae testo con pdfjs (comportamento attuale)
 async function readPdf(file) {
  const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise;
  let out=''; const pages=Math.min(pdf.numPages,80);
  for(let p=1;p<=pages;p++){const pg=await pdf.getPage(p);const ct=await pg.getTextContent();out+=ct.items.map(i=>i.str).join(' ')+'\n';}
- return out; // nessun troncamento: il backend gestisce i chunk
+ return out;
+}
+
+// V2: legge il PDF come base64 (nessuna estrazione testo — lo fa Claude visivamente)
+async function readPdfBase64(file) {
+ return new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result.split(',')[1]); // rimuove "data:...;base64,"
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+ });
 }
 
 // 
@@ -1901,7 +1924,7 @@ async function startComparison() {
    _setProgressBar(Math.min(globalPct, 90));
    if (step) document.getElementById('loadingSubtitle').textContent = step;
   };
-  const data = await callExtract(newFiles[i].text, newFiles[i].name, onProg);
+  const data = await callExtract(newFiles[i].text, newFiles[i].name, onProg, newFiles[i].pdfBase64);
   newFiles[i].extracted = data; extracted.push(data);
   steps[i].status='done'; renderSteps(steps);
  }
@@ -1986,12 +2009,25 @@ function confirmVerifica() {
  navTo('pagResults');
 }
 
-async function callExtract(text, filename, onProgress) {
- // SSE streaming — il backend invia ping ogni 3s → nessun timeout Cloudflare/Railway.
- const res = await fetch(`${BACKEND}/api/extract-stream`, {
+async function callExtract(text, filename, onProgress, pdfBase64) {
+ // V3: estrazione per sezioni (nuovo formato) — usa sempre se pdfBase64 disponibile
+ // V2: native PDF flat (fallback se USE_SEZIONI disabilitato)
+ // V1: text-based (fallback finale)
+ let endpoint, body;
+ if (USE_SEZIONI && pdfBase64) {
+  endpoint = '/api/extract-sezioni-stream';
+  body = JSON.stringify({pdf_base64: pdfBase64, filename, tipo_hint: ''});
+ } else if (USE_V2 && pdfBase64) {
+  endpoint = '/api/extract-stream-v2';
+  body = JSON.stringify({pdf_base64: pdfBase64, filename});
+ } else {
+  endpoint = '/api/extract-stream';
+  body = JSON.stringify({text, filename});
+ }
+ const res = await fetch(`${BACKEND}${endpoint}`, {
   method: 'POST',
   headers: {'Content-Type': 'application/json'},
-  body: JSON.stringify({text, filename})
+  body
  });
  if (!res.ok) {
   const e = await res.json().catch(() => ({}));
@@ -2100,7 +2136,10 @@ function renderResults(policies) {
  </div>`;
  }).join('');
 
- buildTable(policies,cols);
+ // Scegli renderer in base al formato del risultato
+ const hasSezioni = policies.some(p => p.sezioni && p.sezioni.length > 0);
+ if (hasSezioni) buildTableSezioni(policies, cols);
+ else buildTable(policies, cols);
 
  document.getElementById('adviceGrid').innerHTML=policies.map((p,i)=>p.consigliata_per?`<div class="advice-card"><div class="advice-icon">${['','','🟡',''][i]}</div><div><div class="advice-company">${esc(p.compagnia||'')}</div><div class="advice-for">${esc(p.prodotto||'')}</div><div class="advice-text">${esc(p.consigliata_per)}</div></div></div>`:'').join('');
  document.getElementById('adviceTitle').style.display=policies.some(p=>p.consigliata_per)?'block':'none';
@@ -2206,9 +2245,130 @@ function buildTable(policies,cols) {
  document.getElementById('compTable').innerHTML=html;
 }
 
+// ── TABELLA SEZIONI (v3) ──────────────────────────────────────────────────────
+function buildTableSezioni(policies, cols) {
+ const NUMERI = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+ // Raccoglie tutte le sezioni uniche (per id) in ordine di prima occorrenza
+ const sezioniOrder = [];
+ const sezioniById = {};
+ policies.forEach(p => {
+  (p.sezioni || []).forEach(s => {
+   if (!s.id || sezioniById[s.id]) return;
+   sezioniById[s.id] = s.nome || s.id;
+   sezioniOrder.push(s.id);
+  });
+ });
+
+ let html = '<thead><tr><th style="text-align:left;min-width:160px">Sezione / Campo</th>';
+ policies.forEach((p,i) => html += `<th style="border-top:3px solid ${cols[i]}"><span class="th-company">${esc(p.compagnia||'')}</span><span class="th-product">${esc(p.prodotto||'')}</span></th>`);
+ html += '</tr></thead><tbody>';
+
+ const FIELDS = [
+  { key: 'massimale',  label: 'Massimale' },
+  { key: 'franchigia', label: 'Franchigia' },
+  { key: 'scoperto',   label: 'Scoperto' },
+  { key: 'sublimiti',  label: 'Sublimiti' },
+ ];
+
+ sezioniOrder.forEach((sid, idx) => {
+  const nomeSezione = sezioniById[sid];
+  const num = NUMERI[idx] || `(${idx+1})`;
+
+  // Header sezione
+  html += `<tr class="group-row"><td colspan="${policies.length+1}">${num} ${esc(nomeSezione)}</td></tr>`;
+
+  // Riga stato (inclusa / opzionale / esclusa)
+  html += `<tr><td class="row-label" style="color:var(--gray-400);font-size:11px">Copertura</td>`;
+  policies.forEach(p => {
+   const s = (p.sezioni||[]).find(x => x.id === sid);
+   if (!s) { html += `<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`; return; }
+   if (s.inclusa) {
+    html += `<td class="cell c-mid"><div class="cell-inner"><span style="color:var(--green-dark);font-weight:600;font-size:12px">✓ Inclusa</span></div></td>`;
+   } else if (s.opzionale) {
+    html += `<td class="cell c-optional"><div class="cell-inner"><span class="optional-tag">+ Opzionale</span></div></td>`;
+   } else {
+    html += `<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span><span style="font-size:9px;color:var(--gray-300);margin-top:1px">Esclusa</span></div></td>`;
+   }
+  });
+  html += '</tr>';
+
+  // Righe campi: massimale, franchigia, scoperto, sublimiti
+  FIELDS.forEach(({key, label}) => {
+   const hasAny = policies.some(p => {
+    const s = (p.sezioni||[]).find(x => x.id === sid);
+    return s && s[key];
+   });
+   if (!hasAny) return;
+
+   html += `<tr><td class="row-label">${esc(label)}</td>`;
+   policies.forEach(p => {
+    const s = (p.sezioni||[]).find(x => x.id === sid);
+    const val = s && s[key];
+    if (!val) {
+     html += `<td class="cell"><div class="cell-inner"><span style="color:var(--gray-300);font-size:12px">—</span></div></td>`;
+     return;
+    }
+    // Evidenzia valori numerici alti nel massimale
+    const isMassimale = key === 'massimale';
+    const isBig = isMassimale && s.massimale_num > 0;
+    html += `<td class="cell ${isBig ? 'c-mid' : ''}"><div class="cell-inner">`;
+    if (key === 'massimale') {
+     html += `<span class="massimale">${esc(val)}</span>`;
+    } else if (key === 'franchigia') {
+     html += `<span class="detail-tag franchigia">Fr. ${esc(val)}</span>`;
+    } else if (key === 'scoperto') {
+     html += `<span class="detail-tag scoperto">Sc. ${esc(val)}</span>`;
+    } else if (key === 'sublimiti') {
+     html += `<span style="font-size:11px;color:var(--gray-500);line-height:1.5">${esc(val)}</span>`;
+    }
+    html += '</div></td>';
+   });
+   html += '</tr>';
+  });
+
+  // Riga note (se presenti)
+  const hasNotes = policies.some(p => {
+   const s = (p.sezioni||[]).find(x => x.id === sid);
+   return s && s.note;
+  });
+  if (hasNotes) {
+   html += `<tr><td class="row-label" style="color:var(--gray-400);font-size:11px">Note</td>`;
+   policies.forEach(p => {
+    const s = (p.sezioni||[]).find(x => x.id === sid);
+    const nota = s && s.note;
+    html += nota
+     ? `<td class="cell"><div class="cell-inner"><span class="note-text">${esc(nota)}</span></div></td>`
+     : `<td class="cell"><div class="cell-inner"><span style="color:var(--gray-300)">—</span></div></td>`;
+   });
+   html += '</tr>';
+  }
+ });
+
+ html += '</tbody>';
+ document.getElementById('compTable').innerHTML = html;
+}
+
 // Calcola gli score di tutte le polizze confrontate normalizzando i massimali
 // tra di esse (non all'interno della singola polizza) per un confronto equo.
 function calcScores(policies) {
+ // Se formato sezioni: calcola score da sezioni
+ if (policies.some(p => p.sezioni && p.sezioni.length > 0)) {
+  return policies.map(p => {
+   const sezioni = p.sezioni || [];
+   if (!sezioni.length) return 0;
+   let pts = 0, max = 0;
+   sezioni.forEach(s => {
+    if (s.opzionale && !s.inclusa) return; // opzionali non entrano nel denominatore
+    max += 3;
+    if (!s.inclusa) return;
+    pts += 1.5;
+    if (s.massimale_num > 0) pts += 0.5;
+    if (!s.franchigia && !s.scoperto) pts += 0.5;
+    else if (s.scoperto) pts -= 0.2;
+   });
+   return Math.min(100, Math.max(10, max > 0 ? Math.round((pts / max) * 100) : 0));
+  });
+ }
  // Costruisce la mappa dei massimali massimi per ogni garanzia (nome) tra tutte le polizze
  const globalMax = {};
  policies.forEach(p => {
