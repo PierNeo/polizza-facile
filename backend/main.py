@@ -2214,3 +2214,284 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
                                       "Connection": "keep-alive"})
 
 # ── FINE ESTRAZIONE PER SEZIONI (v3) ─────────────────────────────────────────
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── LIBRERIA CGA — SYNC AUTOMATICO ────────────────────────────────────────────
+# Scarica le CGA pubbliche delle compagnie, controlla aggiornamenti via hash,
+# ri-estrae con pipeline v3 se cambiata, salva in Qdrant collection separata.
+# Endpoints:
+#   GET  /api/library          — lista polizze in libreria
+#   POST /api/library/sync     — sincronizza tutto il catalogo (o una singola entry)
+#   GET  /api/library/catalog  — restituisce il catalogo con stato corrente
+# ══════════════════════════════════════════════════════════════════════════════
+
+import pathlib
+
+_CATALOG_PATH = pathlib.Path(__file__).parent / "cga_catalog.json"
+_LIBRARY_COLLECTION = "cga_library"
+_LIBRARY_PID_PREFIX = "lib:"  # es: "lib:unipol-unica-casa"
+
+
+def _load_catalog() -> list[dict]:
+    """Legge il catalogo da file JSON."""
+    if not _CATALOG_PATH.exists():
+        return []
+    with open(_CATALOG_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _save_catalog(catalog: list[dict]):
+    """Salva il catalogo aggiornato su file."""
+    with open(_CATALOG_PATH, "w", encoding="utf-8") as f:
+        json.dump(catalog, f, ensure_ascii=False, indent=2)
+
+
+async def _q_get_library(entry_id: str) -> dict | None:
+    """Legge una entry della libreria da Qdrant."""
+    pid = _LIBRARY_PID_PREFIX + entry_id
+    if not QDRANT_URL or not _qdrant_ok:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            r = await http.get(
+                f"{QDRANT_URL}/collections/{_LIBRARY_COLLECTION}/points/{pid}",
+                headers=_qh()
+            )
+            if r.status_code == 404:
+                return None
+            r.raise_for_status()
+            return r.json().get("result", {}).get("payload", {}).get("data")
+    except Exception as e:
+        logger.error(f"[library] get {entry_id}: {e}")
+        return None
+
+
+async def _q_set_library(entry_id: str, data: dict):
+    """Salva una entry della libreria in Qdrant."""
+    pid = _LIBRARY_PID_PREFIX + entry_id
+    if not QDRANT_URL or not _qdrant_ok:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as http:
+            r = await http.put(
+                f"{QDRANT_URL}/collections/{_LIBRARY_COLLECTION}/points",
+                headers=_qh(),
+                json={"points": [{"id": pid, "vector": [0.0], "payload": {"data": data}}]}
+            )
+            r.raise_for_status()
+    except Exception as e:
+        logger.error(f"[library] set {entry_id}: {e}")
+
+
+async def _ensure_library_collection():
+    """Crea la collection libreria se non esiste."""
+    if not QDRANT_URL or not _qdrant_ok:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            r = await http.get(f"{QDRANT_URL}/collections/{_LIBRARY_COLLECTION}", headers=_qh())
+            if r.status_code == 404:
+                r2 = await http.put(
+                    f"{QDRANT_URL}/collections/{_LIBRARY_COLLECTION}",
+                    headers=_qh(),
+                    json={"vectors": {"size": 1, "distance": "Cosine"}}
+                )
+                if r2.status_code in (200, 201):
+                    logger.info(f"[library] Collection '{_LIBRARY_COLLECTION}' creata")
+    except Exception as e:
+        logger.error(f"[library] ensure collection: {e}")
+
+
+async def _sync_entry(entry: dict) -> dict:
+    """
+    Sincronizza una singola entry del catalogo:
+    1. Scarica il PDF dall'URL
+    2. Calcola hash MD5
+    3. Se hash diverso dall'ultimo → ri-estrae con v3
+    4. Aggiorna Qdrant e il catalogo
+    Restituisce entry aggiornata con status.
+    """
+    entry_id = entry["id"]
+    url = entry.get("url", "")
+    logger.info(f"[library sync] '{entry_id}' — {url}")
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http:
+            r = await http.get(url, headers={"User-Agent": "Mozilla/5.0 (compatible; PFBot/1.0)"})
+            if r.status_code != 200:
+                logger.warning(f"[library sync] '{entry_id}' — HTTP {r.status_code}")
+                return {**entry, "sync_status": "error", "sync_error": f"HTTP {r.status_code}"}
+            pdf_bytes = r.content
+
+        if len(pdf_bytes) < 500:
+            return {**entry, "sync_status": "error", "sync_error": "PDF troppo piccolo"}
+
+        # Hash del PDF
+        new_hash = hashlib.md5(pdf_bytes).hexdigest()
+        old_hash = entry.get("last_hash")
+
+        if new_hash == old_hash:
+            logger.info(f"[library sync] '{entry_id}' — nessun cambiamento (hash identico)")
+            return {**entry, "sync_status": "unchanged"}
+
+        # Hash diverso → ri-estrae
+        logger.info(f"[library sync] '{entry_id}' — nuovo hash {new_hash[:8]}... estrazione v3")
+        pdf_b64 = base64.b64encode(pdf_bytes).decode()
+
+        chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
+        results = await asyncio.gather(*[
+            _extract_sezioni_chunk(cb, ps, pe, pt, entry.get("prodotto", entry_id), entry.get("tipo", ""))
+            for cb, ps, pe, pt in chunks
+        ])
+        results = [r for r in results if r]
+
+        if not results:
+            return {**entry, "sync_status": "error", "sync_error": "Estrazione vuota"}
+
+        extracted = _merge_sezioni(results) if len(results) > 1 else results[0]
+        extracted = _normalize_sezioni(extracted)
+        extracted["_catalog_id"] = entry_id
+        extracted["_url"] = url
+
+        # Salva in Qdrant
+        await _q_set_library(entry_id, extracted)
+
+        # Aggiorna entry con nuovo hash e timestamp
+        now = __import__("datetime").datetime.utcnow().isoformat() + "Z"
+        updated_entry = {
+            **entry,
+            "last_hash": new_hash,
+            "last_updated": now,
+            "sync_status": "updated",
+            "sync_error": None,
+        }
+        logger.info(f"[library sync] '{entry_id}' — completato ✓")
+        return updated_entry
+
+    except Exception as e:
+        logger.error(f"[library sync] '{entry_id}' — errore: {e}")
+        return {**entry, "sync_status": "error", "sync_error": str(e)[:200]}
+
+
+# ── ENDPOINTS LIBRERIA ────────────────────────────────────────────────────────
+
+@app.get("/api/library")
+async def library_list():
+    """Restituisce tutte le polizze estratte in libreria."""
+    await _ensure_library_collection()
+    catalog = _load_catalog()
+    result = []
+    for entry in catalog:
+        data = await _q_get_library(entry["id"])
+        result.append({
+            "id": entry["id"],
+            "compagnia": entry.get("compagnia"),
+            "prodotto": entry.get("prodotto"),
+            "tipo": entry.get("tipo"),
+            "last_updated": entry.get("last_updated"),
+            "sync_status": entry.get("sync_status", "pending"),
+            "extracted": data,  # None se non ancora estratta
+        })
+    return result
+
+
+@app.get("/api/library/catalog")
+async def library_catalog():
+    """Restituisce il catalogo con stato di ogni entry (senza dati estratti)."""
+    catalog = _load_catalog()
+    return [
+        {k: v for k, v in e.items() if k != "extracted"}
+        for e in catalog
+    ]
+
+
+@app.post("/api/library/sync")
+async def library_sync(request: Request):
+    """
+    Sincronizza il catalogo.
+    Body opzionale: {"id": "unipol-unica-casa"} per aggiornare solo una entry.
+    Senza body: sincronizza tutto.
+    """
+    await _ensure_library_collection()
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+
+    catalog = _load_catalog()
+    target_id = body.get("id")
+
+    if target_id:
+        entries_to_sync = [e for e in catalog if e["id"] == target_id]
+        if not entries_to_sync:
+            raise HTTPException(404, f"Entry '{target_id}' non trovata nel catalogo")
+    else:
+        entries_to_sync = catalog
+
+    logger.info(f"[library sync] avvio sync di {len(entries_to_sync)} entry")
+    updated = []
+    for entry in entries_to_sync:
+        result = await _sync_entry(entry)
+        updated.append(result)
+
+    # Aggiorna il catalogo su disco
+    catalog_map = {e["id"]: e for e in catalog}
+    for u in updated:
+        catalog_map[u["id"]] = u
+    _save_catalog(list(catalog_map.values()))
+
+    stats = {
+        "total": len(updated),
+        "updated": sum(1 for u in updated if u.get("sync_status") == "updated"),
+        "unchanged": sum(1 for u in updated if u.get("sync_status") == "unchanged"),
+        "errors": sum(1 for u in updated if u.get("sync_status") == "error"),
+    }
+    logger.info(f"[library sync] completato: {stats}")
+    return {"ok": True, "stats": stats, "entries": updated}
+
+
+@app.post("/api/library/sync-stream")
+async def library_sync_stream(request: Request):
+    """Versione SSE di /api/library/sync — invia progress per ogni entry."""
+    await _ensure_library_collection()
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+
+    catalog = _load_catalog()
+    target_id = body.get("id")
+    entries_to_sync = [e for e in catalog if e["id"] == target_id] if target_id else catalog
+
+    async def generate():
+        results = []
+        for i, entry in enumerate(entries_to_sync):
+            pct = int((i / len(entries_to_sync)) * 90)
+            prod = entry["prodotto"]
+            yield f"data: {json.dumps({'type':'progress','step':f'Sync {prod}...','pct':pct})}\n\n"
+            result = await _sync_entry(entry)
+            results.append(result)
+            yield f"data: {json.dumps({'type':'entry','data':result})}\n\n"
+
+        # Aggiorna catalogo su disco
+        catalog_map = {e["id"]: e for e in catalog}
+        for u in results:
+            catalog_map[u["id"]] = u
+        _save_catalog(list(catalog_map.values()))
+
+        stats = {
+            "total": len(results),
+            "updated": sum(1 for r in results if r.get("sync_status") == "updated"),
+            "unchanged": sum(1 for r in results if r.get("sync_status") == "unchanged"),
+            "errors": sum(1 for r in results if r.get("sync_status") == "error"),
+        }
+        yield f"data: {json.dumps({'type':'result','stats':stats})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ── FINE LIBRERIA CGA ─────────────────────────────────────────────────────────

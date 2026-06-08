@@ -807,15 +807,41 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  <div class="page-header">
  <div>
  <div class="page-title">Libreria polizze</div>
- <div class="page-subtitle">Polizze estratte e pronte per il confronto</div>
+ <div class="page-subtitle">Polizze pronte per il confronto</div>
  </div>
- <button class="btn btn-gold" onclick="startDirectComparison()">+ Aggiungi polizza</button>
+ <button class="btn btn-gold" onclick="startDirectComparison()">+ Carica PDF</button>
  </div>
- <div class="library-toolbar">
- <div class="selected-count" id="libSelectedCount"></div>
- <button class="btn btn-primary" id="btnConfrontaLib" style="display:none" onclick="confrontaFromLibrary()">Confronta selezionate →</button>
+ <!-- Tab bar -->
+ <div style="display:flex;gap:0;border-bottom:1px solid var(--gray-200);margin-bottom:20px">
+  <button id="libTab1" onclick="libSwitchTab(1)" style="padding:10px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--polo);color:var(--polo)">Le mie polizze</button>
+  <button id="libTab2" onclick="libSwitchTab(2)" style="padding:10px 20px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--gray-400)">Database CGA <span id="cgaBadge" style="font-size:10px;background:var(--gray-100);color:var(--gray-500);padding:1px 6px;border-radius:20px;margin-left:4px">—</span></button>
  </div>
- <div class="library-grid" id="libraryGrid"></div>
+
+ <!-- Tab 1: Le mie polizze -->
+ <div id="libPanel1">
+  <div class="library-toolbar">
+  <div class="selected-count" id="libSelectedCount"></div>
+  <button class="btn btn-primary" id="btnConfrontaLib" style="display:none" onclick="confrontaFromLibrary()">Confronta selezionate →</button>
+  </div>
+  <div class="library-grid" id="libraryGrid"></div>
+ </div>
+
+ <!-- Tab 2: Database CGA -->
+ <div id="libPanel2" style="display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+   <div style="display:flex;gap:8px">
+    <button onclick="cgaFilterTipo('')" id="cgaF0" class="btn btn-sm btn-ghost" style="border-radius:20px;font-size:12px">Tutti</button>
+    <button onclick="cgaFilterTipo('Casa')" id="cgaF1" class="btn btn-sm btn-ghost" style="border-radius:20px;font-size:12px">🏠 Casa</button>
+    <button onclick="cgaFilterTipo('Infortuni')" id="cgaF2" class="btn btn-sm btn-ghost" style="border-radius:20px;font-size:12px">🛡 Infortuni</button>
+   </div>
+   <button onclick="cgaSync()" id="btnCgaSync" class="btn btn-sm" style="background:var(--polo);color:#fff;font-size:12px">↻ Aggiorna database</button>
+  </div>
+  <div id="cgaSelectedBar" style="display:none;padding:12px 16px;background:var(--blue-soft);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+   <span id="cgaSelCount" style="font-size:13px;font-weight:600;color:var(--blue)"></span>
+   <button onclick="cgaConfronta()" class="btn btn-primary btn-sm">Confronta selezionate →</button>
+  </div>
+  <div id="cgaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
+ </div>
 </div>
 </div>
 
@@ -1567,9 +1593,139 @@ function confrontaFromLibrary() {
  startDirectComparison();
 }
 
-// 
+// ── LIBRERIA CGA DATABASE ────────────────────────────────────────────────────
+let _cgaData = [];        // dati caricati da /api/library
+let _cgaFilter = '';      // '' | 'Casa' | 'Infortuni'
+let _cgaSelected = new Set(); // id polizze CGA selezionate
+
+function libSwitchTab(n) {
+ document.getElementById('libPanel1').style.display = n===1 ? '' : 'none';
+ document.getElementById('libPanel2').style.display = n===2 ? '' : 'none';
+ document.getElementById('libTab1').style.borderBottomColor = n===1 ? 'var(--polo)' : 'transparent';
+ document.getElementById('libTab1').style.color = n===1 ? 'var(--polo)' : 'var(--gray-400)';
+ document.getElementById('libTab1').style.fontWeight = n===1 ? '600' : '500';
+ document.getElementById('libTab2').style.borderBottomColor = n===2 ? 'var(--polo)' : 'transparent';
+ document.getElementById('libTab2').style.color = n===2 ? 'var(--polo)' : 'var(--gray-400)';
+ document.getElementById('libTab2').style.fontWeight = n===2 ? '600' : '500';
+ if (n===2 && !_cgaData.length) cgaLoad();
+}
+
+async function cgaLoad() {
+ const grid = document.getElementById('cgaGrid');
+ grid.innerHTML = '<div style="color:var(--gray-400);font-size:13px;grid-column:1/-1;padding:20px 0">Caricamento database...</div>';
+ try {
+  const res = await fetch(`${BACKEND}/api/library`);
+  if (!res.ok) throw new Error('Errore server');
+  _cgaData = await res.json();
+  const count = _cgaData.filter(d => d.extracted).length;
+  document.getElementById('cgaBadge').textContent = count || '—';
+  cgaRender();
+ } catch(e) {
+  grid.innerHTML = `<div style="color:var(--gray-400);font-size:13px;grid-column:1/-1;padding:20px 0">Errore caricamento: ${esc(e.message)}</div>`;
+ }
+}
+
+function cgaFilterTipo(tipo) {
+ _cgaFilter = tipo;
+ ['cgaF0','cgaF1','cgaF2'].forEach(id => {
+  const el = document.getElementById(id);
+  el.style.background = '';
+  el.style.color = '';
+ });
+ const active = tipo === '' ? 'cgaF0' : tipo === 'Casa' ? 'cgaF1' : 'cgaF2';
+ document.getElementById(active).style.background = 'var(--polo)';
+ document.getElementById(active).style.color = '#fff';
+ cgaRender();
+}
+
+function cgaRender() {
+ const grid = document.getElementById('cgaGrid');
+ const filtered = _cgaFilter ? _cgaData.filter(d => d.tipo === _cgaFilter) : _cgaData;
+ if (!filtered.length) {
+  grid.innerHTML = '<div style="color:var(--gray-400);font-size:13px;grid-column:1/-1;padding:20px 0">Nessuna polizza in database. Clicca "Aggiorna database" per sincronizzare.</div>';
+  return;
+ }
+ grid.innerHTML = filtered.map(d => {
+  const sel = _cgaSelected.has(d.id);
+  const hasData = !!d.extracted;
+  const statusColor = d.sync_status==='updated'?'var(--green-dark)':d.sync_status==='error'?'var(--red)':'var(--gray-400)';
+  const statusIcon = d.sync_status==='updated'?'✓':d.sync_status==='error'?'⚠':d.sync_status==='unchanged'?'✓':'…';
+  const updated = d.last_updated ? new Date(d.last_updated).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}) : 'Non ancora sincronizzata';
+  return `<div class="library-card ${sel&&hasData?'selected':''} ${!hasData?'lib-pending':''}"
+   onclick="${hasData?`cgaToggleSel('${d.id}')`:'cgaSync(\'' + d.id + '\')'}"
+   style="${!hasData?'opacity:.7;':''}cursor:pointer">
+   ${sel&&hasData?'<div class="lib-check"></div>':''}
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+    <span class="lib-tipo">${esc(d.tipo||'—')}</span>
+    <span style="font-size:10px;color:${statusColor}">${statusIcon}</span>
+   </div>
+   <div class="lib-company">${esc(d.compagnia||'')}</div>
+   <div class="lib-product">${esc(d.prodotto||'')}</div>
+   <div class="lib-date" style="margin-top:8px">${updated}</div>
+   ${!hasData?'<div style="font-size:10px;color:var(--polo);margin-top:6px;font-weight:600">Clicca per scaricare →</div>':''}
+  </div>`;
+ }).join('');
+ // Aggiorna barra selezione
+ const bar = document.getElementById('cgaSelectedBar');
+ const cnt = document.getElementById('cgaSelCount');
+ if (_cgaSelected.size >= 2) {
+  bar.style.display = 'flex';
+  cnt.textContent = `${_cgaSelected.size} polizze selezionate`;
+ } else {
+  bar.style.display = 'none';
+ }
+}
+
+function cgaToggleSel(id) {
+ if (_cgaSelected.has(id)) _cgaSelected.delete(id);
+ else if (_cgaSelected.size < 4) _cgaSelected.add(id);
+ else { toast('Massimo 4 polizze'); return; }
+ cgaRender();
+}
+
+async function cgaSync(targetId) {
+ const btn = document.getElementById('btnCgaSync');
+ if (btn) { btn.disabled = true; btn.textContent = '↻ Sincronizzazione...'; }
+ try {
+  const body = targetId ? JSON.stringify({id: targetId}) : '{}';
+  const res = await fetch(`${BACKEND}/api/library/sync-stream`, {
+   method:'POST', headers:{'Content-Type':'application/json'}, body
+  });
+  const reader = res.body.getReader(); const dec = new TextDecoder();
+  let buf = '';
+  while(true) {
+   const {done, value} = await reader.read(); if(done) break;
+   buf += dec.decode(value, {stream:true});
+   const lines = buf.split('\n'); buf = lines.pop();
+   for(const line of lines) {
+    if(!line.startsWith('data:')) continue;
+    try {
+     const ev = JSON.parse(line.slice(5).trim());
+     if(ev.type==='result') {
+      toast(`✓ Sync: ${ev.stats.updated} aggiornate, ${ev.stats.unchanged} invariate${ev.stats.errors?' ⚠ '+ev.stats.errors+' errori':''}`);
+     }
+    } catch(e) {}
+   }
+  }
+  await cgaLoad();
+ } catch(e) { toast('Errore sync: '+e.message); }
+ if (btn) { btn.disabled = false; btn.textContent = '↻ Aggiorna database'; }
+}
+
+function cgaConfronta() {
+ if (_cgaSelected.size < 2) { toast('Seleziona almeno 2 polizze'); return; }
+ const selected = _cgaData.filter(d => _cgaSelected.has(d.id) && d.extracted);
+ if (selected.length < 2) { toast('Alcune polizze non hanno dati estratti'); return; }
+ const policies = selected.map(d => d.extracted);
+ document.getElementById('resultsTitle').textContent = 'Confronto CGA — Database compagnie';
+ renderResults(policies);
+ callSummary(policies).catch(()=>{});
+ navTo('pagResults');
+}
+
+//
 // QUESTIONNAIRE
-// 
+//
 function startQuestionnaire() {
  currentSectionIdx = 0;
  clientAnswers = {};
