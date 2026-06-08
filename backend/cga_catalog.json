@@ -6,7 +6,9 @@
     "tipo": "Casa",
     "url": "https://www.unipol.it/api/pub/ueba/download/doc/v1/fascicoli/c603e02d-7f8b-4fb8-881c-77ec578255fd",
     "url_type": "api",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "unipol-casa-servizi",
@@ -15,7 +17,9 @@
     "tipo": "Casa",
     "url": "https://www.unipol.it/api/pub/ueba/download/doc/v1/fascicoli/f73a4698-1445-4c7c-a28b-d568cc8a12d8",
     "url_type": "api",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "unipol-unica-infortuni",
@@ -24,7 +28,9 @@
     "tipo": "Infortuni",
     "url": "https://www.unipol.it/api/pub/ueba/download/doc/v1/fascicoli/497c7be8-6f13-4daa-90ed-57f1509a3fa6",
     "url_type": "api",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "generali-sei-a-casa-digital",
@@ -33,7 +39,9 @@
     "tipo": "Casa",
     "url": "https://asset.generali.it/285064/Condizioni-di-assicurazione-Generali-Sei-a-casa_digital-mod-FI01-03-ed-.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "generali-sei-a-casa-classic",
@@ -42,7 +50,9 @@
     "tipo": "Casa",
     "url": "https://asset.generali.it/278462/Condizioni-di-Assicurazione-Generali-Sei-a-Casa.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "generali-sei-in-sicurezza-comfort",
@@ -51,7 +61,9 @@
     "tipo": "Infortuni",
     "url": "https://asset.generali.it/278418/Condizioni-di-Assicurazione-Generali-Sei-In-Sicurezza-Comfort.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "generali-sei-in-sicurezza-top",
@@ -60,7 +72,9 @@
     "tipo": "Infortuni",
     "url": "https://asset.generali.it/281898/DIP-Aggiuntivo-Generali-Sei-In-Sicurezza-Top-281898.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "allianz-ultra-casa",
@@ -69,7 +83,9 @@
     "tipo": "Casa",
     "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/casa-e-famiglia/allianz-ultra/set-informativi-ultra-casa-e-patrimoni/21-06-2025/S_941_AZ_ULTRA_Casa_e_Patrimonio-Fabbricato.pdf",
     "url_type": "dated",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "allianz-ultra-rc",
@@ -78,7 +94,9 @@
     "tipo": "Casa",
     "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/casa-e-famiglia/allianz-ultra/seti-informativi/Ambito_RC.PDF",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "allianz-ultra-ip-infortuni",
@@ -87,7 +105,9 @@
     "tipo": "Infortuni",
     "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/casa-e-famiglia/allianz-ultra/set-informativi-ultra-salute/mag-2025/S_977_Invalidita_permanente_da_Infortunio.pdf",
     "url_type": "dated",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "allianz-ultra-ip-malattia",
@@ -96,7 +116,9 @@
     "tipo": "Infortuni",
     "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/casa-e-famiglia/allianz-ultra/set-informativi-ultra-salute/lug-2024/Set_informativo_Invalidita_permanente_da_infortunio.pdf",
     "url_type": "dated",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "allianz-ultra-diaria-ricovero",
@@ -105,7 +127,9 @@
     "tipo": "Infortuni",
     "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/altri-prodotti/bdm-banca/allianz-ultra-salute/SI_ULTRASalute_980_DiariadaRicovero_052025.pdf",
     "url_type": "dated",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "allianz-ultra-spese-mediche",
@@ -114,7 +138,9 @@
     "tipo": "Infortuni",
     "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/altri-prodotti/bdm-banca/allianz-ultra-salute/SI_ULTRASalute_979_SpeseMediche_052025.pdf",
     "url_type": "dated",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "allianz-ultra-spese-gravi",
@@ -123,7 +149,9 @@
     "tipo": "Infortuni",
     "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/casa-e-famiglia/allianz-ultra/set-informativi-ultra-salute/nov-2024/982_Spese_mediche_eventi_gravi_Set_Informativo.pdf",
     "url_type": "dated",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "axa-casa",
@@ -132,7 +160,9 @@
     "tipo": "Casa",
     "url": "https://www.axa.it/c/document_library/get_file?uuid=5a95f402-2198-b0a8-ef65-2c14aa174480&groupId=715551",
     "url_type": "api",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "axa-casa-famiglia",
@@ -141,7 +171,9 @@
     "tipo": "Casa",
     "url": "https://www.axa.it/c/document_library/get_file?uuid=6faab1f7-b4de-606f-a32a-f3469a892ae1&groupId=715551",
     "url_type": "api",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "axa-protezione-casa",
@@ -150,7 +182,9 @@
     "tipo": "Casa",
     "url": "https://www.axa-mps.it/c/document_library/get_file?uuid=1e067d08-a1aa-1d2c-6ac3-cf82234d63cf&groupId=715633",
     "url_type": "api",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "itas-multirischio-casa",
@@ -159,7 +193,9 @@
     "tipo": "Casa",
     "url": "https://www.gruppoitas.it/documents/20121/0/Condizioni%20di%20assicurazione%20ita.pdf/d1e2f84e-5427-e368-3e6f-02197f163b72",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "itas-infortuni",
@@ -168,7 +204,9 @@
     "tipo": "Infortuni",
     "url": "https://www.gruppoitas.it/o/portali-ist-s-api/api/v1/download?companyId=20097&groupId=20121&codComp=022&codRamo=50&codProd=1001&tipoStampa=CGI_I&prgStampa=0&sysdate=2007-03-05T10:49:13&fname=CONDIZIONI+DI+ASSICURAZIONE.pdf",
     "url_type": "api",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "italiana-tandem-infortuni",
@@ -177,7 +215,9 @@
     "tipo": "Infortuni",
     "url": "https://serviziappsoci.grupporealemutua.it/apifree/File/Download?id=3NC_ikp0Tlkabv.KwMhpuAoL_IWbHavggmSXdC2i810kI3ZTC79wpTiBpTwG9ZiZT2riUGCI57hwCxLk1ytpJgAD74AoUxJq3CYtmOEpqOOpXphzeIGFEF1hnNuv8jh.eJaNiu4vccPohvcgE.qEFXCkZ.cjWYJdvnp9DQj.saniY2VWslY2xqnixZXMJQHIFCBa7miOql1QJ4qN2V8eikM2GuRI5DYQKYRI",
     "url_type": "api",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "italiana-tuttocasa",
@@ -186,16 +226,21 @@
     "tipo": "Casa",
     "url": "https://as-mdlw-iis-companysite-rgprod01.azurewebsites.net/apifree/File/Download?id=3NC_TzazQrk8suQmogRn7Ipt_OoYBA16xqAcCuli4ejB47soAaFYCc4q5mIUMeAglu5DduVE9gMl7ySwyAK34VLa_Xgp5uhapCDHIl2gc7q1qlTeyn.ZnlSMe5SaV76WxcFaTL.kQRPmY4FifAzTfT2eDTx862Gq4p._1vKLvnNQPY.WG7DGNF_v7vyG66ruQdmL_gwO1X3qffoISrDDOD6NB6nsk9FLiavaZsLPdqmBpDxupJsSA53XU45coJyr43wmPzTQh2H2rdjP83.s77HR040TEIRxaZOx1m5sbLISVbI~",
     "url_type": "api",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "zurich-metro-casa",
     "compagnia": "Zurich Insurance",
     "prodotto": "MetroperMetroQuadro",
     "tipo": "Casa",
-    "url": "https://www.zurich.it/wps/wcm/connect/zurit/6f8a7adf-1c70-4c4b-b00c-d0c27d7d7f3f/P.0133_SI_0925_R0226.pdf",
-    "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "url": "https://www.zurich.it/api/ArchivioDigitale/Download?uuid=c60c309b-c17e-4bf5-b966-7a145babd6ff",
+    "url_type": "api",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null,
+    "note": "UUID stabile Zurich API"
   },
   {
     "id": "helvetia-lamiacasa-full",
@@ -204,7 +249,9 @@
     "tipo": "Casa",
     "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa/helvetialamiacasafull/Set_Helvetia_Lamiacasa%20Full_ed.072025.pdf",
     "url_type": "dated",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "helvetia-lamiacasa-proprietario",
@@ -213,7 +260,9 @@
     "tipo": "Casa",
     "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa/helvetia-lamiacasa/2026/Set_LaMiaCasa_Proprietario.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "helvetia-lamiacasa-mutuo",
@@ -222,7 +271,9 @@
     "tipo": "Casa",
     "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa/helvetialamiacasamutuo/Set_Helvetia_Lamiacasa%20Mutuo.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "cattolica-active-casa",
@@ -231,7 +282,9 @@
     "tipo": "Casa",
     "url": "https://cdn.generali.it/-/media/generali_b2c/documenti-correlati/prodotti-brand-cattolica/active-protezione/set-informativo-active-protezione-modulo-casa.ashx",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "reale-mutua-casamia",
@@ -240,7 +293,9 @@
     "tipo": "Casa",
     "url": "https://www.realemutua.it/grmashare/1/Documents/LANDING/CGA_CASAMIA2016_5440_INC_072020.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "groupama-casa-senza-confini",
@@ -249,7 +304,9 @@
     "tipo": "Casa",
     "url": "https://cdn.groupama.it/app/uploads/2024/02/Set-Informativo-Casa-Senza-Confini.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "groupama-protezione-infortuni",
@@ -258,7 +315,9 @@
     "tipo": "Infortuni",
     "url": "https://cdn.groupama.it/app/uploads/2021/08/Set-Informativo-PROTEZIONE-INFORTUNI-COLLETTIVITA_Mod.250236C-Ed.07-2025.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "vittoria-casa-famiglia",
@@ -267,7 +326,9 @@
     "tipo": "Casa",
     "url": "https://storage.googleapis.com/sito-istituzionale-prod/1/2025/07/PBRI01CGA-EDZ-0625.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "sara-in-casa",
@@ -276,7 +337,9 @@
     "tipo": "Casa",
     "url": "https://www.sara.it/sites/default/files/fascicoli_informativi/fascicoli_cose_e_persone/SaraInCasa/Fascicolo_informativo_Saraincasa_50AC_2014.pdf",
     "url_type": "cdn",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   },
   {
     "id": "sara-defender-infortuni",
@@ -285,6 +348,209 @@
     "tipo": "Infortuni",
     "url": "https://www.sara.it/sites/default/files/2025-06/Set%20Informativo%20SaraDefender%20%20ed.%2004-2025.pdf",
     "url_type": "dated",
-    "last_hash": null, "last_updated": null, "extracted": null
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "zurich-relax-casa",
+    "compagnia": "Zurich Insurance",
+    "prodotto": "Zurich Relax Casa",
+    "tipo": "Casa",
+    "url": "https://www.zurich.it/api/archiviodigitale/download?uuid=b8d224c7-3460-4aff-a6b9-8bc7fa9a0186",
+    "url_type": "api",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "zurich-calamita-naturali",
+    "compagnia": "Zurich Insurance",
+    "prodotto": "Zurich Protezione Calamità Naturali",
+    "tipo": "Casa",
+    "url": "https://www.zurich.it/api/archiviodigitale/download?uuid=6a6c546b-85c9-408a-97d9-1b6c572e3ce6",
+    "url_type": "api",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "hdi-globale-casa",
+    "compagnia": "HDI Assicurazioni",
+    "prodotto": "HDI Globale Casa",
+    "tipo": "Casa",
+    "url": "https://www.hdiassicurazioni.it/documents/36140/3848760/P5051_05_2013_FASCICOLO_INFORMATIVO",
+    "url_type": "cdn",
+    "note": "URL da verificare — potrebbe essere vecchio",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "hdi-globale-infortuni",
+    "compagnia": "HDI Assicurazioni",
+    "prodotto": "HDI Globale Infortuni e IPM",
+    "tipo": "Infortuni",
+    "url": "https://www.hdiassicurazioni.it/documents/36140/3730282/Globale+Infortuni+e+IPM+-+Condizioni+di+Assicurazione+-+Mod.+S4291+-+Ed.+10_2021.pdf/",
+    "url_type": "cdn",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "nobis-casa-noi",
+    "compagnia": "Nobis Assicurazioni",
+    "prodotto": "Nobis Casa e Noi",
+    "tipo": "Casa",
+    "url": "https://www.nobis.it/Sites/390/WebExplorer/AreeBisogno/Casa/Prodotti/CasaeNoi/Nobis%20Casa%20%26%20Noi_SET.pdf",
+    "url_type": "cdn",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "nobis-unica-infortuni",
+    "compagnia": "Nobis Assicurazioni",
+    "prodotto": "Nobis Unica Infortuni",
+    "tipo": "Infortuni",
+    "url": "https://www.nobis.it/Sites/390/WebExplorer/AreeBisogno/darag/EAT_554_Set_Unica_infortuni_012020.pdf",
+    "url_type": "cdn",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "linear-casa-famiglia",
+    "compagnia": "Linear Assicurazioni",
+    "prodotto": "Linear Casa e Famiglia",
+    "tipo": "Casa",
+    "url": "https://www.linear.it/extra/pdf/set_informativo_casa_e_famiglia_02-2025.pdf",
+    "url_type": "dated",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "helvetia-protezione-oggi",
+    "compagnia": "Helvetia",
+    "prodotto": "Helvetia Protezione Oggi Mobilità",
+    "tipo": "Infortuni",
+    "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/salute/helvetia-protezione-oggi/Set%20Protezione%20Oggi%20Mobilit%C3%A0%20ed.%20062025.pdf",
+    "url_type": "dated",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "bnl-infortuni",
+    "compagnia": "BNL / BNP Paribas Cardif",
+    "prodotto": "Polizza BNL Infortuni",
+    "tipo": "Infortuni",
+    "url": "https://bnl.it/rsc/SupportingFiles/Polizza_BNL_Infortuni.pdf",
+    "url_type": "cdn",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "vittoria-infortuni",
+    "compagnia": "Vittoria Assicurazioni",
+    "prodotto": "Vittoria Assicurazione Infortuni Famiglia",
+    "tipo": "Infortuni",
+    "url": "https://irp.cdn-website.com/fccdd0fd/files/uploaded/PB025324-AZ-EDZ-0620.pdf",
+    "url_type": "cdn",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "reale-mutua-unica-infortuni",
+    "compagnia": "Reale Mutua",
+    "prodotto": "Reale Unica Infortuni",
+    "tipo": "Infortuni",
+    "url": "https://agenzie.realemutua.it/grmashare/1/Agenzie/agenzia171/Documents/Fascicolo%20Informativo%20%20Unica%20Reale%205259%20INF_Ed.%202017.03_NI%20del%202017.09.pdf",
+    "url_type": "cdn",
+    "note": "Ed. 2017 — da aggiornare",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "groupama-infortuni-aziende",
+    "compagnia": "Groupama",
+    "prodotto": "Groupama Infortuni Aziende",
+    "tipo": "Infortuni",
+    "url": "https://cdn.groupama.it/app/uploads/2021/09/Set-Informativo-Infortuni-Aziende_Mod.-150437C-Ed.-07-2025.pdf",
+    "url_type": "dated",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "sara-defender-infortuni-2025",
+    "compagnia": "Sara Assicurazioni",
+    "prodotto": "Sara Defender Infortuni 2025",
+    "tipo": "Infortuni",
+    "url": "https://www.sara.it/sites/default/files/2025-12/Set_informativo_SaraProfessionista_ed.%2011_2025.pdf",
+    "url_type": "dated",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "generali-immagina-adesso",
+    "compagnia": "Generali Italia",
+    "prodotto": "Generali Immagina Adesso",
+    "tipo": "Casa",
+    "url": "https://www.generali.it/286651/Set-Informativo-Immagina-Adesso-112019.pdf",
+    "url_type": "cdn",
+    "note": "Set informativo modulare — da verificare se aggiornato",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "generali-immagina-benessere",
+    "compagnia": "Generali Italia",
+    "prodotto": "Generali Immagina Benessere",
+    "tipo": "Infortuni",
+    "url": "https://asset.generali.it/278439/Condizioni-di-Assicurazione-Immagina-Benessere.pdf",
+    "url_type": "cdn",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "zurich-metro-mutuo",
+    "compagnia": "Zurich Insurance",
+    "prodotto": "MetroperMetroQuadro Forma Mutuo",
+    "tipo": "Casa",
+    "url": "https://www.zurich.it/api/ArchivioDigitale/Download?uuid=2402bd66-73e9-4ad5-9348-ce0722bdcab2",
+    "url_type": "api",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "cattolica-infortuni",
+    "compagnia": "Cattolica Assicurazioni (Generali Group)",
+    "prodotto": "Polizza Infortuni Cattolica",
+    "tipo": "Infortuni",
+    "url": "https://click-partner.gruppocattolica.it/file/567205649885/salute-pers",
+    "url_type": "cdn",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
+  },
+  {
+    "id": "reale-mutua-casa-aggiornata",
+    "compagnia": "Reale Mutua",
+    "prodotto": "Reale Mutua Tutela dell'Abitazione",
+    "tipo": "Casa",
+    "url": "https://serviziappsoci.grupporealemutua.it/apifree/File/Download?id=3NC_TzazQrk8suQmogRn7Ipt_OoYBA16xqAcCuli4ejB47soAaFYCc4q5mIUMeAglu5DduVE9gMl7ySwyAK34VLa_Xgp5uhapCDHIl2gc7q1qlTeyn.ZnlSMe5SaV76WxcFaTL.kQRPmY4FifAzTfT2eDTx862Gq4p._1vKLvnNQPY.WG7DGNF_v7vyG66ruQdmL_gwO1X3qffoISrDDOD6NB6nsk9FLiavagd4QGzwaBTzmqxenxtK.9_mhSMrZpo2SngZ2jQkBlEtZgneNy5oBL6yiE9KWXDoL",
+    "url_type": "api",
+    "last_hash": null,
+    "last_updated": null,
+    "extracted": null
   }
 ]
