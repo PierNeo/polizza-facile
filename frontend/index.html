@@ -356,8 +356,9 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .lib-tipo-salute  { background:var(--cat-salute-soft); color:var(--cat-salute); }
 .lib-garanzie-ct  { font-size:10px; color:var(--gray-400); margin-left:auto; }
 .lib-date { font-size:11px; color:var(--gray-400); margin-top:auto; }
-.lib-check { position:absolute; top:12px; right:10px; width:20px; height:20px; border-radius:50%; border:2px solid var(--gray-300); display:flex; align-items:center; justify-content:center; font-size:11px; transition:all .15s; background:var(--white); }
-.library-card.selected .lib-check { border-color:var(--polo); background:var(--polo); color:#fff; }
+.lib-check { position:absolute; top:12px; right:10px; width:20px; height:20px; border-radius:50%; border:2px solid var(--gray-300); display:flex; align-items:center; justify-content:center; transition:all .15s; background:var(--white); }
+.library-card.selected .lib-check { border-color:var(--polo); background:var(--polo); }
+.library-card.selected .lib-check::after { content:''; width:5px; height:9px; border:2px solid #fff; border-top:none; border-left:none; transform:rotate(42deg) translateY(-1px); }
 .lib-del { position:absolute; bottom:10px; right:10px; background:none; border:none; cursor:pointer; color:var(--gray-300); font-size:13px; transition:color .15s; }
 .lib-del:hover { color:var(--red); }
 .library-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
@@ -918,12 +919,11 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
     <div class="dash-section-title">Avvio rapido</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
      <div class="dash-action-card featured" onclick="startQuestionnaire()" style="padding:18px 16px">
-      <div class="dac-icon" style="font-size:22px;margin-bottom:8px">📋</div>
       <div class="dac-title">Nuovo cliente</div>
       <div class="dac-desc">Questionario AI in 3 min</div>
      </div>
      <div class="dash-action-card" onclick="startDirectComparison()" style="padding:18px 16px">
-      <div class="dac-icon" style="font-size:22px;margin-bottom:8px">⚡</div>
+      <div style="display:none"></div>
       <div class="dac-title">Confronta subito</div>
       <div class="dac-desc">Carica PDF o scegli dalla libreria</div>
      </div>
@@ -1598,7 +1598,7 @@ function renderDashboard() {
  if (polGrid) {
   if (!polizze.length) {
    polGrid.innerHTML = `<div style="grid-column:1/-1;border:1.5px dashed var(--gray-200);border-radius:12px;padding:28px;text-align:center;cursor:pointer;color:var(--gray-400)" onclick="startDirectComparison()">
-    <div style="font-size:28px;margin-bottom:8px;opacity:.5">📄</div>
+    <div style="font-size:28px;margin-bottom:8px;opacity:.5"></div>
     <div style="font-size:13px;font-weight:600;margin-bottom:4px">Nessuna polizza ancora</div>
     <div style="font-size:12px">Carica il primo PDF per iniziare</div>
    </div>`;
@@ -1876,7 +1876,7 @@ function renderLibreria() {
   return `<div class="library-card ${inBasket?'selected':''}" onclick="libToggleBasket('${p.id}')">
    <div class="lib-cat-stripe" style="background:${stripe}"></div>
    <div class="lib-card-body">
-    ${inBasket?'<div class="lib-check">✓</div>':''}
+    ${inBasket?'<div class="lib-check"></div>':''}
     <div class="lib-company">${esc(p.compagnia||'—')}</div>
     <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
     <div class="lib-meta-row">
@@ -1885,7 +1885,7 @@ function renderLibreria() {
     </div>
     <div class="lib-date">Aggiunta il ${date}</div>
    </div>
-   <button class="lib-del" onclick="event.stopPropagation();deletePolizza('${p.id}')" title="Elimina">🗑</button>
+   <button class="lib-del" onclick="event.stopPropagation();deletePolizza('${p.id}')" title="Elimina">×</button>
   </div>`;
  }).join('');
 }
@@ -2023,7 +2023,7 @@ function cgaRender() {
  if (!acc) return;
  if (!_cgaData.length) {
   acc.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--gray-400)">
-   <div style="font-size:32px;margin-bottom:12px;opacity:.5">📂</div>
+   <div style="font-size:32px;margin-bottom:12px;opacity:.5"></div>
    <div style="font-size:14px;margin-bottom:8px">Nessuna polizza nel catalogo</div>
    <div style="font-size:12px;margin-bottom:16px">Aggiungi la prima polizza con il pulsante in alto</div>
   </div>`;
@@ -2175,7 +2175,7 @@ function cgaCardHtml(d) {
    style="${!hasData?'cursor:default;':''}" >
    <div class="lib-cat-stripe" style="background:${stripe}"></div>
    <div class="lib-card-body">
-    ${inBasket&&hasData?'<div class="lib-check">✓</div>':''}
+    ${inBasket&&hasData?'<div class="lib-check"></div>':''}
     <div class="lib-company">${esc(d.compagnia||'—')}</div>
     <div class="lib-product">${esc(d.prodotto||'—')}</div>
     <div class="lib-meta-row" style="margin-bottom:10px">
@@ -2191,7 +2191,7 @@ function cgaCardHtml(d) {
       </button>
       <button onclick="event.stopPropagation();cgaToggleBasket('${d.id}')"
        style="font-size:11px;padding:4px 10px;border-radius:7px;border:none;background:${inBasket?'var(--green-soft)':'var(--polo)'};color:${inBasket?'var(--green-dark)':'#fff'};cursor:pointer;font-weight:600">
-       ${inBasket?'✓ Nel confronto':'+ Confronta'}
+       ${inBasket?'Nel confronto':'+ Confronta'}
       </button>
      </div>
      ${updated?`<div class="lib-date" style="margin-top:8px">Analizzata ${updated}</div>`:''}
@@ -2205,7 +2205,7 @@ function cgaCardHtml(d) {
       style="width:100%;padding:7px 0;border-radius:8px;border:1.5px dashed var(--gray-300);background:transparent;cursor:pointer;font-size:12px;color:var(--gray-500);font-weight:600;transition:all .15s"
       onmouseover="this.style.borderColor='var(--polo)';this.style.color='var(--polo)'"
       onmouseout="this.style.borderColor='var(--gray-300)';this.style.color='var(--gray-500)'">
-      ${isError?'⚠ Riprova analisi':'Analizza con AI'} <span style="font-size:10px;opacity:.7;font-weight:400">~€0.05</span>
+      ${isError?'Riprova analisi':'Analizza con AI'} <span style="font-size:10px;opacity:.7;font-weight:400">~€0.05</span>
      </button>
     `}
    </div>
@@ -2232,7 +2232,7 @@ function cgaShowDetail(id) {
  const sezioni = ex.sezioni || [];
  const sezioniHtml = sezioni.map((s,idx) => {
   const stato = s.inclusa ? '<span style="color:var(--green-dark);font-weight:600">✓ Inclusa</span>'
-   : s.opzionale ? '<span style="color:var(--polo)">⚙ Opzionale</span>'
+   : s.opzionale ? '<span style="color:var(--polo)">Opzionale</span>'
    : '<span style="color:var(--gray-400)">— Esclusa</span>';
   const rows = [];
   if (s.massimale && s.massimale !== 'Somma assicurata') rows.push(`<div style="font-size:12px;color:var(--gray-600)">Massimale: <strong>${esc(s.massimale)}</strong></div>`);
@@ -2254,7 +2254,7 @@ function cgaShowDetail(id) {
  // Pulsante cestino
  const inBasket = _basket.find(b => b.id === 'cga:'+id);
  const btn = document.getElementById('cgaDetailAddBasket');
- btn.textContent = inBasket ? '✓ Nel confronto' : '+ Aggiungi al confronto';
+ btn.textContent = inBasket ? 'Nel confronto' : '+ Aggiungi al confronto';
  btn.style.background = inBasket ? 'var(--green-dark)' : 'var(--polo)';
  document.getElementById('cgaDetailModal').style.display = 'block';
 }
@@ -2293,7 +2293,7 @@ async function cgaSync(targetId) {
     try {
      const ev = JSON.parse(line.slice(5).trim());
      if(ev.type==='result') {
-      toast(`✓ Sync: ${ev.stats.updated} aggiornate, ${ev.stats.unchanged} invariate${ev.stats.errors?' ⚠ '+ev.stats.errors+' errori':''}`);
+      toast(`Sync: ${ev.stats.updated} aggiornate, ${ev.stats.unchanged} invariate${ev.stats.errors?' '+ev.stats.errors+' errori':''}`);
      }
     } catch(e) {}
    }
@@ -2901,7 +2901,7 @@ function renderResults(policies) {
  if (hasSezioni) buildTableSezioni(policies, cols);
  else buildTable(policies, cols);
 
- document.getElementById('adviceGrid').innerHTML=policies.map((p,i)=>p.consigliata_per?`<div class="advice-card"><div class="advice-icon">${['','','🟡',''][i]}</div><div><div class="advice-company">${esc(p.compagnia||'')}</div><div class="advice-for">${esc(p.prodotto||'')}</div><div class="advice-text">${esc(p.consigliata_per)}</div></div></div>`:'').join('');
+ document.getElementById('adviceGrid').innerHTML=policies.map((p,i)=>p.consigliata_per?`<div class="advice-card"><div class="advice-icon">${['','','',''][i]}</div><div><div class="advice-company">${esc(p.compagnia||'')}</div><div class="advice-for">${esc(p.prodotto||'')}</div><div class="advice-text">${esc(p.consigliata_per)}</div></div></div>`:'').join('');
  document.getElementById('adviceTitle').style.display=policies.some(p=>p.consigliata_per)?'block':'none';
  const hasExcl=policies.some(p=>p.esclusioni?.length);
  document.getElementById('exclGrid').innerHTML=hasExcl?policies.map(p=>p.esclusioni?.length?`<div class="excl-card"><div class="excl-header"><span class="excl-company">${esc(p.compagnia||'')}</span><span class="excl-product"> ${esc(p.prodotto||'')}</span></div><div class="excl-list">${p.esclusioni.map(e=>`<div class="excl-item">${esc(e)}</div>`).join('')}</div></div>`:'').join(''):'';
@@ -2983,7 +2983,7 @@ function buildTable(policies,cols) {
      html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
     } else if(_hasDipRef){
      const tipText=g.note.length>100?g.note.slice(0,97)+'…':g.note;
-     html+=`<span class="dip-badge" title="${esc(tipText)}">📄 Vedi DIP modulo</span>`;
+     html+=`<span class="dip-badge" title="${esc(tipText)}"> Vedi DIP modulo</span>`;
     }
     const det=[];
     if(g.massimale_tipo) det.push(`<span class="detail-tag" style="background:var(--gray-100);color:var(--gray-500)">${esc(g.massimale_tipo)}</span>`);
