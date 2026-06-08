@@ -2120,20 +2120,14 @@ function _setProgressBar(pct) {
 // RENDER RESULTS
 // 
 function renderResults(policies) {
- const scores=calcScores(policies); const winnerIdx=scores.indexOf(Math.max(...scores));
  const cols=['#0F2741','#7C3AED','#C8971C','#DC2626'];
  document.getElementById('scoreCards').style.gridTemplateColumns=`repeat(${policies.length},1fr)`;
- // Calcola polizza più economica (tra quelle con premio_num > 0)
  const premiums=policies.map(p=>p.premio_num||0);
  const minPremium=Math.min(...premiums.filter(x=>x>0));
  document.getElementById('scoreCards').innerHTML=policies.map((p,i)=>{
- const s=scores[i]; const circ=2*Math.PI*25; const offset=circ*(1-s/100);
  const isCheapest=p.premio_num>0&&p.premio_num===minPremium&&premiums.filter(x=>x>0).length>1;
- const scoreLabel = s>=75?'Copertura ampia':s>=50?'Copertura buona':s>=30?'Copertura parziale':'Copertura base';
- return `<div class="score-card ${i===winnerIdx?'winner':''}">
- <div class="score-ring" title="Punteggio calcolato su: garanzie incluse nel pacchetto base, massimali rispetto alle altre polizze, presenza/assenza di franchigie e scoperti."><svg width="60" height="60" viewBox="0 0 60 60"><circle class="track" cx="30" cy="30" r="25"/><circle class="fill" cx="30" cy="30" r="25" stroke="${i===winnerIdx?'#16A34A':cols[i]}" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/></svg><div class="score-num" style="color:${i===winnerIdx?'#16A34A':cols[i]}">${s}</div></div>
- <div class="score-body"><div class="score-company">${esc(p.compagnia||'—')}</div><div class="score-product">${esc(p.prodotto||'—')}</div><span class="score-tipo">${esc(p.tipo||'—')}</span><div style="font-size:10px;color:var(--gray-400);margin-top:3px" title="Punteggio basato su garanzie incluse, massimali e franchigie">${scoreLabel} · punteggio ${s}/100</div>${p.premio?`<div class="score-premio">Premio: <strong>${esc(p.premio)}</strong>${isCheapest?' <span style="font-size:9px;background:var(--green-soft);color:var(--green-dark);padding:1px 6px;border-radius:20px;font-weight:700">Più economica</span>':''}</div>`:''}<div class="score-badges">${(p.punti_di_forza||[]).slice(0,2).map(b=>`<span class="score-badge best">${esc(b)}</span>`).join('')}</div></div>
- ${i===winnerIdx?'<div class="winner-tag">Migliore</div>':''}
+ return `<div class="score-card">
+ <div class="score-body"><div class="score-company">${esc(p.compagnia||'—')}</div><div class="score-product">${esc(p.prodotto||'—')}</div><span class="score-tipo">${esc(p.tipo||'—')}</span>${p.premio?`<div class="score-premio">Premio: <strong>${esc(p.premio)}</strong>${isCheapest?' <span style="font-size:9px;background:var(--green-soft);color:var(--green-dark);padding:1px 6px;border-radius:20px;font-weight:700">Più economica</span>':''}</div>`:''}<div class="score-badges">${(p.punti_di_forza||[]).slice(0,2).map(b=>`<span class="score-badge best">${esc(b)}</span>`).join('')}</div></div>
  </div>`;
  }).join('');
 
