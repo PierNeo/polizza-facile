@@ -145,59 +145,113 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .btn-go:hover:not(:disabled) { background:var(--polo-mid); box-shadow:0 4px 16px rgba(10,31,53,.4); transform:translateY(-1px); }
 .btn-go:disabled { background:var(--gray-200); color:var(--gray-400); cursor:not-allowed; box-shadow:none; }
 
-/* ── PAGE SHELL ────────────────────────────────────────────────────────────── */
-.page { padding:36px 40px 80px; max-width:1120px; }
-.page-sm { max-width:720px; }
-.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; flex-wrap:wrap; gap:12px; }
+/* ── PAGE SHELL — full width, no max-width ─────────────────────────────────── */
+.page { padding:0; width:100%; }
+
+/* Sticky topbar per ogni pagina */
+.topbar {
+ position:sticky; top:0; z-index:100;
+ background:rgba(245,245,247,.88); backdrop-filter:blur(20px) saturate(180%);
+ -webkit-backdrop-filter:blur(20px) saturate(180%);
+ border-bottom:1px solid rgba(0,0,0,.08);
+ padding:0 40px; height:56px;
+ display:flex; align-items:center; justify-content:space-between; gap:16px;
+}
+.topbar-left { display:flex; align-items:center; gap:16px; }
+.topbar-title { font-size:17px; font-weight:700; color:var(--gray-900); letter-spacing:-.3px; }
+.topbar-sub { font-size:12px; color:var(--gray-400); }
+.topbar-right { display:flex; align-items:center; gap:8px; }
+
+/* Stats strip nel topbar (solo dashboard) */
+.topbar-stats { display:flex; align-items:center; gap:1px; background:rgba(0,0,0,.06); border-radius:10px; overflow:hidden; margin-left:24px; }
+.topbar-stat { padding:7px 18px; background:var(--white); font-size:12px; color:var(--gray-500); display:flex; align-items:center; gap:6px; }
+.topbar-stat:not(:last-child) { border-right:1px solid rgba(0,0,0,.07); }
+.topbar-stat-num { font-size:16px; font-weight:800; color:var(--gray-900); letter-spacing:-.3px; }
+
+/* Content area */
+.page-content { padding:32px 40px 80px; }
+.page-content-sm { max-width:720px; }
+
+/* Legacy compat */
+.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
 .page-title { font-size:26px; font-weight:800; letter-spacing:-.6px; color:var(--gray-900); }
 .page-subtitle { font-size:13px; color:var(--gray-400); margin-top:4px; font-weight:400; }
 
 /* ── DASHBOARD ─────────────────────────────────────────────────────────────── */
-.dash-hero {
- background:linear-gradient(135deg, var(--polo) 0%, var(--polo-light) 55%, #2E5F8A 100%);
- border-radius:var(--radius); padding:32px 36px; margin-bottom:32px;
+/* 2-column layout: left=main(2fr), right=sidebar(1fr) */
+.dash-layout {
+ display:grid; grid-template-columns:2fr 1fr; gap:32px; align-items:start;
+}
+@media(max-width:900px) { .dash-layout { grid-template-columns:1fr; } }
+
+/* Banner hero (full width, no more isolated card) */
+.dash-banner {
+ background:linear-gradient(120deg, var(--polo) 0%, var(--polo-light) 60%, #2A5A88 100%);
+ border-radius:var(--radius); padding:28px 32px; margin-bottom:28px;
  color:#fff; display:flex; align-items:center; justify-content:space-between;
- gap:20px; flex-wrap:wrap; box-shadow:var(--shadow-lg);
- position:relative; overflow:hidden;
+ gap:20px; flex-wrap:wrap; box-shadow:var(--shadow-lg); position:relative; overflow:hidden;
 }
-.dash-hero::after {
- content:''; position:absolute; top:-40px; right:-40px;
- width:220px; height:220px; border-radius:50%;
- background:rgba(255,255,255,.04); pointer-events:none;
+.dash-banner::before {
+ content:''; position:absolute; right:-60px; top:-60px;
+ width:280px; height:280px; border-radius:50%;
+ background:radial-gradient(circle, rgba(255,255,255,.06) 0%, transparent 70%);
+ pointer-events:none;
 }
-.dash-hero-text h2 { font-size:22px; font-weight:800; margin-bottom:7px; letter-spacing:-.4px; }
-.dash-hero-text p { font-size:13.5px; opacity:.65; max-width:380px; line-height:1.65; }
-.dash-hero-badge {
- background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.18);
- border-radius:14px; padding:16px 24px; text-align:center; flex-shrink:0;
- backdrop-filter:blur(8px);
+.dash-banner h1 { font-size:24px; font-weight:800; letter-spacing:-.5px; margin-bottom:6px; }
+.dash-banner p { font-size:13px; opacity:.6; line-height:1.6; max-width:400px; }
+.dash-banner-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.dash-banner-btn {
+ padding:10px 20px; border-radius:9px; font-size:13px; font-weight:700;
+ cursor:pointer; font-family:inherit; border:none; transition:all .14s;
 }
-.dash-hero-badge .badge-num { font-size:36px; font-weight:800; color:var(--gold-mid); letter-spacing:-.5px; line-height:1; }
-.dash-hero-badge .badge-label { font-size:10.5px; opacity:.55; margin-top:4px; letter-spacing:.2px; }
+.dash-banner-btn-primary { background:#fff; color:var(--polo); }
+.dash-banner-btn-primary:hover { background:rgba(255,255,255,.9); transform:translateY(-1px); }
+.dash-banner-btn-ghost { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.2); }
+.dash-banner-btn-ghost:hover { background:rgba(255,255,255,.2); }
 
-.stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:32px; }
-@media(max-width:600px) { .stats-row { grid-template-columns:1fr 1fr; } }
-.stat-card {
+/* Section header */
+.dash-section-title {
+ font-size:12px; font-weight:700; color:var(--gray-400);
+ margin-bottom:12px; text-transform:uppercase; letter-spacing:.8px;
+}
+
+/* Right sidebar panels */
+.dash-panel {
  background:var(--white); border:1px solid rgba(0,0,0,.06);
- border-radius:var(--radius); padding:20px 22px; box-shadow:var(--shadow-card);
+ border-radius:var(--radius); box-shadow:var(--shadow-card); overflow:hidden;
+ margin-bottom:16px;
 }
-.stat-num { font-size:34px; font-weight:800; color:var(--polo); letter-spacing:-.5px; line-height:1.1; }
-.stat-label { font-size:12px; color:var(--gray-400); margin-top:4px; font-weight:500; }
+.dash-panel-header {
+ padding:14px 18px 12px; border-bottom:1px solid rgba(0,0,0,.05);
+ font-size:12px; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:.6px;
+}
+.dash-panel-body { padding:4px 0; }
+.dash-panel-item {
+ display:flex; align-items:center; gap:12px; padding:11px 18px;
+ cursor:pointer; transition:background .12s; border-radius:0;
+}
+.dash-panel-item:hover { background:var(--gray-50); }
+.dash-panel-icon { font-size:20px; width:36px; height:36px; border-radius:10px; background:var(--gray-50); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.dash-panel-icon.featured { background:var(--gold-soft); }
+.dash-panel-label { font-size:13.5px; font-weight:600; color:var(--gray-900); letter-spacing:-.1px; }
+.dash-panel-sub { font-size:11.5px; color:var(--gray-400); margin-top:1px; }
+.dash-panel-arrow { margin-left:auto; color:var(--gray-300); font-size:14px; }
 
-.dash-section-title { font-size:13px; font-weight:700; color:var(--gray-500); margin-bottom:14px; text-transform:uppercase; letter-spacing:.5px; }
-.dash-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:32px; }
-@media(max-width:480px) { .dash-actions { grid-template-columns:1fr; } }
-.dash-action-card {
- background:var(--white); border:1px solid rgba(0,0,0,.07);
- border-radius:var(--radius); padding:24px 22px;
- cursor:pointer; transition:all .18s; box-shadow:var(--shadow-card);
+/* Stat pills row */
+.stat-pills { display:flex; gap:10px; margin-bottom:28px; flex-wrap:wrap; }
+.stat-pill {
+ background:var(--white); border:1px solid rgba(0,0,0,.06); border-radius:14px;
+ padding:14px 22px; box-shadow:var(--shadow-card); min-width:140px;
 }
-.dash-action-card:hover { box-shadow:var(--shadow); transform:translateY(-3px); border-color:rgba(0,0,0,.12); }
-.dash-action-card.featured { background:linear-gradient(135deg, #FFFBF0 0%, #FDF5DC 100%); border-color:rgba(200,151,28,.25); }
-.dash-action-card.featured:hover { border-color:rgba(200,151,28,.5); }
-.dac-icon { font-size:26px; margin-bottom:12px; }
-.dac-title { font-size:15px; font-weight:700; color:var(--gray-900); margin-bottom:5px; letter-spacing:-.2px; }
-.dac-desc { font-size:12.5px; color:var(--gray-400); line-height:1.6; }
+.stat-pill-num { font-size:32px; font-weight:800; color:var(--polo); letter-spacing:-.5px; line-height:1; }
+.stat-pill-label { font-size:11.5px; color:var(--gray-400); margin-top:5px; font-weight:500; }
+
+/* Legacy compat */
+.stats-row { display:none; } /* replaced by stat-pills */
+.dash-hero { display:none; }
+.dash-actions { display:none; }
+.dash-action-card { display:none; }
+.stat-card { display:none; }
 
 .recent-list { display:flex; flex-direction:column; gap:8px; }
 .recent-item {
@@ -779,110 +833,123 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 <!-- DASHBOARD -->
 <div id="pagDashboard">
 <div class="page">
- <div class="dash-hero">
- <div class="dash-hero-text">
- <h2>Benvenuto nel tuo spazio di lavoro</h2>
- <p>Gestisci i profili clienti, la libreria di polizze e genera raccomandazioni personalizzate con l'AI.</p>
- </div>
- <div class="dash-hero-badge">
- <div class="badge-num" id="dashTotalClients">0</div>
- <div class="badge-label">clienti profilati</div>
- </div>
+
+ <!-- Topbar sticky -->
+ <div class="topbar">
+  <div class="topbar-left">
+   <span class="topbar-title">Dashboard</span>
+   <div class="topbar-stats" id="dashStatsStrip">
+    <div class="topbar-stat"><span class="topbar-stat-num" id="statClienti">0</span> clienti</div>
+    <div class="topbar-stat"><span class="topbar-stat-num" id="statPolizze">0</span> polizze</div>
+    <div class="topbar-stat" id="statUltimoWrap" style="display:none"><span class="topbar-stat-num" id="statUltimo">—</span></div>
+   </div>
+  </div>
+  <div class="topbar-right">
+   <button class="btn btn-ghost btn-sm" onclick="startDirectComparison()">Confronta polizze</button>
+   <button class="btn btn-primary btn-sm" onclick="startQuestionnaire()">+ Nuovo cliente</button>
+  </div>
  </div>
 
- <!-- ONBOARDING — visibile solo al primo accesso -->
- <div class="onboarding" id="onboardingBox" style="display:none">
- <div class="onboarding-header">
- <div>
- <div class="onboarding-title"> Benvenuto in Polizza Facile</div>
- <div class="onboarding-subtitle">Ecco come funziona in 3 passi</div>
- </div>
- <button class="onboarding-dismiss" onclick="dismissOnboarding()"> Non mostrare più</button>
- </div>
- <div class="onboarding-steps">
- <div class="ob-step">
- <div class="ob-step-icon"></div>
- <div class="ob-step-tag">Passo 1</div>
- <div class="ob-step-title">Questionario cliente</div>
- <div class="ob-step-desc">Compila il questionario in 3 minuti. L'AI analizza il profilo e genera raccomandazioni assicurative personalizzate.</div>
- </div>
- <div class="ob-step">
- <div class="ob-step-icon"></div>
- <div class="ob-step-tag">Passo 2</div>
- <div class="ob-step-title">Confronto polizze</div>
- <div class="ob-step-desc">Carica fino a 4 PDF di polizze. L'AI estrae garanzie, massimali e franchigie e le confronta in una tabella chiara.</div>
- </div>
- <div class="ob-step">
- <div class="ob-step-icon"></div>
- <div class="ob-step-tag">Passo 3</div>
- <div class="ob-step-title">Libreria & storico</div>
- <div class="ob-step-desc">Le polizze analizzate vengono salvate nella libreria. I clienti profilati restano nello storico per consultazioni future.</div>
- </div>
- </div>
- <div class="onboarding-cta">
- <button class="btn btn-primary" onclick="dismissOnboarding();startQuestionnaire()"> Inizia con un questionario →</button>
- <button class="btn btn-ghost" onclick="dismissOnboarding();startDirectComparison()">oppure confronta polizze</button>
- </div>
- </div>
+ <div class="page-content">
 
- <div class="stats-row">
- <div class="stat-card">
- <div class="stat-num" id="statClienti">0</div>
- <div class="stat-label">Clienti in archivio</div>
- </div>
- <div class="stat-card">
- <div class="stat-num" id="statPolizze">0</div>
- <div class="stat-label">Polizze in libreria</div>
- </div>
- <div class="stat-card">
- <div class="stat-num" id="statUltimo">—</div>
- <div class="stat-label">Ultima attività</div>
- </div>
- </div>
+  <!-- Banner hero -->
+  <div class="dash-banner" id="onboardingBox" style="display:none">
+   <div>
+    <h1>Benvenuto in Polizza Facile</h1>
+    <p>Profila i tuoi clienti, confronta le polizze con l'AI e costruisci la tua libreria di prodotti assicurativi.</p>
+   </div>
+   <div class="dash-banner-actions">
+    <button class="dash-banner-btn dash-banner-btn-primary" onclick="dismissOnboarding();startQuestionnaire()">Inizia con un cliente →</button>
+    <button class="dash-banner-btn dash-banner-btn-ghost" onclick="dismissOnboarding();startDirectComparison()">Confronta subito</button>
+   </div>
+  </div>
 
- <div class="dash-section-title"> Azioni rapide</div>
- <div class="dash-actions">
- <div class="dash-action-card featured" onclick="startQuestionnaire()">
- <div class="dac-icon"></div>
- <div class="dac-title">Nuovo questionario</div>
- <div class="dac-desc">Profila un cliente e ottieni raccomandazioni AI personalizzate in 3 minuti.</div>
- </div>
- <div class="dash-action-card" onclick="startDirectComparison()">
- <div class="dac-icon"></div>
- <div class="dac-title">Confronto polizze</div>
- <div class="dac-desc">Carica 2–4 PDF o seleziona dalla libreria per un confronto garanzie dettagliato.</div>
- </div>
- </div>
+  <!-- 2-column layout -->
+  <div class="dash-layout">
 
- <div class="dash-section-title"> Ultimi clienti</div>
- <div class="recent-list" id="recentList">
- <div class="empty-state">
- <div class="empty-icon"></div>
- <p>Nessun cliente ancora.<br>Inizia con un questionario.</p>
- </div>
- </div>
+   <!-- LEFT: recent clients -->
+   <div>
+    <div class="dash-section-title">Ultimi clienti</div>
+    <div class="recent-list" id="recentList">
+     <div class="empty-state">
+      <div class="empty-icon"></div>
+      <p>Nessun cliente ancora.<br>Inizia con un nuovo questionario.</p>
+     </div>
+    </div>
+   </div>
+
+   <!-- RIGHT: actions + quick stats -->
+   <div>
+    <div class="dash-section-title">Azioni rapide</div>
+    <div class="dash-panel">
+     <div class="dash-panel-body">
+      <div class="dash-panel-item" onclick="startQuestionnaire()">
+       <div class="dash-panel-icon featured">📋</div>
+       <div>
+        <div class="dash-panel-label">Nuovo questionario</div>
+        <div class="dash-panel-sub">Raccomandazioni AI in 3 min</div>
+       </div>
+       <span class="dash-panel-arrow">›</span>
+      </div>
+      <div class="dash-panel-item" onclick="startDirectComparison()">
+       <div class="dash-panel-icon">📄</div>
+       <div>
+        <div class="dash-panel-label">Confronto polizze</div>
+        <div class="dash-panel-sub">Carica PDF o usa la libreria</div>
+       </div>
+       <span class="dash-panel-arrow">›</span>
+      </div>
+      <div class="dash-panel-item" onclick="navTo('pagLibreria')">
+       <div class="dash-panel-icon">🗂️</div>
+       <div>
+        <div class="dash-panel-label">Libreria polizze</div>
+        <div class="dash-panel-sub" id="dashLibSub">0 polizze salvate</div>
+       </div>
+       <span class="dash-panel-arrow">›</span>
+      </div>
+      <div class="dash-panel-item" onclick="navTo('pagClienti')">
+       <div class="dash-panel-icon">👥</div>
+       <div>
+        <div class="dash-panel-label">Tutti i clienti</div>
+        <div class="dash-panel-sub" id="dashCliSub">0 clienti in archivio</div>
+       </div>
+       <span class="dash-panel-arrow">›</span>
+      </div>
+     </div>
+    </div>
+
+    <!-- Hidden legacy IDs for updateBadges() compat -->
+    <span id="dashTotalClients" style="display:none"></span>
+   </div>
+
+  </div><!-- end dash-layout -->
+ </div><!-- end page-content -->
 </div>
 </div>
 
 <!-- CLIENTI -->
 <div id="pagClienti" style="display:none">
 <div class="page">
- <div class="page-header">
- <div>
- <div class="page-title">Clienti</div>
- <div class="page-subtitle">Profili salvati e raccomandazioni generate</div>
+ <div class="topbar">
+  <div class="topbar-left">
+   <span class="topbar-title">Clienti</span>
+   <span class="topbar-sub">Profili salvati e raccomandazioni AI</span>
+  </div>
+  <div class="topbar-right">
+   <button class="btn btn-primary btn-sm" onclick="startQuestionnaire()">+ Nuovo cliente</button>
+  </div>
  </div>
- <button class="btn btn-gold" onclick="startQuestionnaire()">+ Nuovo cliente</button>
+ <div class="page-content">
+  <div class="search-bar">
+   <input class="search-input" id="clientSearch" placeholder="Cerca per nome..." oninput="renderClientList()">
+  </div>
+  <div id="clientBulkBar" style="display:none" class="client-bulk-bar">
+   <span class="client-bulk-count" id="clientBulkCount">0 selezionati</span>
+   <button class="btn btn-danger btn-sm" onclick="deleteSelectedClients()">Elimina selezionati</button>
+   <button class="btn btn-ghost btn-sm" onclick="clearClientSelection()">Annulla</button>
+  </div>
+  <div class="client-list" id="clientList"></div>
  </div>
- <div class="search-bar">
- <input class="search-input" id="clientSearch" placeholder="Cerca per nome..." oninput="renderClientList()">
- </div>
- <div id="clientBulkBar" style="display:none" class="client-bulk-bar">
- <span class="client-bulk-count" id="clientBulkCount">0 selezionati</span>
- <button class="btn btn-danger btn-sm" onclick="deleteSelectedClients()"> Elimina selezionati</button>
- <button class="btn btn-ghost btn-sm" onclick="clearClientSelection()">Annulla</button>
- </div>
- <div class="client-list" id="clientList"></div>
 </div>
 </div>
 
@@ -901,44 +968,54 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 <!-- LIBRERIA -->
 <div id="pagLibreria" style="display:none">
 <div class="page">
- <div class="page-header">
- <div>
-  <div class="page-title">Libreria polizze</div>
-  <div class="page-subtitle">Seleziona da database o carica un PDF — poi confronta</div>
- </div>
+
+ <!-- Topbar sticky -->
+ <div class="topbar">
+  <div class="topbar-left">
+   <span class="topbar-title">Libreria polizze</span>
+   <span class="topbar-sub">Seleziona, confronta o carica PDF</span>
+  </div>
+  <div class="topbar-right">
+   <button class="btn btn-ghost btn-sm" onclick="libSwitchTab(2)">Database CGA</button>
+   <button class="btn btn-primary btn-sm" onclick="basketAddUpload()">+ Carica PDF</button>
+  </div>
  </div>
 
- <!-- CESTINO CONFRONTO — barra fissa in cima, sempre visibile -->
- <div id="basketBar" style="display:none;background:var(--polo);border-radius:var(--radius-lg);padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+ <!-- Basket bar (sticky sotto topbar) -->
+ <div id="basketBar" style="display:none;background:var(--polo);padding:10px 40px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:56px;z-index:90;">
   <div id="basketChips" style="display:flex;gap:8px;flex-wrap:wrap;flex:1"></div>
   <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-   <button onclick="basketAddUpload()" style="font-size:12px;padding:6px 12px;border-radius:20px;border:1.5px dashed rgba(255,255,255,.6);background:none;color:#fff;cursor:pointer">+ Carica PDF</button>
-   <button id="btnBasketConfronta" onclick="basketConfronta()" style="font-size:13px;padding:8px 18px;border-radius:20px;background:#fff;color:var(--polo);font-weight:700;border:none;cursor:pointer;opacity:.5" disabled>Confronta →</button>
+   <button onclick="basketAddUpload()" style="font-size:12px;padding:6px 12px;border-radius:8px;border:1.5px dashed rgba(255,255,255,.5);background:none;color:#fff;cursor:pointer">+ PDF</button>
+   <button id="btnBasketConfronta" onclick="basketConfronta()" style="font-size:13px;padding:8px 20px;border-radius:8px;background:#fff;color:var(--polo);font-weight:700;border:none;cursor:pointer;opacity:.5" disabled>Confronta →</button>
   </div>
  </div>
- <div id="basketEmpty" style="border:1.5px dashed var(--gray-200);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:18px;font-size:13px;color:var(--gray-400);display:flex;align-items:center;justify-content:space-between">
-  <span>Nessuna polizza selezionata — scegli dal database o carica un PDF</span>
-  <button onclick="basketAddUpload()" style="font-size:12px;padding:6px 14px;border-radius:20px;background:var(--polo);color:#fff;border:none;cursor:pointer;font-weight:600">+ Carica PDF</button>
+ <div id="basketEmpty" style="background:rgba(10,31,53,.04);border:1.5px dashed var(--gray-200);border-radius:12px;padding:12px 20px;margin:20px 40px 0;font-size:13px;color:var(--gray-400);display:flex;align-items:center;justify-content:space-between">
+  <span>Nessuna polizza selezionata — scegli dalla libreria o carica un PDF</span>
+  <button onclick="basketAddUpload()" style="font-size:12px;padding:5px 12px;border-radius:7px;background:var(--polo);color:#fff;border:none;cursor:pointer;font-weight:600;white-space:nowrap">+ Carica PDF</button>
  </div>
 
- <!-- Tab bar -->
- <div style="display:flex;gap:0;border-bottom:1px solid var(--gray-200);margin-bottom:20px">
-  <button id="libTab1" onclick="libSwitchTab(1)" style="padding:10px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--polo);color:var(--polo)">Le mie polizze</button>
-  <button id="libTab2" onclick="libSwitchTab(2)" style="padding:10px 20px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--gray-400)">Database CGA <span id="cgaBadge" style="font-size:10px;background:var(--gray-100);color:var(--gray-500);padding:1px 6px;border-radius:20px;margin-left:4px">—</span></button>
- </div>
+ <div class="page-content" style="padding-top:20px">
 
- <!-- Tab 1: Le mie polizze -->
- <div id="libPanel1">
-  <div class="lib-cat-pills" id="libCatPills"></div>
-  <div class="library-grid" id="libraryGrid"></div>
- </div>
-
- <!-- Tab 2: Database CGA -->
- <div id="libPanel2" style="display:none">
-  <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px">
-   <button onclick="cgaSync()" id="btnCgaSync" class="btn btn-sm" style="background:var(--polo);color:#fff;font-size:12px">↻ Aggiorna database</button>
+  <!-- Tab bar -->
+  <div style="display:flex;gap:0;border-bottom:1px solid var(--gray-200);margin-bottom:24px">
+   <button id="libTab1" onclick="libSwitchTab(1)" style="padding:10px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--polo);color:var(--polo)">Le mie polizze</button>
+   <button id="libTab2" onclick="libSwitchTab(2)" style="padding:10px 20px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--gray-400)">Database CGA <span id="cgaBadge" style="font-size:10px;background:var(--gray-100);color:var(--gray-500);padding:1px 6px;border-radius:20px;margin-left:4px">—</span></button>
   </div>
-  <div id="cgaAccordion"></div>
+
+  <!-- Tab 1: Le mie polizze -->
+  <div id="libPanel1">
+   <div class="lib-cat-pills" id="libCatPills"></div>
+   <div class="library-grid" id="libraryGrid"></div>
+  </div>
+
+  <!-- Tab 2: Database CGA -->
+  <div id="libPanel2" style="display:none">
+   <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px">
+    <button onclick="cgaSync()" id="btnCgaSync" class="btn btn-sm" style="background:var(--polo);color:#fff;font-size:12px">↻ Aggiorna database</button>
+   </div>
+   <div id="cgaAccordion"></div>
+  </div>
+
  </div>
 </div>
 </div>
@@ -1434,9 +1511,15 @@ function updateBadges() {
  const nc = getClients().length, np = getPolizze().length;
  document.getElementById('badgeClienti').textContent = nc;
  document.getElementById('badgeLibreria').textContent = np;
- document.getElementById('statClienti').textContent = nc;
- document.getElementById('statPolizze').textContent = np;
- document.getElementById('dashTotalClients').textContent = nc;
+ // topbar stats strip
+ const sc = document.getElementById('statClienti'); if(sc) sc.textContent = nc;
+ const sp = document.getElementById('statPolizze'); if(sp) sp.textContent = np;
+ const dt = document.getElementById('dashTotalClients'); if(dt) dt.textContent = nc;
+ // panel subs
+ const ds = document.getElementById('dashLibSub'); if(ds) ds.textContent = np + ' polizze salvate';
+ const dc = document.getElementById('dashCliSub'); if(dc) dc.textContent = nc + ' clienti in archivio';
+ // show last activity stat only if clients exist
+ const uw = document.getElementById('statUltimoWrap'); if(uw) uw.style.display = nc>0?'':'none';
 }
 
 // 
