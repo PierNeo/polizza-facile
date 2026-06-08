@@ -2325,8 +2325,25 @@ function renderResults(policies) {
  const minPremium=Math.min(...premiums.filter(x=>x>0));
  document.getElementById('scoreCards').innerHTML=policies.map((p,i)=>{
  const isCheapest=p.premio_num>0&&p.premio_num===minPremium&&premiums.filter(x=>x>0).length>1;
- return `<div class="score-card">
- <div class="score-body"><div class="score-company">${esc(p.compagnia||'—')}</div><div class="score-product">${esc(p.prodotto||'—')}</div><span class="score-tipo">${esc(p.tipo||'—')}</span>${p.premio?`<div class="score-premio">Premio: <strong>${esc(p.premio)}</strong>${isCheapest?' <span style="font-size:9px;background:var(--green-soft);color:var(--green-dark);padding:1px 6px;border-radius:20px;font-weight:700">Più economica</span>':''}</div>`:''}<div class="score-badges">${(p.punti_di_forza||[]).slice(0,2).map(b=>`<span class="score-badge best">${esc(b)}</span>`).join('')}</div></div>
+ // Conta sezioni incluse per un indicatore visivo leggero
+ const sezioniIncluse = (p.sezioni||[]).filter(s=>s.inclusa).length;
+ const sezioniTot = (p.sezioni||[]).length;
+ const coperturaBar = sezioniTot > 0
+  ? `<div style="margin:8px 0 4px;display:flex;align-items:center;gap:8px">
+      <div style="flex:1;height:4px;border-radius:2px;background:var(--gray-100);overflow:hidden">
+       <div style="width:${Math.round((sezioniIncluse/sezioniTot)*100)}%;height:100%;background:${i===0?'#0F2741':cols[i]};border-radius:2px"></div>
+      </div>
+      <span style="font-size:10px;color:var(--gray-400)">${sezioniIncluse}/${sezioniTot} sezioni</span>
+     </div>` : '';
+ return `<div class="score-card" style="border-top:3px solid ${cols[i]}">
+ <div class="score-body">
+  <div class="score-company">${esc(p.compagnia||'—')}</div>
+  <div class="score-product">${esc(p.prodotto||'—')}</div>
+  <span class="score-tipo">${esc(p.tipo||'—')}</span>
+  ${p.premio?`<div class="score-premio">Premio: <strong>${esc(p.premio)}</strong>${isCheapest?' <span style="font-size:9px;background:var(--green-soft);color:var(--green-dark);padding:1px 6px;border-radius:20px;font-weight:700">Più economica</span>':''}</div>`:''}
+  ${coperturaBar}
+  <div class="score-badges">${(p.punti_di_forza||[]).slice(0,2).map(b=>`<span class="score-badge best">${esc(b)}</span>`).join('')}</div>
+ </div>
  </div>`;
  }).join('');
 

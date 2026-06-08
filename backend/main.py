@@ -1726,7 +1726,8 @@ SINONIMI_SEZIONI_CASA: dict[str, dict] = {
         "sinonimi": [
             "tutela legale immobile", "tutela legale vita privata",
             "sezione tutela legale", "tutela legale e protezione digitale",
-            "tutela legale per i veicoli",
+            "tutela legale per i veicoli", "art. 24", "art. 22",
+            "tutela legale polizza casa", "tutela legale polizza",
         ],
         "sotto_garanzie": [],
     },
@@ -1944,6 +1945,8 @@ REGOLE CRITICHE:
 — id e nome: usa SEMPRE i valori standard dal dizionario sopra. Es: "Morte da infortuni" di Tandem → id="morte", nome="Morte da infortuni"
 — POLIZZE INFORTUNI: distingui "assistenza_sanitaria" (id=assistenza_sanitaria, per infortuni/salute — infermiere, fisioterapista, rimpatrio) da "assistenza" (id=assistenza, solo per polizze Casa — idraulico, vetraio, fabbro). Per polizze Infortuni usa SEMPRE id="assistenza_sanitaria".
 — POLIZZE MODULARI (es. Tandem): anche se una garanzia richiede attivazione specifica nella scheda, se è descritta nel testo come garanzia della sezione Infortuni mettila come inclusa=false, opzionale=true. NON metterla assente se è chiaramente descritta nel documento.
+— TUTELA LEGALE nelle polizze CASA: se nel testo c'è una sezione "Tutela Legale" con le sue condizioni (massimale, articoli, carenza), mettila come inclusa=true anche se il massimale è variabile o "indicato in polizza". La presenza della sezione nel contratto = garanzia inclusa.
+— MASSIMALE "Indicato in Polizza" o "Variabile": se il testo dice che il massimale è scelto dal contraente o indicato in polizza, usa massimale="Indicato in Polizza" e inclusa=true (non opzionale).
 — "Morte da infortuni" / "7.1 Morte da infortuno": se presente nel testo della polizza (anche come sezione 7.1), estraila sempre. Per Tandem è una garanzia della sezione Infortuni → id="morte", inclusa=true (o opzionale=true se modulare).
 — massimale: per Incendio/Furto/Infortuni usa "Somma assicurata". Per RC cerca il valore fisso (es: €5.000.000). Se il testo dice "massimale indicato in polizza" usa "Indicato in Polizza" e massimale_num=0.
 — franchigia e scoperto: estrai SEMPRE con il minimo in € quando presente (es: "10% min. €250"). Per infortuni cerca la tabella riassuntiva.
@@ -2495,3 +2498,49 @@ async def library_sync_stream(request: Request):
 
 
 # ── FINE LIBRERIA CGA ─────────────────────────────────────────────────────────
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── CRON SYNC — endpoint per scheduler notturno ───────────────────────────────
+# Chiamato da Railway Cron Job (o da qualsiasi scheduler) ogni notte.
+# Protetto da API key per evitare accessi non autorizzati.
+# ══════════════════════════════════════════════════════════════════════════════
+
+_CRON_KEY = os.getenv("CRON_API_KEY", "")  # imposta CRON_API_KEY su Railway
+
+@app.post("/api/cron-sync")
+async def cron_sync(request: Request):
+    """
+    Endpoint per il cron notturno: sincronizza tutto il catalogo CGA.
+    Richiede header Authorization: Bearer <CRON_API_KEY>
+    """
+    if _CRON_KEY:
+        auth = request.headers.get("Authorization", "")
+        if auth != f"Bearer {_CRON_KEY}":
+            raise HTTPException(401, "Non autorizzato")
+
+    logger.info("[cron-sync] avvio sync notturno catalogo CGA")
+    await _ensure_library_collection()
+    catalog = _load_catalog()
+
+    results = []
+    for entry in catalog:
+        result = await _sync_entry(entry)
+        results.append(result)
+
+    catalog_map = {e["id"]: e for e in catalog}
+    for u in results:
+        catalog_map[u["id"]] = u
+    _save_catalog(list(catalog_map.values()))
+
+    stats = {
+        "total": len(results),
+        "updated": sum(1 for r in results if r.get("sync_status") == "updated"),
+        "unchanged": sum(1 for r in results if r.get("sync_status") == "unchanged"),
+        "errors": sum(1 for r in results if r.get("sync_status") == "error"),
+        "errors_detail": [r["id"] for r in results if r.get("sync_status") == "error"],
+    }
+    logger.info(f"[cron-sync] completato: {stats}")
+    return {"ok": True, "stats": stats}
+
+# ── FINE CRON SYNC ────────────────────────────────────────────────────────────
