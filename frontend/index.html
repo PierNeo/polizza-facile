@@ -50,73 +50,95 @@
  --shadow: 0 4px 20px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.05);
  --shadow-lg: 0 12px 40px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.07);
  --shadow-card: 0 2px 8px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
- --sidebar-w: 224px;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gray-800); min-height:100vh; display:flex; -webkit-font-smoothing:antialiased; }
+body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gray-800); min-height:100vh; -webkit-font-smoothing:antialiased; }
 
-/* ── SIDEBAR ──────────────────────────────────────────────────────────────── */
-.sidebar {
- width:var(--sidebar-w); min-height:100vh;
- background:var(--polo);
- display:flex; flex-direction:column; position:fixed; left:0; top:0; bottom:0;
- z-index:200;
- border-right:1px solid rgba(255,255,255,.05);
+/* ── TOP NAVIGATION ────────────────────────────────────────────────────────── */
+.topnav {
+ position:sticky; top:0; z-index:200;
+ background:rgba(250,250,252,.92);
+ backdrop-filter:blur(20px) saturate(180%);
+ -webkit-backdrop-filter:blur(20px) saturate(180%);
+ border-bottom:1px solid rgba(0,0,0,.07);
+ height:52px; padding:0 32px;
+ display:flex; align-items:center; gap:4px;
 }
-.sidebar-brand {
- padding:22px 18px 18px; border-bottom:1px solid rgba(255,255,255,.07);
+.topnav-logo {
+ font-size:13.5px; font-weight:700; color:var(--polo); letter-spacing:-.2px;
+ margin-right:16px; display:flex; align-items:center; gap:7px; flex-shrink:0;
+ cursor:pointer; text-decoration:none;
 }
-.sidebar-logo-img { height:32px; margin-bottom:8px; display:block; }
-.sidebar-tagline { font-size:9.5px; color:rgba(255,255,255,.35); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+.topnav-logo-img { height:26px; display:block; }
+.topnav-logo-dot { width:6px; height:6px; border-radius:50%; background:var(--gold); flex-shrink:0; }
 
-.sidebar-nav { flex:1; padding:12px 0; overflow-y:auto; }
-.nav-section-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:rgba(255,255,255,.25); padding:16px 18px 5px; }
 .nav-item {
- display:flex; align-items:center; gap:10px; padding:9px 18px;
- color:rgba(255,255,255,.6); font-size:13px; font-weight:500;
- cursor:pointer; transition:all .12s; border-radius:0;
- user-select:none; text-decoration:none; margin:0 0;
+ display:flex; align-items:center; gap:7px; padding:6px 11px;
+ color:var(--gray-500); font-size:13px; font-weight:500;
+ cursor:pointer; transition:all .12s; border-radius:8px;
+ user-select:none; text-decoration:none; border:none; background:none;
+ font-family:inherit;
 }
-.nav-item:hover { color:rgba(255,255,255,.9); background:rgba(255,255,255,.06); }
-.nav-item.active {
- color:#fff; font-weight:600;
- background:rgba(255,255,255,.1);
- border-left:2px solid var(--gold);
- padding-left:16px;
-}
-.nav-item .nav-icon { font-size:15px; width:18px; text-align:center; flex-shrink:0; opacity:.8; }
-.nav-item.active .nav-icon { opacity:1; }
+.nav-item:hover { color:var(--gray-900); background:rgba(0,0,0,.05); }
+.nav-item.active { color:var(--polo); background:rgba(15,39,65,.07); font-weight:600; }
+.nav-item .nav-icon { font-size:15px; }
 .nav-badge {
- margin-left:auto; background:rgba(255,255,255,.15); color:rgba(255,255,255,.7);
- font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; min-width:18px; text-align:center;
+ background:var(--polo); color:#fff;
+ font-size:9px; font-weight:700; padding:1px 6px; border-radius:20px;
+ min-width:16px; text-align:center; line-height:1.6;
 }
-.nav-item.active .nav-badge { background:var(--gold); color:var(--polo); }
 
-.sidebar-bottom {
- padding:14px 18px; border-top:1px solid rgba(255,255,255,.07);
- font-size:10.5px; color:rgba(255,255,255,.25); line-height:1.7;
+/* Divisore verticale tra nav primaria e secondaria */
+.nav-divider {
+ width:1px; height:18px; background:rgba(0,0,0,.1);
+ margin:0 8px; flex-shrink:0;
 }
-.sidebar-bottom strong { color:rgba(255,255,255,.4); display:block; margin-bottom:1px; font-weight:600; }
+
+/* CTA confronta — destra */
+.nav-spacer { flex:1; }
+.btn-nav-cta {
+ padding:7px 18px; border-radius:8px;
+ background:var(--polo); color:#fff;
+ font-size:13px; font-weight:600; letter-spacing:-.1px;
+ border:none; cursor:pointer; font-family:inherit;
+ transition:all .12s; white-space:nowrap;
+}
+.btn-nav-cta:hover { background:var(--polo-mid); }
 
 /* Mobile */
-.mob-bar {
- display:none; position:fixed; top:0; left:0; right:0; height:50px;
- background:var(--polo); z-index:300; align-items:center; padding:0 16px;
+.mob-topbar {
+ display:none; position:sticky; top:0; z-index:300;
+ background:var(--polo); height:50px;
+ align-items:center; padding:0 16px; gap:12px;
 }
-.mob-bar .mob-logo { color:#fff; font-size:15px; font-weight:700; flex:1; letter-spacing:-.3px; }
-.mob-bar .mob-logo span { color:var(--gold-mid); }
-.mob-hamburger { background:none; border:none; cursor:pointer; color:#fff; font-size:22px; padding:4px; }
-.sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:199; backdrop-filter:blur(2px); }
-.sidebar-overlay.open { display:block; }
+.mob-logo { color:#fff; font-size:14px; font-weight:700; flex:1; letter-spacing:-.2px; }
+.mob-logo span { color:var(--gold-mid); }
+.mob-menu-btn { background:none; border:none; cursor:pointer; color:rgba(255,255,255,.8); font-size:20px; padding:4px; }
+
+/* Mobile nav drawer */
+.mob-nav-drawer {
+ display:none; position:fixed; inset:0; z-index:299;
+}
+.mob-nav-drawer.open { display:block; }
+.mob-nav-overlay { position:absolute; inset:0; background:rgba(0,0,0,.4); }
+.mob-nav-panel {
+ position:absolute; top:0; left:0; bottom:0; width:240px;
+ background:var(--polo); padding:60px 0 24px; display:flex; flex-direction:column;
+}
+.mob-nav-item {
+ display:flex; align-items:center; gap:10px; padding:11px 20px;
+ color:rgba(255,255,255,.7); font-size:14px; cursor:pointer;
+}
+.mob-nav-item.active { color:#fff; font-weight:600; background:rgba(255,255,255,.1); }
+.mob-nav-sep { height:1px; background:rgba(255,255,255,.1); margin:8px 0; }
+
 @media(max-width:768px) {
- .sidebar { transform:translateX(-100%); transition:transform .22s ease; }
- .sidebar.open { transform:translateX(0); }
- .mob-bar { display:flex; }
- .main-content { margin-left:0 !important; padding-top:50px; }
+ .topnav { display:none; }
+ .mob-topbar { display:flex; }
 }
 
 /* ── MAIN CONTENT ──────────────────────────────────────────────────────────── */
-.main-content { margin-left:var(--sidebar-w); flex:1; min-height:100vh; display:flex; flex-direction:column; }
+.main-content { width:100%; min-height:100vh; }
 
 /* ── BUTTONS ───────────────────────────────────────────────────────────────── */
 .btn {
@@ -146,37 +168,22 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .btn-go:hover:not(:disabled) { background:var(--polo-mid); box-shadow:0 4px 16px rgba(10,31,53,.4); transform:translateY(-1px); }
 .btn-go:disabled { background:var(--gray-200); color:var(--gray-400); cursor:not-allowed; box-shadow:none; }
 
-/* ── PAGE SHELL — full width, no max-width ─────────────────────────────────── */
+/* ── PAGE SHELL ────────────────────────────────────────────────────────────── */
 .page { padding:0; width:100%; }
+.page-content { padding:32px 40px 80px; max-width:1280px; }
+.page-content-sm { max-width:760px; }
 
-/* Sticky topbar per ogni pagina */
-.topbar {
- position:sticky; top:0; z-index:100;
- background:rgba(245,245,247,.88); backdrop-filter:blur(20px) saturate(180%);
- -webkit-backdrop-filter:blur(20px) saturate(180%);
- border-bottom:1px solid rgba(0,0,0,.08);
- padding:0 40px; height:56px;
- display:flex; align-items:center; justify-content:space-between; gap:16px;
+/* Page header interno (dentro page-content) */
+.page-header {
+ display:flex; align-items:flex-start; justify-content:space-between;
+ margin-bottom:28px; flex-wrap:wrap; gap:12px;
 }
-.topbar-left { display:flex; align-items:center; gap:16px; }
-.topbar-title { font-size:17px; font-weight:700; color:var(--gray-900); letter-spacing:-.3px; }
-.topbar-sub { font-size:12px; color:var(--gray-400); }
-.topbar-right { display:flex; align-items:center; gap:8px; }
-
-/* Stats strip nel topbar (solo dashboard) */
-.topbar-stats { display:flex; align-items:center; gap:1px; background:rgba(0,0,0,.06); border-radius:10px; overflow:hidden; margin-left:24px; }
-.topbar-stat { padding:7px 18px; background:var(--white); font-size:12px; color:var(--gray-500); display:flex; align-items:center; gap:6px; }
-.topbar-stat:not(:last-child) { border-right:1px solid rgba(0,0,0,.07); }
-.topbar-stat-num { font-size:16px; font-weight:800; color:var(--gray-900); letter-spacing:-.3px; }
-
-/* Content area */
-.page-content { padding:32px 40px 80px; }
-.page-content-sm { max-width:720px; }
-
-/* Legacy compat */
-.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
-.page-title { font-size:26px; font-weight:800; letter-spacing:-.6px; color:var(--gray-900); }
+.page-title { font-size:24px; font-weight:800; letter-spacing:-.5px; color:var(--gray-900); }
 .page-subtitle { font-size:13px; color:var(--gray-400); margin-top:4px; font-weight:400; }
+
+/* Legacy topbar — nascosto, non più usato come header fisso */
+.topbar { display:none; }
+.topbar-stats, .topbar-stat, .topbar-stat-num { display:none; }
 
 /* ── DASHBOARD ─────────────────────────────────────────────────────────────── */
 /* 2-column layout: left=main(2fr), right=sidebar(1fr) */
@@ -827,54 +834,56 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  </div>
 </div>
 
-<!-- Mobile top bar -->
-<div class="mob-bar">
+<!-- MOBILE TOP BAR -->
+<div class="mob-topbar" id="mobTopbar">
  <span class="mob-logo">Polo<span>Assicurativo</span></span>
- <button class="mob-hamburger" onclick="toggleSidebar()"></button>
+ <button class="mob-menu-btn" onclick="toggleMobNav()">☰</button>
 </div>
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-<!-- SIDEBAR -->
-<nav class="sidebar" id="sidebar">
- <div class="sidebar-brand" onclick="navTo('pagDashboard')" style="cursor:pointer">
- <img class="sidebar-logo-img"
- src="https://www.polobassano.it/wp-content/uploads/2023/04/Polo_-Assicurativo_Bassano_logo_white.png"
- onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"
- alt="Polo Assicurativo Bassano">
- <div style="display:none;color:#fff;font-size:16px;font-weight:700;margin-bottom:8px">Polo<span style="color:var(--gold-mid)">Assicurativo</span></div>
- <div class="sidebar-tagline">Progettiamo la tua protezione</div>
+<!-- MOBILE NAV DRAWER -->
+<div class="mob-nav-drawer" id="mobNavDrawer">
+ <div class="mob-nav-overlay" onclick="toggleMobNav()"></div>
+ <div class="mob-nav-panel">
+  <div class="mob-nav-item active" id="mob-nav-dashboard" onclick="navTo('pagDashboard');toggleMobNav()">Dashboard</div>
+  <div class="mob-nav-item" id="mob-nav-libreria" onclick="navTo('pagLibreria');toggleMobNav()">Polizze</div>
+  <div class="mob-nav-item" id="mob-nav-clienti" onclick="navTo('pagClienti');toggleMobNav()">Clienti</div>
+  <div class="mob-nav-sep"></div>
+  <div class="mob-nav-item" id="mob-nav-impostazioni" onclick="navTo('pagImpostazioni');toggleMobNav()">Questionario</div>
+  <div class="mob-nav-sep"></div>
+  <div class="mob-nav-item" onclick="startDirectComparison();toggleMobNav()" style="color:var(--gold-mid);font-weight:600">Confronta polizze →</div>
  </div>
+</div>
 
- <div class="sidebar-nav">
- <div class="nav-section-label">Principale</div>
- <div class="nav-item active" id="nav-dashboard" onclick="navTo('pagDashboard')">
- <span class="nav-icon"></span> Dashboard
- </div>
- <div class="nav-item" id="nav-clienti" onclick="navTo('pagClienti')">
- <span class="nav-icon"></span> Clienti
- <span class="nav-badge" id="badgeClienti">0</span>
- </div>
- <div class="nav-item" id="nav-libreria" onclick="navTo('pagLibreria')">
- <span class="nav-icon"></span> Libreria polizze
- <span class="nav-badge" id="badgeLibreria">0</span>
- </div>
+<!-- TOP NAVIGATION -->
+<nav class="topnav" id="topnav">
+ <a class="topnav-logo" onclick="navTo('pagDashboard')">
+  <img class="topnav-logo-img"
+   src="https://www.polobassano.it/wp-content/uploads/2023/04/Polo_-Assicurativo_Bassano_logo_white.png"
+   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+   alt="Polo Assicurativo Bassano">
+  <span style="display:none;align-items:center;gap:6px">
+   <span class="topnav-logo-dot"></span>Polo Bassano
+  </span>
+ </a>
 
- <div class="nav-section-label" style="margin-top:8px">Strumenti</div>
- <div class="nav-item" id="nav-comparatore" onclick="startDirectComparison()">
- <span class="nav-icon"></span> Comparatore polizze
- </div>
+ <!-- Nav primaria -->
+ <button class="nav-item active" id="nav-dashboard" onclick="navTo('pagDashboard')">Dashboard</button>
+ <button class="nav-item" id="nav-libreria" onclick="navTo('pagLibreria')">
+  Polizze <span class="nav-badge" id="badgeLibreria" style="display:none">0</span>
+ </button>
+ <button class="nav-item" id="nav-clienti" onclick="navTo('pagClienti')">
+  Clienti <span class="nav-badge" id="badgeClienti" style="display:none">0</span>
+ </button>
 
- <div class="nav-section-label" style="margin-top:8px">Configura</div>
- <div class="nav-item" id="nav-impostazioni" onclick="navTo('pagImpostazioni')">
- <span class="nav-icon"></span> Questionario
- </div>
- </div>
+ <!-- Divisore -->
+ <div class="nav-divider"></div>
 
- <div class="sidebar-bottom">
- <strong>Polo Assicurativo Bassano</strong>
- Via S. Pio X 58/3 · Cassola (VI)<br>
- info@polobassano.it
- </div>
+ <!-- Nav secondaria -->
+ <button class="nav-item" id="nav-impostazioni" onclick="navTo('pagImpostazioni')">Questionario</button>
+
+ <!-- CTA -->
+ <div class="nav-spacer"></div>
+ <button class="btn-nav-cta" id="nav-comparatore" onclick="startDirectComparison()">Confronta polizze →</button>
 </nav>
 
 <!-- MAIN CONTENT -->
@@ -883,23 +892,11 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 <!-- DASHBOARD -->
 <div id="pagDashboard">
 <div class="page">
-
- <!-- Topbar sticky -->
- <div class="topbar">
-  <div class="topbar-left">
-   <span class="topbar-title">Dashboard</span>
-   <div class="topbar-stats" id="dashStatsStrip">
-    <div class="topbar-stat"><span class="topbar-stat-num" id="statClienti">0</span> clienti</div>
-    <div class="topbar-stat"><span class="topbar-stat-num" id="statPolizze">0</span> polizze</div>
-    <div class="topbar-stat" id="statUltimoWrap" style="display:none"><span class="topbar-stat-num" id="statUltimo">—</span></div>
-   </div>
-  </div>
-  <div class="topbar-right">
-   <button class="btn btn-ghost btn-sm" onclick="startDirectComparison()">Confronta polizze</button>
-   <button class="btn btn-primary btn-sm" onclick="startQuestionnaire()">+ Nuovo cliente</button>
-  </div>
- </div>
-
+ <!-- Stats hidden per updateBadges compat -->
+ <span id="statClienti" style="display:none">0</span>
+ <span id="statPolizze" style="display:none">0</span>
+ <span id="statUltimo" style="display:none">—</span>
+ <span id="statUltimoWrap" style="display:none"></span>
  <div class="page-content">
 
   <!-- Banner hero -->
@@ -980,16 +977,11 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 <!-- CLIENTI -->
 <div id="pagClienti" style="display:none">
 <div class="page">
- <div class="topbar">
-  <div class="topbar-left">
-   <span class="topbar-title">Clienti</span>
-   <span class="topbar-sub">Profili salvati e raccomandazioni AI</span>
-  </div>
-  <div class="topbar-right">
+ <div class="page-content">
+  <div class="page-header">
+   <div><div class="page-title">Clienti</div><div class="page-subtitle">Profili salvati e raccomandazioni AI</div></div>
    <button class="btn btn-primary btn-sm" onclick="startQuestionnaire()">+ Nuovo cliente</button>
   </div>
- </div>
- <div class="page-content">
   <div class="search-bar">
    <input class="search-input" id="clientSearch" placeholder="Cerca per nome..." oninput="renderClientList()">
   </div>
@@ -1019,32 +1011,24 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 <div id="pagLibreria" style="display:none">
 <div class="page">
 
- <!-- Topbar sticky -->
- <div class="topbar">
-  <div class="topbar-left">
-   <span class="topbar-title">Libreria polizze</span>
-   <span class="topbar-sub">Seleziona, confronta o carica PDF</span>
-  </div>
-  <div class="topbar-right">
-   <button class="btn btn-ghost btn-sm" onclick="libSwitchTab(2)">Database CGA</button>
-   <button class="btn btn-primary btn-sm" onclick="basketAddUpload()">+ Carica PDF</button>
-  </div>
- </div>
-
- <!-- Basket bar (sticky sotto topbar) -->
- <div id="basketBar" style="display:none;background:var(--polo);padding:10px 40px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:56px;z-index:90;">
+ <!-- Basket bar sticky sotto topnav -->
+ <div id="basketBar" style="display:none;background:var(--polo);padding:9px 40px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:52px;z-index:90;">
   <div id="basketChips" style="display:flex;gap:8px;flex-wrap:wrap;flex:1"></div>
   <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-   <button onclick="basketAddUpload()" style="font-size:12px;padding:6px 12px;border-radius:8px;border:1.5px dashed rgba(255,255,255,.5);background:none;color:#fff;cursor:pointer">+ PDF</button>
-   <button id="btnBasketConfronta" onclick="basketConfronta()" style="font-size:13px;padding:8px 20px;border-radius:8px;background:#fff;color:var(--polo);font-weight:700;border:none;cursor:pointer;opacity:.5" disabled>Confronta →</button>
+   <button onclick="basketAddUpload()" style="font-size:12px;padding:5px 12px;border-radius:7px;border:1.5px dashed rgba(255,255,255,.5);background:none;color:#fff;cursor:pointer">+ PDF</button>
+   <button id="btnBasketConfronta" onclick="basketConfronta()" style="font-size:13px;padding:7px 20px;border-radius:7px;background:#fff;color:var(--polo);font-weight:700;border:none;cursor:pointer;opacity:.5" disabled>Confronta →</button>
   </div>
  </div>
- <div id="basketEmpty" style="background:rgba(10,31,53,.04);border:1.5px dashed var(--gray-200);border-radius:12px;padding:12px 20px;margin:20px 40px 0;font-size:13px;color:var(--gray-400);display:flex;align-items:center;justify-content:space-between">
-  <span>Nessuna polizza selezionata — scegli dalla libreria o carica un PDF</span>
-  <button onclick="basketAddUpload()" style="font-size:12px;padding:5px 12px;border-radius:7px;background:var(--polo);color:#fff;border:none;cursor:pointer;font-weight:600;white-space:nowrap">+ Carica PDF</button>
+ <div id="basketEmpty" style="background:rgba(10,31,53,.03);border:1.5px dashed var(--gray-200);border-radius:10px;padding:11px 18px;margin:20px 40px 0;font-size:13px;color:var(--gray-400);display:flex;align-items:center;justify-content:space-between;gap:12px">
+  <span>Seleziona polizze dalla libreria o carica un PDF per confrontarle</span>
+  <button onclick="basketAddUpload()" style="font-size:12px;padding:5px 12px;border-radius:7px;background:var(--polo);color:#fff;border:none;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0">+ Carica PDF</button>
  </div>
 
  <div class="page-content" style="padding-top:20px">
+  <div class="page-header">
+   <div><div class="page-title">Polizze</div><div class="page-subtitle">Seleziona fino a 4 e premi Confronta</div></div>
+   <button class="btn btn-primary btn-sm" onclick="basketAddUpload()">+ Carica PDF</button>
+  </div>
 
   <!-- Tab bar -->
   <div style="display:flex;gap:0;border-bottom:1px solid var(--gray-200);margin-bottom:24px">
@@ -1567,45 +1551,58 @@ function deletePolizza(id) {
 
 function updateBadges() {
  const nc = getClients().length, np = getPolizze().length;
- document.getElementById('badgeClienti').textContent = nc;
- document.getElementById('badgeLibreria').textContent = np;
- // topbar stats strip
+ // Nav badges — mostra solo se > 0
+ const bc = document.getElementById('badgeClienti');
+ if (bc) { bc.textContent = nc; bc.style.display = nc > 0 ? '' : 'none'; }
+ const bl = document.getElementById('badgeLibreria');
+ if (bl) { bl.textContent = np; bl.style.display = np > 0 ? '' : 'none'; }
+ // Dashboard stats
  const sc = document.getElementById('statClienti'); if(sc) sc.textContent = nc;
  const sp = document.getElementById('statPolizze'); if(sp) sp.textContent = np;
  const dt = document.getElementById('dashTotalClients'); if(dt) dt.textContent = nc;
- // panel subs
- const ds = document.getElementById('dashLibSub'); if(ds) ds.textContent = np + ' polizze salvate';
- const dc = document.getElementById('dashCliSub'); if(dc) dc.textContent = nc + ' clienti in archivio';
- // show last activity stat only if clients exist
+ const ds = document.getElementById('dashLibSub'); if(ds) ds.textContent = np + (np===1?' polizza':' polizze') + ' salvate';
+ const dc = document.getElementById('dashCliSub'); if(dc) dc.textContent = nc + (nc===1?' cliente':' clienti') + ' in archivio';
  const uw = document.getElementById('statUltimoWrap'); if(uw) uw.style.display = nc>0?'':'none';
 }
 
-// 
+//
 // NAVIGATION
-// 
+//
 const ALL_PAGES = ['pagDashboard','pagClienti','pagClienteDetail','pagLibreria','pagQuestionario','pagRaccomandazioni','pagUpload','pagLoading','pagResults','pagImpostazioni','pagMatch','pagVerifica'];
 
 function navTo(id) {
- ALL_PAGES.forEach(p => document.getElementById(p).style.display = p===id ? 'block' : 'none');
- const navMap = { pagDashboard:'nav-dashboard', pagClienti:'nav-clienti', pagLibreria:'nav-libreria', pagUpload:'nav-comparatore' };
- document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
- if (navMap[id]) document.getElementById(navMap[id])?.classList.add('active');
+ ALL_PAGES.forEach(p => { const el = document.getElementById(p); if(el) el.style.display = p===id ? 'block' : 'none'; });
+ // Nav highlight — sia topnav che mobile
+ const navMap = {
+  pagDashboard: 'nav-dashboard',
+  pagClienti: 'nav-clienti',
+  pagLibreria: 'nav-libreria',
+  pagImpostazioni: 'nav-impostazioni',
+ };
+ document.querySelectorAll('.nav-item, .mob-nav-item').forEach(el => el.classList.remove('active'));
+ const navId = navMap[id];
+ if (navId) {
+  document.getElementById(navId)?.classList.add('active');
+  const mobId = 'mob-' + navId;
+  document.getElementById(mobId)?.classList.add('active');
+ }
  window.scrollTo(0,0);
- closeSidebar();
+ closeMobNav();
  if (id === 'pagDashboard') renderDashboard();
  if (id === 'pagClienti') renderClientList();
  if (id === 'pagLibreria') renderLibreria();
  if (id === 'pagImpostazioni') renderImpostazioni();
 }
 
-function toggleSidebar() {
- document.getElementById('sidebar').classList.toggle('open');
- document.getElementById('sidebarOverlay').classList.toggle('open');
+function toggleMobNav() {
+ document.getElementById('mobNavDrawer').classList.toggle('open');
 }
-function closeSidebar() {
- document.getElementById('sidebar').classList.remove('open');
- document.getElementById('sidebarOverlay').classList.remove('open');
+function closeMobNav() {
+ document.getElementById('mobNavDrawer')?.classList.remove('open');
 }
+// Legacy compat
+function toggleSidebar() { toggleMobNav(); }
+function closeSidebar() { closeMobNav(); }
 
 // 
 // DASHBOARD
