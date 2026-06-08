@@ -806,11 +806,24 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 <div class="page">
  <div class="page-header">
  <div>
- <div class="page-title">Libreria polizze</div>
- <div class="page-subtitle">Polizze pronte per il confronto</div>
+  <div class="page-title">Libreria polizze</div>
+  <div class="page-subtitle">Seleziona da database o carica un PDF — poi confronta</div>
  </div>
- <button class="btn btn-gold" onclick="startDirectComparison()">+ Carica PDF</button>
  </div>
+
+ <!-- CESTINO CONFRONTO — barra fissa in cima, sempre visibile -->
+ <div id="basketBar" style="display:none;background:var(--polo);border-radius:var(--radius-lg);padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <div id="basketChips" style="display:flex;gap:8px;flex-wrap:wrap;flex:1"></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+   <button onclick="basketAddUpload()" style="font-size:12px;padding:6px 12px;border-radius:20px;border:1.5px dashed rgba(255,255,255,.6);background:none;color:#fff;cursor:pointer">+ Carica PDF</button>
+   <button id="btnBasketConfronta" onclick="basketConfronta()" style="font-size:13px;padding:8px 18px;border-radius:20px;background:#fff;color:var(--polo);font-weight:700;border:none;cursor:pointer;opacity:.5" disabled>Confronta →</button>
+  </div>
+ </div>
+ <div id="basketEmpty" style="border:1.5px dashed var(--gray-200);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:18px;font-size:13px;color:var(--gray-400);display:flex;align-items:center;justify-content:space-between">
+  <span>Nessuna polizza selezionata — scegli dal database o carica un PDF</span>
+  <button onclick="basketAddUpload()" style="font-size:12px;padding:6px 14px;border-radius:20px;background:var(--polo);color:#fff;border:none;cursor:pointer;font-weight:600">+ Carica PDF</button>
+ </div>
+
  <!-- Tab bar -->
  <div style="display:flex;gap:0;border-bottom:1px solid var(--gray-200);margin-bottom:20px">
   <button id="libTab1" onclick="libSwitchTab(1)" style="padding:10px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--polo);color:var(--polo)">Le mie polizze</button>
@@ -819,10 +832,6 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 
  <!-- Tab 1: Le mie polizze -->
  <div id="libPanel1">
-  <div class="library-toolbar">
-  <div class="selected-count" id="libSelectedCount"></div>
-  <button class="btn btn-primary" id="btnConfrontaLib" style="display:none" onclick="confrontaFromLibrary()">Confronta selezionate →</button>
-  </div>
   <div class="library-grid" id="libraryGrid"></div>
  </div>
 
@@ -830,15 +839,11 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  <div id="libPanel2" style="display:none">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
    <div style="display:flex;gap:8px">
-    <button onclick="cgaFilterTipo('')" id="cgaF0" class="btn btn-sm btn-ghost" style="border-radius:20px;font-size:12px">Tutti</button>
+    <button onclick="cgaFilterTipo('')" id="cgaF0" class="btn btn-sm" style="border-radius:20px;font-size:12px;background:var(--polo);color:#fff">Tutti</button>
     <button onclick="cgaFilterTipo('Casa')" id="cgaF1" class="btn btn-sm btn-ghost" style="border-radius:20px;font-size:12px">🏠 Casa</button>
     <button onclick="cgaFilterTipo('Infortuni')" id="cgaF2" class="btn btn-sm btn-ghost" style="border-radius:20px;font-size:12px">🛡 Infortuni</button>
    </div>
    <button onclick="cgaSync()" id="btnCgaSync" class="btn btn-sm" style="background:var(--polo);color:#fff;font-size:12px">↻ Aggiorna database</button>
-  </div>
-  <div id="cgaSelectedBar" style="display:none;padding:12px 16px;background:var(--blue-soft);border-radius:var(--radius-md);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
-   <span id="cgaSelCount" style="font-size:13px;font-weight:600;color:var(--blue)"></span>
-   <button onclick="cgaConfronta()" class="btn btn-primary btn-sm">Confronta selezionate →</button>
   </div>
   <div id="cgaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
  </div>
@@ -1556,47 +1561,101 @@ function buildRecCardHTML(r) {
 function renderLibreria() {
  const polizze = getPolizze();
  const grid = document.getElementById('libraryGrid');
- const countEl = document.getElementById('libSelectedCount');
- const btnCfr = document.getElementById('btnConfrontaLib');
-
- const selCount = libSelected.size;
- countEl.textContent = selCount> 0 ? `${selCount} selezionate` : '';
- btnCfr.style.display = selCount>= 2 ? 'block' : 'none';
-
+ if (!grid) return;
  if (!polizze.length) {
- grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza salvata ancora.<br>Aggiungile durante un confronto PDF.</p></div>`;
- return;
+  grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza salvata.<br>Caricale tramite il pulsante in alto o durante un confronto PDF.</p></div>`;
+  return;
  }
  grid.innerHTML = polizze.map(p => {
- const sel = libSelected.has(p.id);
- const date = new Date(p.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
- return `<div class="library-card ${sel?'selected':''}" onclick="toggleLibSel('${p.id}')">
- <div class="lib-check">${sel?'':''}</div>
- <div class="lib-company">${esc(p.compagnia)}</div>
- <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
- <span class="lib-tipo">${esc(p.tipo)}</span>
- <div class="lib-date" style="margin-top:8px">Aggiunta il ${date}</div>
- <button class="lib-del" onclick="event.stopPropagation();deletePolizza('${p.id}')" title="Elimina"></button>
- </div>`;
+  const inBasket = _basket.find(b => b.id === p.id);
+  const date = new Date(p.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+  return `<div class="library-card ${inBasket?'selected':''}" onclick="libToggleBasket('${p.id}')">
+   ${inBasket?'<div class="lib-check"></div>':''}
+   <div class="lib-company">${esc(p.compagnia)}</div>
+   <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
+   <span class="lib-tipo">${esc(p.tipo)}</span>
+   <div class="lib-date" style="margin-top:8px">Aggiunta il ${date}</div>
+   <button class="lib-del" onclick="event.stopPropagation();deletePolizza('${p.id}')" title="Elimina"></button>
+  </div>`;
  }).join('');
 }
 
-function toggleLibSel(id) {
- if (libSelected.has(id)) libSelected.delete(id);
- else if (libSelected.size < 4) libSelected.add(id);
- else { toast('Massimo 4 polizze'); return; }
- renderLibreria();
+function libToggleBasket(id) {
+ const existing = _basket.find(b => b.id === id);
+ if (existing) { basketRemove(id); return; }
+ const p = getPolizze().find(x => x.id === id);
+ if (!p) return;
+ basketAdd({ id: p.id, compagnia: p.compagnia, prodotto: p.prodotto||p.filename, tipo: p.tipo, source: 'library', extracted: p.extracted });
 }
 
 function confrontaFromLibrary() {
- if (libSelected.size < 2) { toast('Seleziona almeno 2 polizze'); return; }
+ basketConfronta();
+}
+
+// ── CESTINO CONFRONTO UNIFICATO ──────────────────────────────────────────────
+// Raccoglie polizze da qualsiasi fonte (database CGA, libreria personale, upload)
+// max 4 polizze, poi lancia il confronto.
+let _basket = []; // array di { id, compagnia, prodotto, tipo, source, extracted }
+
+function basketAdd(item) {
+ if (_basket.length >= 4) { toast('Massimo 4 polizze per il confronto'); return false; }
+ if (_basket.find(b => b.id === item.id)) { toast('Polizza già nel confronto'); return false; }
+ _basket.push(item);
+ basketRender();
+ return true;
+}
+
+function basketRemove(id) {
+ _basket = _basket.filter(b => b.id !== id);
+ basketRender();
+ renderLibreria();
+ cgaRender();
+}
+
+function basketRender() {
+ const bar = document.getElementById('basketBar');
+ const empty = document.getElementById('basketEmpty');
+ const chips = document.getElementById('basketChips');
+ const btn = document.getElementById('btnBasketConfronta');
+ if (!bar) return;
+ if (_basket.length === 0) {
+  bar.style.display = 'none'; empty.style.display = 'flex';
+ } else {
+  bar.style.display = 'flex'; empty.style.display = 'none';
+  chips.innerHTML = _basket.map(b => `
+   <div style="background:rgba(255,255,255,.2);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;color:#fff;display:flex;align-items:center;gap:6px">
+    <span style="font-weight:600">${esc(b.compagnia||b.prodotto)}</span>
+    <span style="opacity:.7">${esc(b.prodotto !== b.compagnia ? b.prodotto : '')}</span>
+    <span style="opacity:.5;font-size:10px">${esc(b.tipo||'')}</span>
+    <button onclick="basketRemove('${b.id}')" style="background:rgba(255,255,255,.3);border:none;border-radius:50%;width:16px;height:16px;cursor:pointer;color:#fff;font-size:10px;padding:0;line-height:16px">×</button>
+   </div>`).join('');
+  btn.disabled = _basket.length < 2;
+  btn.style.opacity = _basket.length >= 2 ? '1' : '.5';
+ }
+ renderLibreria();
+ cgaRender();
+}
+
+function basketConfronta() {
+ if (_basket.length < 2) { toast('Seleziona almeno 2 polizze'); return; }
+ const policies = _basket.map(b => b.extracted).filter(Boolean);
+ if (policies.length < 2) { toast('Alcune polizze non hanno dati estratti'); return; }
+ document.getElementById('resultsTitle').textContent = 'Confronto polizze';
+ renderResults(policies);
+ callSummary(policies).catch(()=>{});
+ navTo('pagResults');
+}
+
+function basketAddUpload() {
+ // Lancia l'upload direttamente, con callback per aggiungere al cestino
+ _basketUploadMode = true;
  startDirectComparison();
 }
+let _basketUploadMode = false;
 
 // ── LIBRERIA CGA DATABASE ────────────────────────────────────────────────────
 let _cgaData = [];        // dati caricati da /api/library
 let _cgaFilter = '';      // '' | 'Casa' | 'Infortuni'
-let _cgaSelected = new Set(); // id polizze CGA selezionate
 
 function libSwitchTab(n) {
  document.getElementById('libPanel1').style.display = n===1 ? '' : 'none';
@@ -1640,21 +1699,22 @@ function cgaFilterTipo(tipo) {
 
 function cgaRender() {
  const grid = document.getElementById('cgaGrid');
+ if (!grid) return;
  const filtered = _cgaFilter ? _cgaData.filter(d => d.tipo === _cgaFilter) : _cgaData;
  if (!filtered.length) {
   grid.innerHTML = '<div style="color:var(--gray-400);font-size:13px;grid-column:1/-1;padding:20px 0">Nessuna polizza in database. Clicca "Aggiorna database" per sincronizzare.</div>';
   return;
  }
  grid.innerHTML = filtered.map(d => {
-  const sel = _cgaSelected.has(d.id);
+  const inBasket = _basket.find(b => b.id === 'cga:'+d.id);
   const hasData = !!d.extracted;
-  const statusColor = d.sync_status==='updated'?'var(--green-dark)':d.sync_status==='error'?'var(--red)':'var(--gray-400)';
-  const statusIcon = d.sync_status==='updated'?'✓':d.sync_status==='error'?'⚠':d.sync_status==='unchanged'?'✓':'…';
-  const updated = d.last_updated ? new Date(d.last_updated).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}) : 'Non ancora sincronizzata';
-  return `<div class="library-card ${sel&&hasData?'selected':''} ${!hasData?'lib-pending':''}"
-   onclick="${hasData?`cgaToggleSel('${d.id}')`:'cgaSync(\'' + d.id + '\')'}"
+  const statusColor = d.sync_status==='updated'||d.sync_status==='unchanged'?'var(--green-dark)':d.sync_status==='error'?'var(--red)':'var(--gray-400)';
+  const statusIcon = (d.sync_status==='updated'||d.sync_status==='unchanged')?'✓':d.sync_status==='error'?'⚠':'…';
+  const updated = d.last_updated ? new Date(d.last_updated).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}) : 'Non ancora scaricata';
+  return `<div class="library-card ${inBasket&&hasData?'selected':''} ${!hasData?'lib-pending':''}"
+   onclick="${hasData?`cgaToggleBasket('${d.id}')`:`cgaSync('${d.id}')`}"
    style="${!hasData?'opacity:.7;':''}cursor:pointer">
-   ${sel&&hasData?'<div class="lib-check"></div>':''}
+   ${inBasket&&hasData?'<div class="lib-check"></div>':''}
    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
     <span class="lib-tipo">${esc(d.tipo||'—')}</span>
     <span style="font-size:10px;color:${statusColor}">${statusIcon}</span>
@@ -1665,22 +1725,15 @@ function cgaRender() {
    ${!hasData?'<div style="font-size:10px;color:var(--polo);margin-top:6px;font-weight:600">Clicca per scaricare →</div>':''}
   </div>`;
  }).join('');
- // Aggiorna barra selezione
- const bar = document.getElementById('cgaSelectedBar');
- const cnt = document.getElementById('cgaSelCount');
- if (_cgaSelected.size >= 2) {
-  bar.style.display = 'flex';
-  cnt.textContent = `${_cgaSelected.size} polizze selezionate`;
- } else {
-  bar.style.display = 'none';
- }
 }
 
-function cgaToggleSel(id) {
- if (_cgaSelected.has(id)) _cgaSelected.delete(id);
- else if (_cgaSelected.size < 4) _cgaSelected.add(id);
- else { toast('Massimo 4 polizze'); return; }
- cgaRender();
+function cgaToggleBasket(id) {
+ const basketId = 'cga:' + id;
+ const existing = _basket.find(b => b.id === basketId);
+ if (existing) { basketRemove(basketId); return; }
+ const d = _cgaData.find(x => x.id === id);
+ if (!d || !d.extracted) return;
+ basketAdd({ id: basketId, compagnia: d.compagnia, prodotto: d.prodotto, tipo: d.tipo, source: 'cga', extracted: d.extracted });
 }
 
 async function cgaSync(targetId) {
@@ -1712,16 +1765,6 @@ async function cgaSync(targetId) {
  if (btn) { btn.disabled = false; btn.textContent = '↻ Aggiorna database'; }
 }
 
-function cgaConfronta() {
- if (_cgaSelected.size < 2) { toast('Seleziona almeno 2 polizze'); return; }
- const selected = _cgaData.filter(d => _cgaSelected.has(d.id) && d.extracted);
- if (selected.length < 2) { toast('Alcune polizze non hanno dati estratti'); return; }
- const policies = selected.map(d => d.extracted);
- document.getElementById('resultsTitle').textContent = 'Confronto CGA — Database compagnie';
- renderResults(policies);
- callSummary(policies).catch(()=>{});
- navTo('pagResults');
-}
 
 //
 // QUESTIONNAIRE
