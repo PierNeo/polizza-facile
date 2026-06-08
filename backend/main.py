@@ -1758,6 +1758,8 @@ SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
         "sinonimi": [
             "decesso da infortuni", "morte da infortuni", "capitale caso morte",
             "caso morte", "morte", "7.1 morte da infortuni",
+            "morte da infortunio", "7.1 morte da infortunio",
+            "caso morte da infortuni", "decesso", "morte infortuni",
         ],
         "sotto_garanzie": [],
     },
@@ -1824,6 +1826,17 @@ SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
         "id": "rendita_vitalizia",
         "nome_standard": "Rendita vitalizia",
         "sinonimi": ["rendita vitalizia", "rendita"],
+        "sotto_garanzie": [],
+    },
+    "assistenza_sanitaria": {
+        "id": "assistenza_sanitaria",
+        "nome_standard": "Assistenza sanitaria",
+        "sinonimi": [
+            "assistenza sanitaria", "assistenza in viaggio", "assistenza infortuni",
+            "sezione assistenza", "assistenza unisalute", "assistenza blue assistance",
+            "garanzia assistenza", "assistenza per infortuni", "assistenza per infortunio",
+            "prestazioni di assistenza", "assistenza domiciliare infortuni",
+        ],
         "sotto_garanzie": [],
     },
 }
@@ -1929,9 +1942,12 @@ POLIZZE INFORTUNI:
 
 REGOLE CRITICHE:
 — id e nome: usa SEMPRE i valori standard dal dizionario sopra. Es: "Morte da infortuni" di Tandem → id="morte", nome="Morte da infortuni"
+— POLIZZE INFORTUNI: distingui "assistenza_sanitaria" (id=assistenza_sanitaria, per infortuni/salute — infermiere, fisioterapista, rimpatrio) da "assistenza" (id=assistenza, solo per polizze Casa — idraulico, vetraio, fabbro). Per polizze Infortuni usa SEMPRE id="assistenza_sanitaria".
+— POLIZZE MODULARI (es. Tandem): anche se una garanzia richiede attivazione specifica nella scheda, se è descritta nel testo come garanzia della sezione Infortuni mettila come inclusa=false, opzionale=true. NON metterla assente se è chiaramente descritta nel documento.
+— "Morte da infortuni" / "7.1 Morte da infortuno": se presente nel testo della polizza (anche come sezione 7.1), estraila sempre. Per Tandem è una garanzia della sezione Infortuni → id="morte", inclusa=true (o opzionale=true se modulare).
 — massimale: per Incendio/Furto/Infortuni usa "Somma assicurata". Per RC cerca il valore fisso (es: €5.000.000). Se il testo dice "massimale indicato in polizza" usa "Indicato in Polizza" e massimale_num=0.
 — franchigia e scoperto: estrai SEMPRE con il minimo in € quando presente (es: "10% min. €250"). Per infortuni cerca la tabella riassuntiva.
-— sublimiti: formato "Voce max €X | Voce max €Y". Per Furto: gioielli, valori, scippo fuori. Per Assistenza: limiti per tipo intervento.
+— sublimiti: formato "Voce max €X | Voce max €Y". Per Furto: gioielli, valori, scippo fuori. Per Assistenza sanitaria: limiti per tipo prestazione (infermiere, fisioterapista, rimpatrio, ecc.).
 — sotto_garanzie: per Casa indica quali sotto-garanzie sono incluse (true/false) o il loro valore (es: "max €15.000" per gioielli).
 — Se una sezione è ESCLUSA esplicitamente: inclusa=false, opzionale=false. Se è opzionale acquistabile: inclusa=false, opzionale=true.
 — Estrai TUTTE le sezioni presenti o esplicitamente escluse."""
