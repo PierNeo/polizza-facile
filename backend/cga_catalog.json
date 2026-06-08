@@ -6,10 +6,16 @@
     "tipo": "Casa",
     "url": "https://www.unipol.it/api/pub/ueba/download/doc/v1/fascicoli/c603e02d-7f8b-4fb8-881c-77ec578255fd",
     "url_type": "api",
-    "note": "Ed. 01/10/2025 — UUID stabile",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "unipol-casa-servizi",
+    "compagnia": "Unipol Assicurazioni",
+    "prodotto": "Unipol Casa e Servizi",
+    "tipo": "Casa",
+    "url": "https://www.unipol.it/api/pub/ueba/download/doc/v1/fascicoli/f73a4698-1445-4c7c-a28b-d568cc8a12d8",
+    "url_type": "api",
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "unipol-unica-infortuni",
@@ -18,34 +24,43 @@
     "tipo": "Infortuni",
     "url": "https://www.unipol.it/api/pub/ueba/download/doc/v1/fascicoli/497c7be8-6f13-4daa-90ed-57f1509a3fa6",
     "url_type": "api",
-    "note": "Ed. 01/10/2025 — UUID stabile",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
-    "id": "generali-sei-a-casa",
+    "id": "generali-sei-a-casa-digital",
     "compagnia": "Generali Italia",
     "prodotto": "Generali Sei a Casa Digital",
     "tipo": "Casa",
     "url": "https://asset.generali.it/285064/Condizioni-di-assicurazione-Generali-Sei-a-casa_digital-mod-FI01-03-ed-.pdf",
     "url_type": "cdn",
-    "note": "CDN stabile",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
-    "id": "generali-sei-in-sicurezza",
+    "id": "generali-sei-a-casa-classic",
+    "compagnia": "Generali Italia",
+    "prodotto": "Generali Sei a Casa",
+    "tipo": "Casa",
+    "url": "https://asset.generali.it/278462/Condizioni-di-Assicurazione-Generali-Sei-a-Casa.pdf",
+    "url_type": "cdn",
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "generali-sei-in-sicurezza-comfort",
     "compagnia": "Generali Italia",
     "prodotto": "Generali Sei in Sicurezza Comfort",
     "tipo": "Infortuni",
     "url": "https://asset.generali.it/278418/Condizioni-di-Assicurazione-Generali-Sei-In-Sicurezza-Comfort.pdf",
     "url_type": "cdn",
-    "note": "CDN stabile",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "generali-sei-in-sicurezza-top",
+    "compagnia": "Generali Italia",
+    "prodotto": "Generali Sei in Sicurezza Top",
+    "tipo": "Infortuni",
+    "url": "https://asset.generali.it/281898/DIP-Aggiuntivo-Generali-Sei-In-Sicurezza-Top-281898.pdf",
+    "url_type": "cdn",
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "allianz-ultra-casa",
@@ -54,10 +69,16 @@
     "tipo": "Casa",
     "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/casa-e-famiglia/allianz-ultra/set-informativi-ultra-casa-e-patrimoni/21-06-2025/S_941_AZ_ULTRA_Casa_e_Patrimonio-Fabbricato.pdf",
     "url_type": "dated",
-    "note": "URL contiene la data — aggiornare quando esce nuova versione",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "allianz-ultra-rc",
+    "compagnia": "Allianz",
+    "prodotto": "Allianz Ultra RC",
+    "tipo": "Casa",
+    "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/casa-e-famiglia/allianz-ultra/seti-informativi/Ambito_RC.PDF",
+    "url_type": "cdn",
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "allianz-ultra-ip-infortuni",
@@ -66,10 +87,43 @@
     "tipo": "Infortuni",
     "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/casa-e-famiglia/allianz-ultra/set-informativi-ultra-salute/mag-2025/S_977_Invalidita_permanente_da_Infortunio.pdf",
     "url_type": "dated",
-    "note": "URL contiene il mese — aggiornare manualmente",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "allianz-ultra-ip-malattia",
+    "compagnia": "Allianz",
+    "prodotto": "Allianz Ultra IP da Malattia",
+    "tipo": "Infortuni",
+    "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/casa-e-famiglia/allianz-ultra/set-informativi-ultra-salute/lug-2024/Set_informativo_Invalidita_permanente_da_infortunio.pdf",
+    "url_type": "dated",
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "allianz-ultra-diaria-ricovero",
+    "compagnia": "Allianz",
+    "prodotto": "Allianz Ultra Diaria da Ricovero",
+    "tipo": "Infortuni",
+    "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/altri-prodotti/bdm-banca/allianz-ultra-salute/SI_ULTRASalute_980_DiariadaRicovero_052025.pdf",
+    "url_type": "dated",
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "allianz-ultra-spese-mediche",
+    "compagnia": "Allianz",
+    "prodotto": "Allianz Ultra Spese Mediche",
+    "tipo": "Infortuni",
+    "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/altri-prodotti/bdm-banca/allianz-ultra-salute/SI_ULTRASalute_979_SpeseMediche_052025.pdf",
+    "url_type": "dated",
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "allianz-ultra-spese-gravi",
+    "compagnia": "Allianz",
+    "prodotto": "Allianz Ultra Spese Mediche Eventi Gravi",
+    "tipo": "Infortuni",
+    "url": "https://www.allianz.it/content/dam/onemarketing/azit/allianz-it/le-soluzioni-per-te/casa-e-famiglia/allianz-ultra/set-informativi-ultra-salute/nov-2024/982_Spese_mediche_eventi_gravi_Set_Informativo.pdf",
+    "url_type": "dated",
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "axa-casa",
@@ -78,10 +132,7 @@
     "tipo": "Casa",
     "url": "https://www.axa.it/c/document_library/get_file?uuid=5a95f402-2198-b0a8-ef65-2c14aa174480&groupId=715551",
     "url_type": "api",
-    "note": "UUID Liferay — stabile",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "axa-casa-famiglia",
@@ -90,10 +141,16 @@
     "tipo": "Casa",
     "url": "https://www.axa.it/c/document_library/get_file?uuid=6faab1f7-b4de-606f-a32a-f3469a892ae1&groupId=715551",
     "url_type": "api",
-    "note": "UUID Liferay — stabile",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "axa-protezione-casa",
+    "compagnia": "AXA Assicurazioni",
+    "prodotto": "AXA Pronto Protezione Casa",
+    "tipo": "Casa",
+    "url": "https://www.axa-mps.it/c/document_library/get_file?uuid=1e067d08-a1aa-1d2c-6ac3-cf82234d63cf&groupId=715633",
+    "url_type": "api",
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "itas-multirischio-casa",
@@ -102,10 +159,16 @@
     "tipo": "Casa",
     "url": "https://www.gruppoitas.it/documents/20121/0/Condizioni%20di%20assicurazione%20ita.pdf/d1e2f84e-5427-e368-3e6f-02197f163b72",
     "url_type": "cdn",
-    "note": "Ed. 12/2024 — CDN stabile",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "itas-infortuni",
+    "compagnia": "ITAS Mutua",
+    "prodotto": "ITAS Polizza Infortuni",
+    "tipo": "Infortuni",
+    "url": "https://www.gruppoitas.it/o/portali-ist-s-api/api/v1/download?companyId=20097&groupId=20121&codComp=022&codRamo=50&codProd=1001&tipoStampa=CGI_I&prgStampa=0&sysdate=2007-03-05T10:49:13&fname=CONDIZIONI+DI+ASSICURAZIONE.pdf",
+    "url_type": "api",
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "italiana-tandem-infortuni",
@@ -114,10 +177,7 @@
     "tipo": "Infortuni",
     "url": "https://serviziappsoci.grupporealemutua.it/apifree/File/Download?id=3NC_ikp0Tlkabv.KwMhpuAoL_IWbHavggmSXdC2i810kI3ZTC79wpTiBpTwG9ZiZT2riUGCI57hwCxLk1ytpJgAD74AoUxJq3CYtmOEpqOOpXphzeIGFEF1hnNuv8jh.eJaNiu4vccPohvcgE.qEFXCkZ.cjWYJdvnp9DQj.saniY2VWslY2xqnixZXMJQHIFCBa7miOql1QJ4qN2V8eikM2GuRI5DYQKYRI",
     "url_type": "api",
-    "note": "URL CDN Reale Group — da verificare se aggiornato",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "italiana-tuttocasa",
@@ -126,10 +186,7 @@
     "tipo": "Casa",
     "url": "https://as-mdlw-iis-companysite-rgprod01.azurewebsites.net/apifree/File/Download?id=3NC_TzazQrk8suQmogRn7Ipt_OoYBA16xqAcCuli4ejB47soAaFYCc4q5mIUMeAglu5DduVE9gMl7ySwyAK34VLa_Xgp5uhapCDHIl2gc7q1qlTeyn.ZnlSMe5SaV76WxcFaTL.kQRPmY4FifAzTfT2eDTx862Gq4p._1vKLvnNQPY.WG7DGNF_v7vyG66ruQdmL_gwO1X3qffoISrDDOD6NB6nsk9FLiavaZsLPdqmBpDxupJsSA53XU45coJyr43wmPzTQh2H2rdjP83.s77HR040TEIRxaZOx1m5sbLISVbI~",
     "url_type": "api",
-    "note": "URL Azure CDN Italiana — da verificare periodicalmente",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "zurich-metro-casa",
@@ -138,10 +195,7 @@
     "tipo": "Casa",
     "url": "https://www.zurich.it/wps/wcm/connect/zurit/6f8a7adf-1c70-4c4b-b00c-d0c27d7d7f3f/P.0133_SI_0925_R0226.pdf",
     "url_type": "cdn",
-    "note": "P.0133 ed. 09/2025 — verificare se URL è aggiornato",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "helvetia-lamiacasa-full",
@@ -150,10 +204,7 @@
     "tipo": "Casa",
     "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa/helvetialamiacasafull/Set_Helvetia_Lamiacasa%20Full_ed.072025.pdf",
     "url_type": "dated",
-    "note": "Ed. 07/2025 — CDN Helvetia stabile",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "helvetia-lamiacasa-proprietario",
@@ -162,22 +213,25 @@
     "tipo": "Casa",
     "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa/helvetia-lamiacasa/2026/Set_LaMiaCasa_Proprietario.pdf",
     "url_type": "cdn",
-    "note": "Ed. 2026 — CDN Helvetia stabile",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
-    "id": "cattolica-active-protezione-casa",
+    "id": "helvetia-lamiacasa-mutuo",
+    "compagnia": "Helvetia",
+    "prodotto": "Helvetia LaMiaCasa Mutuo",
+    "tipo": "Casa",
+    "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa/helvetialamiacasamutuo/Set_Helvetia_Lamiacasa%20Mutuo.pdf",
+    "url_type": "cdn",
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "cattolica-active-casa",
     "compagnia": "Cattolica Assicurazioni (Generali Group)",
     "prodotto": "Active Protezione — Modulo Casa",
     "tipo": "Casa",
     "url": "https://cdn.generali.it/-/media/generali_b2c/documenti-correlati/prodotti-brand-cattolica/active-protezione/set-informativo-active-protezione-modulo-casa.ashx",
     "url_type": "cdn",
-    "note": "Ed. 28/06/2025 — CDN Generali/Cattolica stabile",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
   },
   {
     "id": "reale-mutua-casamia",
@@ -186,9 +240,51 @@
     "tipo": "Casa",
     "url": "https://www.realemutua.it/grmashare/1/Documents/LANDING/CGA_CASAMIA2016_5440_INC_072020.pdf",
     "url_type": "cdn",
-    "note": "Ed. 07/2020 — verificare se esiste versione più recente su realemutua.it",
-    "last_hash": null,
-    "last_updated": null,
-    "extracted": null
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "groupama-casa-senza-confini",
+    "compagnia": "Groupama",
+    "prodotto": "Groupama Casa Senza Confini",
+    "tipo": "Casa",
+    "url": "https://cdn.groupama.it/app/uploads/2024/02/Set-Informativo-Casa-Senza-Confini.pdf",
+    "url_type": "cdn",
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "groupama-protezione-infortuni",
+    "compagnia": "Groupama",
+    "prodotto": "Groupama Protezione Infortuni",
+    "tipo": "Infortuni",
+    "url": "https://cdn.groupama.it/app/uploads/2021/08/Set-Informativo-PROTEZIONE-INFORTUNI-COLLETTIVITA_Mod.250236C-Ed.07-2025.pdf",
+    "url_type": "cdn",
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "vittoria-casa-famiglia",
+    "compagnia": "Vittoria Assicurazioni",
+    "prodotto": "Vittoria con te — Casa e Famiglia",
+    "tipo": "Casa",
+    "url": "https://storage.googleapis.com/sito-istituzionale-prod/1/2025/07/PBRI01CGA-EDZ-0625.pdf",
+    "url_type": "cdn",
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "sara-in-casa",
+    "compagnia": "Sara Assicurazioni",
+    "prodotto": "Sara in Casa",
+    "tipo": "Casa",
+    "url": "https://www.sara.it/sites/default/files/fascicoli_informativi/fascicoli_cose_e_persone/SaraInCasa/Fascicolo_informativo_Saraincasa_50AC_2014.pdf",
+    "url_type": "cdn",
+    "last_hash": null, "last_updated": null, "extracted": null
+  },
+  {
+    "id": "sara-defender-infortuni",
+    "compagnia": "Sara Assicurazioni",
+    "prodotto": "Sara Defender Infortuni",
+    "tipo": "Infortuni",
+    "url": "https://www.sara.it/sites/default/files/2025-06/Set%20Informativo%20SaraDefender%20%20ed.%2004-2025.pdf",
+    "url_type": "dated",
+    "last_hash": null, "last_updated": null, "extracted": null
   }
 ]
