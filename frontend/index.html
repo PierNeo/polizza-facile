@@ -1924,8 +1924,9 @@ function libSwitchTab(n) {
 }
 
 async function cgaLoad() {
- const grid = document.getElementById('cgaGrid');
- grid.innerHTML = '<div style="color:var(--gray-400);font-size:13px;grid-column:1/-1;padding:20px 0">Caricamento database...</div>';
+ const grid = document.getElementById('cgaAccordion');
+ if (!grid) return;
+ grid.innerHTML = '<div style="color:var(--gray-400);font-size:13px;padding:20px 0">Caricamento database...</div>';
  try {
   const res = await fetch(`${BACKEND}/api/library`);
   if (!res.ok) throw new Error('Errore server');
