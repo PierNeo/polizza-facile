@@ -38,8 +38,13 @@ window.AGENZIA_CONFIG = {
 
   // ── API ───────────────────────────────────────────────────────────────────
   // URL del backend. In produzione metti l'URL Railway/Render.
-  backendUrl:  "",             // es: "https://polizza-facile.up.railway.app"
+  backendUrl:  "https://enthusiastic-bravery-production-085c.up.railway.app",
   apiKey:      "zMf0NH5qm80VXa6UXi26NQAUh0E20V9v",
+
+  // ── V2 EXTRACTION (solo branch v2-native-pdf) ────────────────────────────
+  // true  = Claude legge il PDF visivamente (tabelle perfette, nessun garble)
+  // false = estrazione testo pdfjs (comportamento v1)
+  useV2Extraction: true,
 
   // ── DOCUMENTO PDF ─────────────────────────────────────────────────────────
   pdfFooter: "Progettiamo la tua protezione · polobassano.it",

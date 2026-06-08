@@ -217,23 +217,65 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .detail-meta { font-size:12px; color:var(--gray-400); margin-top:4px; }
 .detail-actions { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
 
-/* LIBRARY */
+/* LIBRARY — CATEGORY COLOR MAP */
+:root {
+ --cat-casa:    #2563EB; --cat-casa-soft:    #EFF6FF;
+ --cat-infort:  #D97706; --cat-infort-soft:  #FEF3C7;
+ --cat-rcauto:  #16A34A; --cat-rcauto-soft:  #DCFCE7;
+ --cat-vita:    #7C3AED; --cat-vita-soft:    #F5F3FF;
+ --cat-salute:  #DB2777; --cat-salute-soft:  #FDF2F8;
+ --cat-altro:   #6B7280; --cat-altro-soft:   #F3F4F6;
+}
+
+/* LIBRARY TABS */
+.lib-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:20px; }
+.lib-tab {
+ padding:7px 14px; border-radius:20px; font-size:12px; font-weight:600;
+ cursor:pointer; border:1.5px solid var(--gray-200); background:var(--white);
+ color:var(--gray-500); transition:all .15s; display:flex; align-items:center; gap:5px;
+ user-select:none;
+}
+.lib-tab:hover { border-color:var(--gray-400); color:var(--gray-700); }
+.lib-tab.active { background:var(--polo); border-color:var(--polo); color:#fff; }
+.lib-tab-badge { font-size:10px; font-weight:700; padding:1px 5px; border-radius:10px; background:rgba(0,0,0,.12); }
+.lib-tab.active .lib-tab-badge { background:rgba(255,255,255,.25); }
+.lib-tab.tab-casa.active    { background:var(--cat-casa);   border-color:var(--cat-casa); }
+.lib-tab.tab-infort.active  { background:var(--cat-infort); border-color:var(--cat-infort); }
+.lib-tab.tab-rcauto.active  { background:var(--cat-rcauto); border-color:var(--cat-rcauto); }
+.lib-tab.tab-vita.active    { background:var(--cat-vita);   border-color:var(--cat-vita); }
+.lib-tab.tab-salute.active  { background:var(--cat-salute); border-color:var(--cat-salute); }
+
+/* LIBRARY GRID + CARDS */
 .library-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
 .library-card {
- background:var(--white); border:2px solid var(--gray-200); border-radius:var(--radius);
- padding:18px 18px; box-shadow:var(--shadow-sm); transition:all .15s; cursor:pointer;
- position:relative;
+ background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius);
+ padding:0; box-shadow:var(--shadow-sm); transition:all .18s; cursor:pointer;
+ position:relative; overflow:hidden; display:flex; flex-direction:column;
 }
-.library-card:hover { border-color:var(--polo-light); box-shadow:var(--shadow); }
-.library-card.selected { border-color:var(--polo); background:var(--blue-soft); box-shadow:0 0 0 3px rgba(15,39,65,.08); }
-.lib-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:4px; }
-.lib-product { font-size:15px; font-weight:700; color:var(--gray-900); margin-bottom:6px; line-height:1.3; }
-.lib-tipo { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--blue-soft); color:var(--blue); margin-bottom:10px; }
-.lib-date { font-size:11px; color:var(--gray-400); }
-.lib-check { position:absolute; top:12px; right:12px; width:22px; height:22px; border-radius:50%; border:2px solid var(--gray-300); display:flex; align-items:center; justify-content:center; font-size:12px; transition:all .15s; }
+.library-card:hover { border-color:var(--polo-light); box-shadow:var(--shadow); transform:translateY(-2px); }
+.library-card.selected { border-color:var(--polo); box-shadow:0 0 0 3px rgba(15,39,65,.1); }
+.lib-cat-stripe {
+ height:4px; width:100%; background:var(--gray-200); flex-shrink:0;
+}
+.lib-card-body { padding:16px 16px 14px; flex:1; display:flex; flex-direction:column; }
+.lib-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:3px; }
+.lib-product { font-size:14px; font-weight:700; color:var(--gray-900); margin-bottom:10px; line-height:1.35; }
+.lib-meta-row { display:flex; align-items:center; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+.lib-tipo { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--blue-soft); color:var(--blue); }
+.lib-tipo-casa    { background:var(--cat-casa-soft);   color:var(--cat-casa);   }
+.lib-tipo-infort  { background:var(--cat-infort-soft); color:var(--cat-infort); }
+.lib-tipo-rcauto  { background:var(--cat-rcauto-soft); color:var(--cat-rcauto); }
+.lib-tipo-vita    { background:var(--cat-vita-soft);   color:var(--cat-vita);   }
+.lib-tipo-salute  { background:var(--cat-salute-soft); color:var(--cat-salute); }
+.lib-garanzie-ct  { font-size:11px; color:var(--gray-400); margin-left:auto; }
+.lib-date { font-size:11px; color:var(--gray-400); margin-top:auto; padding-top:10px; }
+.lib-check { position:absolute; top:14px; right:12px; width:22px; height:22px; border-radius:50%; border:2px solid var(--gray-300); display:flex; align-items:center; justify-content:center; font-size:12px; transition:all .15s; background:var(--white); }
 .library-card.selected .lib-check { border-color:var(--polo); background:var(--polo); color:#fff; }
-.lib-del { position:absolute; bottom:10px; right:12px; background:none; border:none; cursor:pointer; color:var(--gray-300); font-size:14px; transition:color .15s; }
+.lib-del { position:absolute; bottom:12px; right:12px; background:none; border:none; cursor:pointer; color:var(--gray-300); font-size:14px; transition:color .15s; }
 .lib-del:hover { color:var(--red); }
+
+/* CGA catalog badge */
+.lib-cga-badge { font-size:10px; font-weight:600; padding:1px 7px; border-radius:20px; background:var(--gold-soft); color:var(--gold-dark); border:1px solid var(--gold-mid); }
 .library-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
 .selected-count { font-size:13px; color:var(--polo); font-weight:600; }
 
@@ -773,11 +815,21 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  </div>
  <button class="btn btn-gold" onclick="startDirectComparison()">+ Aggiungi polizza</button>
  </div>
+ <!-- Tabs categoria -->
+ <div class="lib-tabs" id="libTabs"></div>
+ <!-- Toolbar selezione -->
  <div class="library-toolbar">
  <div class="selected-count" id="libSelectedCount"></div>
  <button class="btn btn-primary" id="btnConfrontaLib" style="display:none" onclick="confrontaFromLibrary()">Confronta selezionate →</button>
  </div>
  <div class="library-grid" id="libraryGrid"></div>
+ <!-- Catalogo CGA (visibile solo nel tab Catalogo) -->
+ <div id="cgaCatalogSection" style="display:none">
+ <div style="font-size:13px;color:var(--gray-500);margin-bottom:16px;line-height:1.6">
+   Polizze precaricate dal nostro database aggiornato. Selezionale per includerle nel confronto.
+ </div>
+ <div class="library-grid" id="cgaCatalogGrid"></div>
+ </div>
 </div>
 </div>
 
@@ -1066,6 +1118,34 @@ let clientAnswers = {};
 let clientRecs = null;
 let currentClientId = null;
 let libSelected = new Set(); // IDs selected from library for comparison
+let libActiveTab = 'tutti';  // tab attivo nella libreria: 'tutti'|'casa'|'infortuni'|'rc auto'|'vita'|'salute'|'altro'|'catalogo'
+
+// Mappa tipo → chiave tab (normalizzazione)
+function tipoToTab(tipo) {
+ if (!tipo) return 'altro';
+ const t = tipo.toLowerCase().trim();
+ if (t === 'casa' || t === 'multirischio') return 'casa';
+ if (t === 'infortuni') return 'infortuni';
+ if (t === 'rc auto') return 'rc auto';
+ if (t === 'vita' || t === 'risparmio') return 'vita';
+ if (t === 'salute') return 'salute';
+ return 'altro';
+}
+
+// Colori per tipo
+function tipoColor(tipo) {
+ const t = tipoToTab(tipo);
+ return { casa:'cat-casa', infortuni:'cat-infort', 'rc auto':'cat-rcauto', vita:'cat-vita', salute:'cat-salute', altro:'cat-altro' }[t] || 'cat-altro';
+}
+function tipoStripeColor(tipo) {
+ const t = tipoToTab(tipo);
+ const map = { casa:'var(--cat-casa)', infortuni:'var(--cat-infort)', 'rc auto':'var(--cat-rcauto)', vita:'var(--cat-vita)', salute:'var(--cat-salute)', altro:'var(--gray-300)' };
+ return map[t] || 'var(--gray-300)';
+}
+function tipoClass(tipo) {
+ const t = tipoToTab(tipo);
+ return { casa:'lib-tipo-casa', infortuni:'lib-tipo-infort', 'rc auto':'lib-tipo-rcauto', vita:'lib-tipo-vita', salute:'lib-tipo-salute', altro:'' }[t] || '';
+}
 
 // 
 // LOCALSTORAGE
@@ -1287,35 +1367,176 @@ function buildRecCardHTML(r) {
  </div>`;
 }
 
-// 
+//
 // LIBRARY PAGE
-// 
+//
+
+const LIB_TABS_DEF = [
+ { key:'tutti',    label:'Tutte',    icon:'' },
+ { key:'casa',     label:'Casa',     icon:'', tabCls:'tab-casa'   },
+ { key:'infortuni',label:'Infortuni',icon:'', tabCls:'tab-infort' },
+ { key:'rc auto',  label:'RC Auto',  icon:'', tabCls:'tab-rcauto' },
+ { key:'vita',     label:'Vita',     icon:'', tabCls:'tab-vita'   },
+ { key:'salute',   label:'Salute',   icon:'', tabCls:'tab-salute' },
+ { key:'altro',    label:'Altro',    icon:'' },
+ { key:'catalogo', label:'Catalogo CGA', icon:'', tabCls:'tab-cga' },
+];
+
 function renderLibreria() {
  const polizze = getPolizze();
  const grid = document.getElementById('libraryGrid');
  const countEl = document.getElementById('libSelectedCount');
  const btnCfr = document.getElementById('btnConfrontaLib');
+ const cgaSec = document.getElementById('cgaCatalogSection');
 
  const selCount = libSelected.size;
- countEl.textContent = selCount> 0 ? `${selCount} selezionate` : '';
- btnCfr.style.display = selCount>= 2 ? 'block' : 'none';
+ countEl.textContent = selCount > 0 ? `${selCount} selezionate` : '';
+ btnCfr.style.display = selCount >= 2 ? 'block' : 'none';
 
- if (!polizze.length) {
- grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza salvata ancora.<br>Aggiungile durante un confronto PDF.</p></div>`;
- return;
- }
- grid.innerHTML = polizze.map(p => {
- const sel = libSelected.has(p.id);
- const date = new Date(p.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
- return `<div class="library-card ${sel?'selected':''}" onclick="toggleLibSel('${p.id}')">
- <div class="lib-check">${sel?'':''}</div>
- <div class="lib-company">${esc(p.compagnia)}</div>
- <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
- <span class="lib-tipo">${esc(p.tipo)}</span>
- <div class="lib-date" style="margin-top:8px">Aggiunta il ${date}</div>
- <button class="lib-del" onclick="event.stopPropagation();deletePolizza('${p.id}')" title="Elimina"></button>
- </div>`;
+ // Conta polizze per tab
+ const counts = {};
+ polizze.forEach(p => {
+  const t = tipoToTab(p.tipo);
+  counts[t] = (counts[t]||0) + 1;
+ });
+
+ // Render tabs
+ const tabsEl = document.getElementById('libTabs');
+ tabsEl.innerHTML = LIB_TABS_DEF.map(tab => {
+  const cnt = tab.key === 'tutti' ? polizze.length : tab.key === 'catalogo' ? '' : (counts[tab.key]||0);
+  const badge = (cnt !== '' && cnt > 0) ? `<span class="lib-tab-badge">${cnt}</span>` : '';
+  const isActive = libActiveTab === tab.key;
+  return `<div class="lib-tab ${tab.tabCls||''} ${isActive?'active':''}" onclick="setLibTab('${tab.key}')">
+   ${tab.icon} ${tab.label} ${badge}
+  </div>`;
  }).join('');
+
+ // Mostra/nascondi sezione CGA
+ if (libActiveTab === 'catalogo') {
+  grid.innerHTML = '';
+  cgaSec.style.display = 'block';
+  renderCGACatalog();
+  return;
+ }
+ cgaSec.style.display = 'none';
+
+ // Filtra polizze per tab
+ const filtered = libActiveTab === 'tutti'
+  ? polizze
+  : polizze.filter(p => tipoToTab(p.tipo) === libActiveTab);
+
+ if (!filtered.length) {
+  const msg = polizze.length === 0
+   ? `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza salvata ancora.<br>Aggiungile durante un confronto PDF.</p></div>`
+   : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza di tipo <strong>${libActiveTab}</strong> in libreria.</p></div>`;
+  grid.innerHTML = msg;
+  return;
+ }
+
+ grid.innerHTML = filtered.map(p => {
+  const sel = libSelected.has(p.id);
+  const date = new Date(p.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+  const nGar = p.extracted?.garanzie?.length || 0;
+  const stripeColor = tipoStripeColor(p.tipo);
+  const tipoCls = tipoClass(p.tipo);
+  return `<div class="library-card ${sel?'selected':''}" onclick="toggleLibSel('${p.id}')">
+   <div class="lib-cat-stripe" style="background:${stripeColor}"></div>
+   <div class="lib-card-body">
+    <div class="lib-check">${sel?'✓':''}</div>
+    <div class="lib-company">${esc(p.compagnia||'—')}</div>
+    <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
+    <div class="lib-meta-row">
+     <span class="lib-tipo ${tipoCls}">${esc(p.tipo||'—')}</span>
+     ${nGar ? `<span class="lib-garanzie-ct">${nGar} garanzie</span>` : ''}
+    </div>
+    <div class="lib-date">Aggiunta il ${date}</div>
+   </div>
+   <button class="lib-del" onclick="event.stopPropagation();deletePolizza('${p.id}')" title="Elimina">🗑</button>
+  </div>`;
+ }).join('');
+}
+
+function setLibTab(key) {
+ libActiveTab = key;
+ renderLibreria();
+}
+
+// Catalogo CGA — carica da API e renderizza
+let _cgaCatalogCache = null;
+async function renderCGACatalog() {
+ const cgaGrid = document.getElementById('cgaCatalogGrid');
+ if (_cgaCatalogCache) { _renderCGAGrid(_cgaCatalogCache); return; }
+ cgaGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--gray-400)">
+  <div class="big-spinner" style="width:32px;height:32px;border-width:3px;margin:0 auto 12px"></div>
+  <p style="font-size:13px">Caricamento catalogo...</p></div>`;
+ try {
+  const r = await fetch(`${BACKEND}/api/library/catalog`);
+  if (!r.ok) throw new Error(r.status);
+  _cgaCatalogCache = await r.json();
+  _renderCGAGrid(_cgaCatalogCache);
+ } catch(e) {
+  cgaGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+   <div class="empty-icon">⚠️</div>
+   <p>Impossibile caricare il catalogo.<br><small>${e.message}</small></p></div>`;
+ }
+}
+
+function _renderCGAGrid(catalog) {
+ const cgaGrid = document.getElementById('cgaCatalogGrid');
+ // Filtra per tab? No — nel tab Catalogo mostriamo tutto
+ if (!catalog.length) { cgaGrid.innerHTML = '<p style="color:var(--gray-400);font-size:13px">Catalogo vuoto.</p>'; return; }
+
+ // Raggruppa per tipo
+ const byTipo = {};
+ catalog.forEach(e => { const t = e.tipo||'Altro'; (byTipo[t]||(byTipo[t]=[])).push(e); });
+
+ let html = '';
+ Object.entries(byTipo).forEach(([tipo, entries]) => {
+  const stripeColor = tipoStripeColor(tipo);
+  const tipoCls = tipoClass(tipo);
+  html += `<div style="grid-column:1/-1;font-size:13px;font-weight:700;color:var(--gray-700);margin:8px 0 4px;display:flex;align-items:center;gap:8px">
+   <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${stripeColor}"></span>${tipo} <span style="font-weight:400;color:var(--gray-400)">(${entries.length})</span>
+  </div>`;
+  entries.forEach(e => {
+   const hasData = !!e.extracted;
+   const nGar = e.extracted?.garanzie?.length || 0;
+   const updated = e.last_updated ? new Date(e.last_updated).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}) : null;
+   html += `<div class="library-card" onclick="addCGAToComparison('${e.id}')" style="cursor:pointer">
+    <div class="lib-cat-stripe" style="background:${stripeColor}"></div>
+    <div class="lib-card-body">
+     <div class="lib-company">${esc(e.compagnia||'—')}</div>
+     <div class="lib-product">${esc(e.prodotto||'—')}</div>
+     <div class="lib-meta-row">
+      <span class="lib-tipo ${tipoCls}">${esc(tipo)}</span>
+      ${hasData && nGar ? `<span class="lib-garanzie-ct">${nGar} garanzie</span>` : ''}
+      ${hasData ? `<span class="lib-cga-badge">✓ CGA</span>` : `<span style="font-size:10px;color:var(--gray-400)">Da sincronizzare</span>`}
+     </div>
+     ${updated ? `<div class="lib-date">Aggiornata il ${updated}</div>` : '<div class="lib-date" style="color:var(--amber)">Non ancora estratta</div>'}
+    </div>
+   </div>`;
+  });
+ });
+ cgaGrid.innerHTML = html;
+}
+
+function addCGAToComparison(catalogId) {
+ if (!_cgaCatalogCache) return;
+ const entry = _cgaCatalogCache.find(e => e.id === catalogId);
+ if (!entry || !entry.extracted) { toast('Polizza non ancora estratta — sincronizza prima il catalogo'); return; }
+ // Salva in libreria locale se non già presente
+ const polizze = getPolizze();
+ if (polizze.find(p => p.id === catalogId)) {
+  toast('Polizza già in libreria');
+  libSelected.add(catalogId);
+ } else {
+  const p = { id: catalogId, filename: entry.prodotto+'.pdf', compagnia: entry.compagnia||'', prodotto: entry.prodotto||'', tipo: entry.tipo||'', data: new Date().toISOString(), extracted: entry.extracted };
+  polizze.unshift(p);
+  savePolizze(polizze.slice(0,80));
+  libSelected.add(catalogId);
+  updateBadges();
+  toast(`"${entry.prodotto}" aggiunta alla libreria`);
+ }
+ renderLibreria();
 }
 
 function toggleLibSel(id) {
