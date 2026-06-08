@@ -461,17 +461,30 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 
 /* PRINT — CLIENT PROFILE */
 .print-profile { display:none; }
+.print-header { display:none; }
 @media print {
  .sidebar, .mob-bar, .results-topbar-actions,
  .upload-page, .loading-page, .questionnaire-page,
  .recs-topbar .recs-actions, .dash-actions,
  .client-actions, .library-toolbar .btn,
- .page-header .btn, .detail-actions { display:none !important; }
+ .page-header .btn, .detail-actions,
+ #basketBar, #basketEmpty, #cgaDetailModal { display:none !important; }
  .print-profile { display:block; }
+ .print-header { display:flex !important; align-items:center; justify-content:space-between;
+   padding:0 0 16px; border-bottom:3px solid #0F2741; margin-bottom:20px; }
  .main-content { margin-left:0 !important; }
  body { background:#fff; }
- .score-card, .ai-summary, .excl-card, .advice-card, .rec-card { box-shadow:none !important; break-inside:avoid; }
- .table-outer { box-shadow:none !important; }
+ .page { padding:20px 24px !important; }
+ .score-cards { display:grid !important; }
+ .score-card { box-shadow:none !important; break-inside:avoid; border:1px solid #e5e7eb !important; }
+ .ai-summary, .excl-card, .advice-card, .rec-card { box-shadow:none !important; break-inside:avoid; }
+ .table-outer { box-shadow:none !important; overflow:visible !important; }
+ .table-scroll { overflow:visible !important; }
+ table { font-size:10px !important; }
+ .group-row td { font-size:9px !important; padding:5px 10px !important; }
+ .row-label { font-size:10px !important; }
+ td { padding:6px 8px !important; }
+ @page { margin:15mm; size:A4 landscape; }
 }
 .print-profile { padding:40px; font-family:'Inter',sans-serif; }
 .pp-header { display:flex; align-items:center; justify-content:space-between; padding-bottom:20px; border-bottom:3px solid var(--polo); margin-bottom:28px; }
@@ -625,6 +638,25 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 </style>
 </head>
 <body>
+
+<!-- MODAL DETTAGLIO POLIZZA CGA -->
+<div id="cgaDetailModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);overflow-y:auto;padding:40px 16px">
+ <div style="max-width:720px;margin:0 auto;background:var(--white);border-radius:var(--radius-xl);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+  <div id="cgaDetailHeader" style="padding:20px 24px 16px;border-bottom:1px solid var(--gray-200);display:flex;align-items:flex-start;justify-content:space-between">
+   <div>
+    <div id="cgaDetailCompany" style="font-size:12px;color:var(--gray-400);margin-bottom:2px"></div>
+    <div id="cgaDetailProduct" style="font-size:18px;font-weight:700;color:var(--gray-900)"></div>
+    <div id="cgaDetailMeta" style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap"></div>
+   </div>
+   <button onclick="document.getElementById('cgaDetailModal').style.display='none'" style="font-size:22px;background:none;border:none;cursor:pointer;color:var(--gray-400);padding:0;line-height:1;flex-shrink:0">×</button>
+  </div>
+  <div id="cgaDetailSezioni" style="padding:0 24px 24px;max-height:70vh;overflow-y:auto"></div>
+  <div style="padding:16px 24px;border-top:1px solid var(--gray-200);display:flex;gap:10px">
+   <button id="cgaDetailAddBasket" onclick="cgaDetailToggleBasket()" style="flex:1;padding:10px;border-radius:var(--radius-md);background:var(--polo);color:#fff;border:none;cursor:pointer;font-weight:600;font-size:14px">+ Aggiungi al confronto</button>
+   <button onclick="document.getElementById('cgaDetailModal').style.display='none'" style="padding:10px 20px;border-radius:var(--radius-md);border:1px solid var(--gray-200);background:none;cursor:pointer;font-size:14px">Chiudi</button>
+  </div>
+ </div>
+</div>
 
 <!-- Mobile top bar -->
 <div class="mob-bar">
@@ -837,15 +869,10 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 
  <!-- Tab 2: Database CGA -->
  <div id="libPanel2" style="display:none">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-   <div style="display:flex;gap:8px">
-    <button onclick="cgaFilterTipo('')" id="cgaF0" class="btn btn-sm" style="border-radius:20px;font-size:12px;background:var(--polo);color:#fff">Tutti</button>
-    <button onclick="cgaFilterTipo('Casa')" id="cgaF1" class="btn btn-sm btn-ghost" style="border-radius:20px;font-size:12px">🏠 Casa</button>
-    <button onclick="cgaFilterTipo('Infortuni')" id="cgaF2" class="btn btn-sm btn-ghost" style="border-radius:20px;font-size:12px">🛡 Infortuni</button>
-   </div>
+  <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:16px">
    <button onclick="cgaSync()" id="btnCgaSync" class="btn btn-sm" style="background:var(--polo);color:#fff;font-size:12px">↻ Aggiorna database</button>
   </div>
-  <div id="cgaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
+  <div id="cgaAccordion"></div>
  </div>
 </div>
 </div>
@@ -969,10 +996,21 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 <!-- RESULTS -->
 <div id="pagResults" style="display:none">
 <div class="page">
+ <!-- Header visibile solo in stampa -->
+ <div class="print-header" id="printHeader">
+  <div>
+   <div style="font-size:16px;font-weight:700;color:#0F2741">Polo<span style="color:#C8971C">Assicurativo</span> Bassano</div>
+   <div style="font-size:10px;color:#9ca3af;margin-top:2px">Progettiamo la tua protezione · polobassano.it</div>
+  </div>
+  <div style="text-align:right">
+   <div id="printTitle" style="font-size:13px;font-weight:600;color:#0F2741"></div>
+   <div id="printDate" style="font-size:10px;color:#9ca3af;margin-top:2px"></div>
+  </div>
+ </div>
  <div class="results-topbar">
  <h1 id="resultsTitle">Confronto polizze</h1>
  <div class="results-topbar-actions">
- <button class="btn-print" onclick="window.print()"> Stampa / PDF</button>
+ <button class="btn-print" onclick="printResults()">⬇ Esporta PDF</button>
  <button class="btn btn-ghost btn-sm" onclick="navTo('pagDashboard')">↩ Dashboard</button>
  </div>
  </div>
@@ -1684,28 +1722,49 @@ async function cgaLoad() {
  }
 }
 
-function cgaFilterTipo(tipo) {
- _cgaFilter = tipo;
- ['cgaF0','cgaF1','cgaF2'].forEach(id => {
-  const el = document.getElementById(id);
-  el.style.background = '';
-  el.style.color = '';
- });
- const active = tipo === '' ? 'cgaF0' : tipo === 'Casa' ? 'cgaF1' : 'cgaF2';
- document.getElementById(active).style.background = 'var(--polo)';
- document.getElementById(active).style.color = '#fff';
- cgaRender();
-}
-
 function cgaRender() {
- const grid = document.getElementById('cgaGrid');
- if (!grid) return;
- const filtered = _cgaFilter ? _cgaData.filter(d => d.tipo === _cgaFilter) : _cgaData;
- if (!filtered.length) {
-  grid.innerHTML = '<div style="color:var(--gray-400);font-size:13px;grid-column:1/-1;padding:20px 0">Nessuna polizza in database. Clicca "Aggiorna database" per sincronizzare.</div>';
+ const acc = document.getElementById('cgaAccordion');
+ if (!acc) return;
+ if (!_cgaData.length) {
+  acc.innerHTML = '<div style="color:var(--gray-400);font-size:13px;padding:20px 0">Nessuna polizza in database. Clicca "Aggiorna database" per caricare le CGA.</div>';
   return;
  }
- grid.innerHTML = filtered.map(d => {
+ const GRUPPI = [
+  { tipo: 'Casa',      icon: '', id: 'cgaGrpCasa' },
+  { tipo: 'Infortuni', icon: '', id: 'cgaGrpInf'  },
+ ];
+ acc.innerHTML = GRUPPI.map(g => {
+  const polizze = _cgaData.filter(d => d.tipo === g.tipo);
+  if (!polizze.length) return '';
+  const estratte = polizze.filter(d => d.extracted).length;
+  return `
+   <div style="border:1px solid var(--gray-200);border-radius:var(--radius-lg);margin-bottom:12px;overflow:hidden">
+    <button onclick="cgaToggleGruppo('${g.id}')"
+     style="width:100%;padding:14px 18px;background:var(--gray-50);border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600;color:var(--gray-800)">
+     <span>${g.icon} ${g.tipo} <span style="font-size:12px;color:var(--gray-400);font-weight:400;margin-left:8px">${estratte}/${polizze.length} scaricate</span></span>
+     <span id="${g.id}Arrow" style="font-size:12px;color:var(--gray-400);transition:transform .2s">▼</span>
+    </button>
+    <div id="${g.id}" style="display:none">
+     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:16px">
+      ${polizze.map(d => cgaCardHtml(d)).join('')}
+     </div>
+    </div>
+   </div>`;
+ }).join('');
+ // Apri entrambi di default
+ GRUPPI.forEach(g => { const el = document.getElementById(g.id); if(el) el.style.display='block'; });
+}
+
+function cgaToggleGruppo(id) {
+ const el = document.getElementById(id);
+ const arrow = document.getElementById(id+'Arrow');
+ if (!el) return;
+ const open = el.style.display !== 'none';
+ el.style.display = open ? 'none' : 'block';
+ if (arrow) arrow.style.transform = open ? 'rotate(-90deg)' : '';
+}
+
+function cgaCardHtml(d) {
   const inBasket = _basket.find(b => b.id === 'cga:'+d.id);
   const hasData = !!d.extracted;
   const statusColor = d.sync_status==='updated'||d.sync_status==='unchanged'?'var(--green-dark)':d.sync_status==='error'?'var(--red)':'var(--gray-400)';
@@ -1715,16 +1774,70 @@ function cgaRender() {
    onclick="${hasData?`cgaToggleBasket('${d.id}')`:`cgaSync('${d.id}')`}"
    style="${!hasData?'opacity:.7;':''}cursor:pointer">
    ${inBasket&&hasData?'<div class="lib-check"></div>':''}
-   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-    <span class="lib-tipo">${esc(d.tipo||'—')}</span>
-    <span style="font-size:10px;color:${statusColor}">${statusIcon}</span>
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <div style="display:flex;align-items:center;gap:6px">
+     ${hasData?`<button onclick="event.stopPropagation();cgaShowDetail('${d.id}')" style="font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--gray-200);background:white;cursor:pointer;color:var(--gray-500)">dettaglio</button>`:''}
+    </div>
+    <span style="font-size:11px;color:${statusColor};font-weight:600">${statusIcon}</span>
    </div>
    <div class="lib-company">${esc(d.compagnia||'')}</div>
    <div class="lib-product">${esc(d.prodotto||'')}</div>
    <div class="lib-date" style="margin-top:8px">${updated}</div>
    ${!hasData?'<div style="font-size:10px;color:var(--polo);margin-top:6px;font-weight:600">Clicca per scaricare →</div>':''}
   </div>`;
+}
+
+let _cgaDetailId = null;
+
+function cgaShowDetail(id) {
+ const d = _cgaData.find(x => x.id === id);
+ if (!d || !d.extracted) return;
+ _cgaDetailId = id;
+ const ex = d.extracted;
+ document.getElementById('cgaDetailCompany').textContent = ex.compagnia || d.compagnia || '';
+ document.getElementById('cgaDetailProduct').textContent = ex.prodotto || d.prodotto || '';
+ const meta = document.getElementById('cgaDetailMeta');
+ meta.innerHTML = `
+  <span class="lib-tipo">${esc(ex.tipo||d.tipo||'')}</span>
+  ${ex.premio?`<span style="font-size:12px;color:var(--gray-500)">Premio: ${esc(ex.premio)}</span>`:''}
+  ${d.last_updated?`<span style="font-size:11px;color:var(--gray-400)">Aggiornata ${new Date(d.last_updated).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'})}</span>`:''}
+ `;
+ // Sezioni
+ const NUMERI = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+ const sezioni = ex.sezioni || [];
+ const sezioniHtml = sezioni.map((s,idx) => {
+  const stato = s.inclusa ? '<span style="color:var(--green-dark);font-weight:600">✓ Inclusa</span>'
+   : s.opzionale ? '<span style="color:var(--polo)">⚙ Opzionale</span>'
+   : '<span style="color:var(--gray-400)">— Esclusa</span>';
+  const rows = [];
+  if (s.massimale && s.massimale !== 'Somma assicurata') rows.push(`<div style="font-size:12px;color:var(--gray-600)">Massimale: <strong>${esc(s.massimale)}</strong></div>`);
+  else if (s.massimale) rows.push(`<div style="font-size:12px;color:var(--gray-400)">Massimale: ${esc(s.massimale)}</div>`);
+  if (s.franchigia) rows.push(`<div style="font-size:12px;color:var(--gray-600)">Franchigia: <strong>${esc(s.franchigia)}</strong></div>`);
+  if (s.scoperto) rows.push(`<div style="font-size:12px;color:var(--gray-600)">Scoperto: <strong>${esc(s.scoperto)}</strong></div>`);
+  if (s.sublimiti) rows.push(`<div style="font-size:11px;color:var(--gray-500);line-height:1.6;margin-top:4px">${esc(s.sublimiti)}</div>`);
+  if (s.note) rows.push(`<div style="font-size:11px;color:var(--gray-400);margin-top:4px;font-style:italic">${esc(s.note)}</div>`);
+  return `<div style="padding:12px 0;border-bottom:1px solid var(--gray-100)">
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <span style="font-size:13px;font-weight:600">${NUMERI[idx]||''} ${esc(s.nome||s.id)}</span>
+    ${stato}
+   </div>
+   ${rows.join('')}
+  </div>`;
  }).join('');
+ document.getElementById('cgaDetailSezioni').innerHTML = sezioniHtml ||
+  '<p style="color:var(--gray-400);padding:20px 0;text-align:center">Nessuna sezione disponibile</p>';
+ // Pulsante cestino
+ const inBasket = _basket.find(b => b.id === 'cga:'+id);
+ const btn = document.getElementById('cgaDetailAddBasket');
+ btn.textContent = inBasket ? '✓ Nel confronto' : '+ Aggiungi al confronto';
+ btn.style.background = inBasket ? 'var(--green-dark)' : 'var(--polo)';
+ document.getElementById('cgaDetailModal').style.display = 'block';
+}
+
+function cgaDetailToggleBasket() {
+ if (!_cgaDetailId) return;
+ cgaToggleBasket(_cgaDetailId);
+ cgaShowDetail(_cgaDetailId); // aggiorna il pulsante
 }
 
 function cgaToggleBasket(id) {
@@ -2318,6 +2431,17 @@ function _setProgressBar(pct) {
 // 
 // RENDER RESULTS
 // 
+function printResults() {
+ // Prepara header stampa con titolo e data
+ const title = document.getElementById('resultsTitle')?.textContent || 'Confronto polizze';
+ const date = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+ const el = document.getElementById('printTitle');
+ const el2 = document.getElementById('printDate');
+ if (el) el.textContent = title;
+ if (el2) el2.textContent = `Documento generato il ${date}`;
+ window.print();
+}
+
 function renderResults(policies) {
  const cols=['#0F2741','#7C3AED','#C8971C','#DC2626'];
  document.getElementById('scoreCards').style.gridTemplateColumns=`repeat(${policies.length},1fr)`;
