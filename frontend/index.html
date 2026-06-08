@@ -229,22 +229,56 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .detail-meta { font-size:12px; color:var(--gray-400); margin-top:4px; }
 .detail-actions { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
 
-/* LIBRARY */
-.library-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
-.library-card {
- background:var(--white); border:2px solid var(--gray-200); border-radius:var(--radius);
- padding:18px 18px; box-shadow:var(--shadow-sm); transition:all .15s; cursor:pointer;
- position:relative;
+/* LIBRARY — CATEGORY COLORS */
+:root {
+ --cat-casa:#2563EB;   --cat-casa-soft:#EFF6FF;
+ --cat-infort:#D97706; --cat-infort-soft:#FEF3C7;
+ --cat-rcauto:#16A34A; --cat-rcauto-soft:#DCFCE7;
+ --cat-vita:#7C3AED;   --cat-vita-soft:#F5F3FF;
+ --cat-salute:#DB2777; --cat-salute-soft:#FDF2F8;
 }
-.library-card:hover { border-color:var(--polo-light); box-shadow:var(--shadow); }
-.library-card.selected { border-color:var(--polo); background:var(--blue-soft); box-shadow:0 0 0 3px rgba(15,39,65,.08); }
-.lib-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:4px; }
-.lib-product { font-size:15px; font-weight:700; color:var(--gray-900); margin-bottom:6px; line-height:1.3; }
-.lib-tipo { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--blue-soft); color:var(--blue); margin-bottom:10px; }
-.lib-date { font-size:11px; color:var(--gray-400); }
-.lib-check { position:absolute; top:12px; right:12px; width:22px; height:22px; border-radius:50%; border:2px solid var(--gray-300); display:flex; align-items:center; justify-content:center; font-size:12px; transition:all .15s; }
+
+/* CATEGORY FILTER PILLS */
+.lib-cat-pills { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+.lib-cat-pill {
+ padding:5px 13px; border-radius:20px; font-size:12px; font-weight:600;
+ cursor:pointer; border:1.5px solid var(--gray-200); background:var(--white);
+ color:var(--gray-500); transition:all .15s; user-select:none;
+}
+.lib-cat-pill:hover { border-color:var(--gray-400); color:var(--gray-700); }
+.lib-cat-pill.active { background:var(--polo); border-color:var(--polo); color:#fff; }
+.lib-cat-pill.pill-casa.active    { background:var(--cat-casa);   border-color:var(--cat-casa); }
+.lib-cat-pill.pill-infort.active  { background:var(--cat-infort); border-color:var(--cat-infort); }
+.lib-cat-pill.pill-rcauto.active  { background:var(--cat-rcauto); border-color:var(--cat-rcauto); }
+.lib-cat-pill.pill-vita.active    { background:var(--cat-vita);   border-color:var(--cat-vita); }
+.lib-cat-pill.pill-salute.active  { background:var(--cat-salute); border-color:var(--cat-salute); }
+
+/* LIBRARY GRID + CARDS */
+.library-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+.library-card {
+ background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius);
+ padding:0; box-shadow:var(--shadow-sm); transition:all .18s; cursor:pointer;
+ position:relative; overflow:hidden; display:flex; flex-direction:column;
+}
+.library-card:hover { border-color:var(--polo-light); box-shadow:var(--shadow); transform:translateY(-2px); }
+.library-card.selected { border-color:var(--polo); box-shadow:0 0 0 3px rgba(15,39,65,.1); }
+.library-card.lib-pending { opacity:.75; }
+.lib-cat-stripe { height:4px; width:100%; flex-shrink:0; }
+.lib-card-body { padding:14px 15px 12px; flex:1; display:flex; flex-direction:column; }
+.lib-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--gray-400); margin-bottom:3px; }
+.lib-product { font-size:13px; font-weight:700; color:var(--gray-900); margin-bottom:8px; line-height:1.35; }
+.lib-meta-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+.lib-tipo { display:inline-block; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; background:var(--blue-soft); color:var(--blue); }
+.lib-tipo-casa    { background:var(--cat-casa-soft);   color:var(--cat-casa); }
+.lib-tipo-infort  { background:var(--cat-infort-soft); color:var(--cat-infort); }
+.lib-tipo-rcauto  { background:var(--cat-rcauto-soft); color:var(--cat-rcauto); }
+.lib-tipo-vita    { background:var(--cat-vita-soft);   color:var(--cat-vita); }
+.lib-tipo-salute  { background:var(--cat-salute-soft); color:var(--cat-salute); }
+.lib-garanzie-ct  { font-size:10px; color:var(--gray-400); margin-left:auto; }
+.lib-date { font-size:11px; color:var(--gray-400); margin-top:auto; }
+.lib-check { position:absolute; top:12px; right:10px; width:20px; height:20px; border-radius:50%; border:2px solid var(--gray-300); display:flex; align-items:center; justify-content:center; font-size:11px; transition:all .15s; background:var(--white); }
 .library-card.selected .lib-check { border-color:var(--polo); background:var(--polo); color:#fff; }
-.lib-del { position:absolute; bottom:10px; right:12px; background:none; border:none; cursor:pointer; color:var(--gray-300); font-size:14px; transition:color .15s; }
+.lib-del { position:absolute; bottom:10px; right:10px; background:none; border:none; cursor:pointer; color:var(--gray-300); font-size:13px; transition:color .15s; }
 .lib-del:hover { color:var(--red); }
 .library-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
 .selected-count { font-size:13px; color:var(--polo); font-weight:600; }
@@ -864,6 +898,7 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 
  <!-- Tab 1: Le mie polizze -->
  <div id="libPanel1">
+  <div class="lib-cat-pills" id="libCatPills"></div>
   <div class="library-grid" id="libraryGrid"></div>
  </div>
 
@@ -1594,29 +1629,91 @@ function buildRecCardHTML(r) {
 }
 
 // 
-// LIBRARY PAGE
-// 
+// LIBRARY PAGE — helpers categoria
+let _libCatFilter = 'tutti';
+
+function _tipoToKey(tipo) {
+ if (!tipo) return 'altro';
+ const t = tipo.toLowerCase().trim();
+ if (t === 'casa' || t === 'multirischio') return 'casa';
+ if (t === 'infortuni') return 'infortuni';
+ if (t === 'rc auto') return 'rc auto';
+ if (t === 'vita' || t === 'risparmio') return 'vita';
+ if (t === 'salute') return 'salute';
+ return 'altro';
+}
+function _tipoStripe(tipo) {
+ const k = _tipoToKey(tipo);
+ return {casa:'var(--cat-casa)',infortuni:'var(--cat-infort)','rc auto':'var(--cat-rcauto)',vita:'var(--cat-vita)',salute:'var(--cat-salute)',altro:'var(--gray-300)'}[k]||'var(--gray-300)';
+}
+function _tipoClass(tipo) {
+ const k = _tipoToKey(tipo);
+ return {casa:'lib-tipo-casa',infortuni:'lib-tipo-infort','rc auto':'lib-tipo-rcauto',vita:'lib-tipo-vita',salute:'lib-tipo-salute',altro:''}[k]||'';
+}
+
 function renderLibreria() {
  const polizze = getPolizze();
  const grid = document.getElementById('libraryGrid');
  if (!grid) return;
+
+ // Render filtri categoria
+ const pillsEl = document.getElementById('libCatPills');
+ if (pillsEl) {
+  const counts = {};
+  polizze.forEach(p => { const k=_tipoToKey(p.tipo); counts[k]=(counts[k]||0)+1; });
+  const defs = [
+   {k:'tutti', label:'Tutte', cls:''},
+   {k:'casa',    label:'Casa',     cls:'pill-casa'},
+   {k:'infortuni',label:'Infortuni',cls:'pill-infort'},
+   {k:'rc auto', label:'RC Auto',  cls:'pill-rcauto'},
+   {k:'vita',    label:'Vita',     cls:'pill-vita'},
+   {k:'salute',  label:'Salute',   cls:'pill-salute'},
+   {k:'altro',   label:'Altro',    cls:''},
+  ];
+  pillsEl.innerHTML = defs
+   .filter(d => d.k==='tutti' || counts[d.k])
+   .map(d => {
+    const cnt = d.k==='tutti' ? polizze.length : counts[d.k]||0;
+    const badge = cnt>0 ? ` <span style="font-size:10px;opacity:.7">${cnt}</span>` : '';
+    return `<div class="lib-cat-pill ${d.cls} ${_libCatFilter===d.k?'active':''}" onclick="_setLibCat('${d.k}')">${d.label}${badge}</div>`;
+   }).join('');
+ }
+
  if (!polizze.length) {
   grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza salvata.<br>Caricale tramite il pulsante in alto o durante un confronto PDF.</p></div>`;
   return;
  }
- grid.innerHTML = polizze.map(p => {
+
+ const filtered = _libCatFilter==='tutti' ? polizze : polizze.filter(p => _tipoToKey(p.tipo)===_libCatFilter);
+ if (!filtered.length) {
+  grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza <strong>${_libCatFilter}</strong> in libreria.</p></div>`;
+  return;
+ }
+
+ grid.innerHTML = filtered.map(p => {
   const inBasket = _basket.find(b => b.id === p.id);
   const date = new Date(p.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+  const nGar = p.extracted?.garanzie?.length || 0;
+  const stripe = _tipoStripe(p.tipo);
+  const tipoCls = _tipoClass(p.tipo);
   return `<div class="library-card ${inBasket?'selected':''}" onclick="libToggleBasket('${p.id}')">
-   ${inBasket?'<div class="lib-check"></div>':''}
-   <div class="lib-company">${esc(p.compagnia)}</div>
-   <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
-   <span class="lib-tipo">${esc(p.tipo)}</span>
-   <div class="lib-date" style="margin-top:8px">Aggiunta il ${date}</div>
-   <button class="lib-del" onclick="event.stopPropagation();deletePolizza('${p.id}')" title="Elimina"></button>
+   <div class="lib-cat-stripe" style="background:${stripe}"></div>
+   <div class="lib-card-body">
+    ${inBasket?'<div class="lib-check">✓</div>':''}
+    <div class="lib-company">${esc(p.compagnia||'—')}</div>
+    <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
+    <div class="lib-meta-row">
+     <span class="lib-tipo ${tipoCls}">${esc(p.tipo||'—')}</span>
+     ${nGar?`<span class="lib-garanzie-ct">${nGar} garanzie</span>`:''}
+    </div>
+    <div class="lib-date">Aggiunta il ${date}</div>
+   </div>
+   <button class="lib-del" onclick="event.stopPropagation();deletePolizza('${p.id}')" title="Elimina">🗑</button>
   </div>`;
  }).join('');
 }
+
+function _setLibCat(k) { _libCatFilter = k; renderLibreria(); }
 
 function libToggleBasket(id) {
  const existing = _basket.find(b => b.id === id);
@@ -1770,20 +1867,27 @@ function cgaCardHtml(d) {
   const statusColor = d.sync_status==='updated'||d.sync_status==='unchanged'?'var(--green-dark)':d.sync_status==='error'?'var(--red)':'var(--gray-400)';
   const statusIcon = (d.sync_status==='updated'||d.sync_status==='unchanged')?'✓':d.sync_status==='error'?'⚠':'…';
   const updated = d.last_updated ? new Date(d.last_updated).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}) : 'Non ancora scaricata';
+  const stripe = _tipoStripe(d.tipo);
+  const tipoCls = _tipoClass(d.tipo);
+  const nGar = d.extracted?.garanzie?.length || 0;
   return `<div class="library-card ${inBasket&&hasData?'selected':''} ${!hasData?'lib-pending':''}"
-   onclick="${hasData?`cgaToggleBasket('${d.id}')`:`cgaSync('${d.id}')`}"
-   style="${!hasData?'opacity:.7;':''}cursor:pointer">
-   ${inBasket&&hasData?'<div class="lib-check"></div>':''}
-   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-    <div style="display:flex;align-items:center;gap:6px">
-     ${hasData?`<button onclick="event.stopPropagation();cgaShowDetail('${d.id}')" style="font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--gray-200);background:white;cursor:pointer;color:var(--gray-500)">dettaglio</button>`:''}
+   onclick="${hasData?`cgaToggleBasket('${d.id}')`:`cgaSync('${d.id}')`}">
+   <div class="lib-cat-stripe" style="background:${stripe}"></div>
+   <div class="lib-card-body">
+    ${inBasket&&hasData?'<div class="lib-check">✓</div>':''}
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+     ${hasData?`<button onclick="event.stopPropagation();cgaShowDetail('${d.id}')" style="font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--gray-200);background:white;cursor:pointer;color:var(--gray-500)">dettaglio</button>`:'<span></span>'}
+     <span style="font-size:11px;color:${statusColor};font-weight:600">${statusIcon}</span>
     </div>
-    <span style="font-size:11px;color:${statusColor};font-weight:600">${statusIcon}</span>
+    <div class="lib-company">${esc(d.compagnia||'')}</div>
+    <div class="lib-product">${esc(d.prodotto||'')}</div>
+    <div class="lib-meta-row">
+     <span class="lib-tipo ${tipoCls}">${esc(d.tipo||'')}</span>
+     ${hasData&&nGar?`<span class="lib-garanzie-ct">${nGar} gar.</span>`:''}
+    </div>
+    <div class="lib-date">${updated}</div>
+    ${!hasData?'<div style="font-size:10px;color:var(--polo);margin-top:4px;font-weight:600">Clicca per scaricare →</div>':''}
    </div>
-   <div class="lib-company">${esc(d.compagnia||'')}</div>
-   <div class="lib-product">${esc(d.prodotto||'')}</div>
-   <div class="lib-date" style="margin-top:8px">${updated}</div>
-   ${!hasData?'<div style="font-size:10px;color:var(--polo);margin-top:6px;font-weight:600">Clicca per scaricare →</div>':''}
   </div>`;
 }
 
