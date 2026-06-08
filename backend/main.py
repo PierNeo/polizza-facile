@@ -2409,6 +2409,76 @@ async def library_catalog():
     ]
 
 
+class LibraryAddRequest(BaseModel):
+    compagnia: str
+    prodotto: str
+    tipo: str
+    url: str | None = None
+    pdf_base64: str | None = None
+    filename: str | None = None
+
+
+@app.post("/api/library/add")
+async def library_add(req: LibraryAddRequest):
+    """
+    Aggiunge manualmente una polizza al catalogo.
+    Se viene fornito un pdf_base64, avvia l'estrazione AI subito.
+    Se viene fornito solo un URL, salva l'entry senza estrarre (estrazione on-demand).
+    """
+    import re as _re
+    # Genera un ID univoco dal nome (slug)
+    slug = _re.sub(r'[^a-z0-9]+', '-', f"{req.compagnia}-{req.prodotto}".lower()).strip('-')
+    # Aggiungi timestamp per evitare duplicati
+    entry_id = f"{slug}-{int(__import__('time').time())}"[-60:]
+
+    catalog = _load_catalog()
+    # Controlla duplicati per compagnia+prodotto
+    existing = next((e for e in catalog if
+                     e.get("compagnia","").lower() == req.compagnia.lower() and
+                     e.get("prodotto","").lower() == req.prodotto.lower()), None)
+    if existing:
+        raise HTTPException(400, f"Polizza già presente nel catalogo: {existing['id']}")
+
+    new_entry: dict = {
+        "id": entry_id,
+        "compagnia": req.compagnia,
+        "prodotto": req.prodotto,
+        "tipo": req.tipo,
+        "url": req.url,
+        "url_type": "direct" if req.url else None,
+        "last_hash": None,
+        "last_updated": None,
+        "sync_status": "pending",
+        "extracted": None,
+    }
+
+    # Se fornito un PDF, estraiamo subito
+    if req.pdf_base64:
+        try:
+            pdf_bytes = base64.b64decode(req.pdf_base64)
+            filename = req.filename or f"{req.prodotto}.pdf"
+            chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
+            results = await asyncio.gather(*[
+                _extract_pdf_chunk_native(cb, ps, pe, pt, filename)
+                for cb, ps, pe, pt in chunks
+            ])
+            results = [r for r in results if r]
+            extracted = _merge_extractions(results) if len(results) > 1 else (results[0] if results else {})
+            extracted = _sanitize_extraction(extracted)
+            new_entry["extracted"] = extracted
+            new_entry["last_updated"] = __import__('datetime').datetime.utcnow().isoformat()
+            new_entry["sync_status"] = "updated"
+            await _ensure_library_collection()
+            await _q_set_library(entry_id, extracted)
+        except Exception as e:
+            logger.error(f"[library/add] Errore estrazione PDF per '{entry_id}': {e}")
+            new_entry["sync_status"] = "error"
+
+    catalog.append(new_entry)
+    _save_catalog(catalog)
+    return {"ok": True, "id": entry_id, "extracted": bool(new_entry.get("extracted"))}
+
+
 @app.post("/api/library/sync")
 async def library_sync(request: Request):
     """
