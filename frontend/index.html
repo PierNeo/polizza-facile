@@ -1929,13 +1929,25 @@ async function cgaLoad() {
  grid.innerHTML = '<div style="color:var(--gray-400);font-size:13px;padding:20px 0">Caricamento database...</div>';
  try {
   const res = await fetch(`${BACKEND}/api/library`);
-  if (!res.ok) throw new Error('Errore server');
+  if (!res.ok) {
+   let detail = `HTTP ${res.status}`;
+   try { const j = await res.json(); detail += ': ' + (j.detail || JSON.stringify(j)); } catch {}
+   throw new Error(detail);
+  }
   _cgaData = await res.json();
   const count = _cgaData.filter(d => d.extracted).length;
   document.getElementById('cgaBadge').textContent = count || '—';
   cgaRender();
  } catch(e) {
-  grid.innerHTML = `<div style="color:var(--gray-400);font-size:13px;grid-column:1/-1;padding:20px 0">Errore caricamento: ${esc(e.message)}</div>`;
+  const backendUrl = BACKEND;
+  grid.innerHTML = `<div style="font-size:13px;padding:20px 0">
+   <div style="color:var(--red);font-weight:600;margin-bottom:8px">Errore caricamento database</div>
+   <div style="color:var(--gray-500);margin-bottom:12px">${esc(e.message)}</div>
+   <div style="color:var(--gray-400);font-size:12px">Backend: <code style="background:var(--gray-100);padding:2px 6px;border-radius:4px">${esc(backendUrl)}</code></div>
+   <div style="margin-top:12px">
+    <a href="${esc(backendUrl)}/health" target="_blank" style="font-size:12px;color:var(--blue)">Verifica stato backend →</a>
+   </div>
+  </div>`;
  }
 }
 
