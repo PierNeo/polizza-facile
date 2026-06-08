@@ -6,6 +6,7 @@
 <title>Polo Assicurativo Bassano — Consulenza</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root {
@@ -1283,7 +1284,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 // 
 // CONFIG
 // 
-const BACKEND = (window.PF_BACKEND_URL || 'https://polizza-facile-production.up.railway.app').replace(/\/$/, '');
+const BACKEND = (
+  window.PF_BACKEND_URL ||
+  (window.AGENZIA_CONFIG && window.AGENZIA_CONFIG.backendUrl) ||
+  'https://enthusiastic-bravery-production-085c.up.railway.app'
+).replace(/\/$/, '');
 
 const DEFAULT_QUESTIONNAIRE_CONFIG = {
  sezioni: [
