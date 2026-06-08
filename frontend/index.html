@@ -186,80 +186,67 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .topbar-stats, .topbar-stat, .topbar-stat-num { display:none; }
 
 /* ── DASHBOARD ─────────────────────────────────────────────────────────────── */
-/* 2-column layout: left=main(2fr), right=sidebar(1fr) */
-.dash-layout {
- display:grid; grid-template-columns:2fr 1fr; gap:32px; align-items:start;
-}
+.dash-layout { display:grid; grid-template-columns:2fr 1fr; gap:28px; align-items:start; }
 @media(max-width:900px) { .dash-layout { grid-template-columns:1fr; } }
 
-/* Banner hero (full width, no more isolated card) */
-.dash-banner {
- background:linear-gradient(120deg, var(--polo) 0%, var(--polo-light) 60%, #2A5A88 100%);
- border-radius:var(--radius); padding:28px 32px; margin-bottom:28px;
+/* Hero sempre visibile */
+.dash-hero {
+ background:linear-gradient(120deg, var(--polo) 0%, #1A3D60 60%, #2A5A88 100%);
+ border-radius:var(--radius); padding:26px 30px;
  color:#fff; display:flex; align-items:center; justify-content:space-between;
  gap:20px; flex-wrap:wrap; box-shadow:var(--shadow-lg); position:relative; overflow:hidden;
 }
-.dash-banner::before {
- content:''; position:absolute; right:-60px; top:-60px;
- width:280px; height:280px; border-radius:50%;
- background:radial-gradient(circle, rgba(255,255,255,.06) 0%, transparent 70%);
- pointer-events:none;
+.dash-hero::after {
+ content:''; position:absolute; right:-40px; top:-40px;
+ width:200px; height:200px; border-radius:50%;
+ background:rgba(255,255,255,.04); pointer-events:none;
 }
-.dash-banner h1 { font-size:24px; font-weight:800; letter-spacing:-.5px; margin-bottom:6px; }
-.dash-banner p { font-size:13px; opacity:.6; line-height:1.6; max-width:400px; }
-.dash-banner-actions { display:flex; gap:10px; flex-wrap:wrap; }
-.dash-banner-btn {
- padding:10px 20px; border-radius:9px; font-size:13px; font-weight:700;
- cursor:pointer; font-family:inherit; border:none; transition:all .14s;
-}
-.dash-banner-btn-primary { background:#fff; color:var(--polo); }
-.dash-banner-btn-primary:hover { background:rgba(255,255,255,.9); transform:translateY(-1px); }
-.dash-banner-btn-ghost { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.2); }
-.dash-banner-btn-ghost:hover { background:rgba(255,255,255,.2); }
+.dash-hero-text h2 { font-size:19px; font-weight:800; letter-spacing:-.4px; margin-bottom:5px; }
+.dash-hero-text p { font-size:13px; opacity:.55; line-height:1.6; max-width:380px; }
+.dash-hero-stats { display:flex; gap:1px; background:rgba(255,255,255,.1); border-radius:10px; overflow:hidden; }
+.dash-hero-stat { padding:10px 20px; background:rgba(255,255,255,.06); text-align:center; }
+.dash-hero-stat-n { font-size:26px; font-weight:800; color:var(--gold-mid); letter-spacing:-.4px; line-height:1; }
+.dash-hero-stat-l { font-size:9px; opacity:.5; margin-top:3px; text-transform:uppercase; letter-spacing:.4px; }
 
-/* Section header */
+/* Section titles */
 .dash-section-title {
- font-size:12px; font-weight:700; color:var(--gray-400);
- margin-bottom:12px; text-transform:uppercase; letter-spacing:.8px;
+ font-size:11px; font-weight:700; color:var(--gray-400);
+ margin-bottom:12px; text-transform:uppercase; letter-spacing:.7px;
 }
 
-/* Right sidebar panels */
+/* Right panel (clienti) */
 .dash-panel {
  background:var(--white); border:1px solid rgba(0,0,0,.06);
  border-radius:var(--radius); box-shadow:var(--shadow-card); overflow:hidden;
- margin-bottom:16px;
-}
-.dash-panel-header {
- padding:14px 18px 12px; border-bottom:1px solid rgba(0,0,0,.05);
- font-size:12px; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:.6px;
 }
 .dash-panel-body { padding:4px 0; }
 .dash-panel-item {
- display:flex; align-items:center; gap:12px; padding:11px 18px;
- cursor:pointer; transition:background .12s; border-radius:0;
+ display:flex; align-items:center; gap:12px; padding:10px 18px;
+ cursor:pointer; transition:background .12s;
 }
 .dash-panel-item:hover { background:var(--gray-50); }
-.dash-panel-icon { font-size:20px; width:36px; height:36px; border-radius:10px; background:var(--gray-50); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.dash-panel-icon { font-size:18px; width:34px; height:34px; border-radius:9px; background:var(--gray-50); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .dash-panel-icon.featured { background:var(--gold-soft); }
-.dash-panel-label { font-size:13.5px; font-weight:600; color:var(--gray-900); letter-spacing:-.1px; }
-.dash-panel-sub { font-size:11.5px; color:var(--gray-400); margin-top:1px; }
+.dash-panel-label { font-size:13px; font-weight:600; color:var(--gray-900); letter-spacing:-.1px; }
+.dash-panel-sub { font-size:11px; color:var(--gray-400); margin-top:1px; }
 .dash-panel-arrow { margin-left:auto; color:var(--gray-300); font-size:14px; }
 
-/* Stat pills row */
-.stat-pills { display:flex; gap:10px; margin-bottom:28px; flex-wrap:wrap; }
-.stat-pill {
- background:var(--white); border:1px solid rgba(0,0,0,.06); border-radius:14px;
- padding:14px 22px; box-shadow:var(--shadow-card); min-width:140px;
+/* Action cards */
+.dash-action-card {
+ background:var(--white); border:1px solid rgba(0,0,0,.07);
+ border-radius:var(--radius); cursor:pointer; transition:all .18s; box-shadow:var(--shadow-card);
 }
-.stat-pill-num { font-size:32px; font-weight:800; color:var(--polo); letter-spacing:-.5px; line-height:1; }
-.stat-pill-label { font-size:11.5px; color:var(--gray-400); margin-top:5px; font-weight:500; }
+.dash-action-card:hover { box-shadow:var(--shadow); transform:translateY(-2px); }
+.dash-action-card.featured { background:linear-gradient(135deg,#FFFBF0,#FDF5DC); border-color:rgba(200,151,28,.2); }
+.dac-icon { font-size:22px; margin-bottom:8px; }
+.dac-title { font-size:14px; font-weight:700; color:var(--gray-900); margin-bottom:4px; letter-spacing:-.15px; }
+.dac-desc { font-size:12px; color:var(--gray-400); line-height:1.55; }
 
 /* Legacy compat */
-.stats-row { display:none; } /* replaced by stat-pills */
-.dash-hero { display:none; }
-.dash-actions { display:none; }
-.dash-action-card { display:none; }
+.dash-banner { display:none; }
+.stats-row { display:none; }
 .stat-card { display:none; }
+.stat-pills { display:none; }
 
 .recent-list { display:flex; flex-direction:column; gap:8px; }
 .recent-item {
@@ -892,85 +879,77 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 <!-- DASHBOARD -->
 <div id="pagDashboard">
 <div class="page">
- <!-- Stats hidden per updateBadges compat -->
- <span id="statClienti" style="display:none">0</span>
- <span id="statPolizze" style="display:none">0</span>
+ <!-- compat IDs -->
  <span id="statUltimo" style="display:none">—</span>
  <span id="statUltimoWrap" style="display:none"></span>
+ <span id="dashTotalClients" style="display:none"></span>
+
  <div class="page-content">
 
-  <!-- Banner hero -->
-  <div class="dash-banner" id="onboardingBox" style="display:none">
-   <div>
-    <h1>Benvenuto in Polizza Facile</h1>
-    <p>Profila i tuoi clienti, confronta le polizze con l'AI e costruisci la tua libreria di prodotti assicurativi.</p>
+  <!-- HERO — sempre visibile -->
+  <div class="dash-hero" style="margin-bottom:28px">
+   <div class="dash-hero-text">
+    <h2>Polo Assicurativo Bassano</h2>
+    <p>Il tuo strumento per confrontare polizze e profilare i clienti con l'AI</p>
    </div>
-   <div class="dash-banner-actions">
-    <button class="dash-banner-btn dash-banner-btn-primary" onclick="dismissOnboarding();startQuestionnaire()">Inizia con un cliente →</button>
-    <button class="dash-banner-btn dash-banner-btn-ghost" onclick="dismissOnboarding();startDirectComparison()">Confronta subito</button>
+   <div class="dash-hero-stats">
+    <div class="dash-hero-stat">
+     <div class="dash-hero-stat-n" id="statPolizze">0</div>
+     <div class="dash-hero-stat-l">Polizze</div>
+    </div>
+    <div class="dash-hero-stat">
+     <div class="dash-hero-stat-n" id="statClienti">0</div>
+     <div class="dash-hero-stat-l">Clienti</div>
+    </div>
    </div>
   </div>
 
-  <!-- 2-column layout -->
+  <!-- 2 colonne: sinistra=polizze recenti (più spazio), destra=clienti+azioni -->
   <div class="dash-layout">
 
-   <!-- LEFT: recent clients -->
+   <!-- LEFT: polizze recenti + azione principale -->
    <div>
-    <div class="dash-section-title">Ultimi clienti</div>
-    <div class="recent-list" id="recentList">
-     <div class="empty-state">
-      <div class="empty-icon"></div>
-      <p>Nessun cliente ancora.<br>Inizia con un nuovo questionario.</p>
+    <div class="dash-section-title" style="display:flex;align-items:center;justify-content:space-between">
+     <span>Polizze recenti</span>
+     <button onclick="navTo('pagLibreria')" style="font-size:11px;color:var(--polo);background:none;border:none;cursor:pointer;font-weight:600">Vedi tutte →</button>
+    </div>
+    <div id="dashPolizzeGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:20px"></div>
+
+    <div class="dash-section-title">Avvio rapido</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+     <div class="dash-action-card featured" onclick="startQuestionnaire()" style="padding:18px 16px">
+      <div class="dac-icon" style="font-size:22px;margin-bottom:8px">📋</div>
+      <div class="dac-title">Nuovo cliente</div>
+      <div class="dac-desc">Questionario AI in 3 min</div>
+     </div>
+     <div class="dash-action-card" onclick="startDirectComparison()" style="padding:18px 16px">
+      <div class="dac-icon" style="font-size:22px;margin-bottom:8px">⚡</div>
+      <div class="dac-title">Confronta subito</div>
+      <div class="dac-desc">Carica PDF o scegli dalla libreria</div>
      </div>
     </div>
    </div>
 
-   <!-- RIGHT: actions + quick stats -->
+   <!-- RIGHT: clienti recenti -->
    <div>
-    <div class="dash-section-title">Azioni rapide</div>
+    <div class="dash-section-title" style="display:flex;align-items:center;justify-content:space-between">
+     <span>Clienti recenti</span>
+     <button onclick="navTo('pagClienti')" style="font-size:11px;color:var(--polo);background:none;border:none;cursor:pointer;font-weight:600">Vedi tutti →</button>
+    </div>
     <div class="dash-panel">
-     <div class="dash-panel-body">
-      <div class="dash-panel-item" onclick="startQuestionnaire()">
-       <div class="dash-panel-icon featured">📋</div>
-       <div>
-        <div class="dash-panel-label">Nuovo questionario</div>
-        <div class="dash-panel-sub">Raccomandazioni AI in 3 min</div>
-       </div>
-       <span class="dash-panel-arrow">›</span>
-      </div>
-      <div class="dash-panel-item" onclick="startDirectComparison()">
-       <div class="dash-panel-icon">📄</div>
-       <div>
-        <div class="dash-panel-label">Confronto polizze</div>
-        <div class="dash-panel-sub">Carica PDF o usa la libreria</div>
-       </div>
-       <span class="dash-panel-arrow">›</span>
-      </div>
-      <div class="dash-panel-item" onclick="navTo('pagLibreria')">
-       <div class="dash-panel-icon">🗂️</div>
-       <div>
-        <div class="dash-panel-label">Libreria polizze</div>
-        <div class="dash-panel-sub" id="dashLibSub">0 polizze salvate</div>
-       </div>
-       <span class="dash-panel-arrow">›</span>
-      </div>
-      <div class="dash-panel-item" onclick="navTo('pagClienti')">
-       <div class="dash-panel-icon">👥</div>
-       <div>
-        <div class="dash-panel-label">Tutti i clienti</div>
-        <div class="dash-panel-sub" id="dashCliSub">0 clienti in archivio</div>
-       </div>
-       <span class="dash-panel-arrow">›</span>
+     <div class="dash-panel-body" id="recentList">
+      <div style="padding:20px 18px;text-align:center;color:var(--gray-400);font-size:13px">
+       Nessun cliente ancora.<br>
+       <button onclick="startQuestionnaire()" style="margin-top:10px;padding:6px 14px;border-radius:7px;background:var(--polo);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600">+ Nuovo questionario</button>
       </div>
      </div>
     </div>
-
-    <!-- Hidden legacy IDs for updateBadges() compat -->
-    <span id="dashTotalClients" style="display:none"></span>
+    <span id="dashLibSub" style="display:none">0 polizze</span>
+    <span id="dashCliSub" style="display:none">0 clienti</span>
    </div>
 
-  </div><!-- end dash-layout -->
- </div><!-- end page-content -->
+  </div>
+ </div>
 </div>
 </div>
 
@@ -1607,42 +1586,71 @@ function closeSidebar() { closeMobNav(); }
 // 
 // DASHBOARD
 // 
-function dismissOnboarding() {
- localStorage.setItem('pf_onboarding_done', '1');
- document.getElementById('onboardingBox').style.display = 'none';
-}
+function dismissOnboarding() { localStorage.setItem('pf_onboarding_done','1'); }
 
 function renderDashboard() {
- // Mostra onboarding solo se non è mai stato chiuso
- const done = localStorage.getItem('pf_onboarding_done');
- document.getElementById('onboardingBox').style.display = done ? 'none' : 'block';
  updateBadges();
  const clients = getClients();
- // Last activity
- if (clients.length) {
- const d = new Date(clients[0].data);
- document.getElementById('statUltimo').textContent = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+ const polizze = getPolizze();
+
+ // ── Polizze recenti (griglia sinistra) ──────────────────────────────────────
+ const polGrid = document.getElementById('dashPolizzeGrid');
+ if (polGrid) {
+  if (!polizze.length) {
+   polGrid.innerHTML = `<div style="grid-column:1/-1;border:1.5px dashed var(--gray-200);border-radius:12px;padding:28px;text-align:center;cursor:pointer;color:var(--gray-400)" onclick="startDirectComparison()">
+    <div style="font-size:28px;margin-bottom:8px;opacity:.5">📄</div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px">Nessuna polizza ancora</div>
+    <div style="font-size:12px">Carica il primo PDF per iniziare</div>
+   </div>`;
+  } else {
+   const stripe = p => {
+    const t = (p.tipo||'').toLowerCase();
+    if (t==='casa'||t==='multirischio') return '#2563EB';
+    if (t==='infortuni') return '#D97706';
+    if (t==='rc auto') return '#16A34A';
+    if (t==='vita'||t==='risparmio') return '#7C3AED';
+    if (t==='salute') return '#DB2777';
+    return '#9CA3AF';
+   };
+   polGrid.innerHTML = polizze.slice(0,6).map(p => {
+    const nGar = p.extracted?.garanzie?.length || 0;
+    return `<div class="library-card" onclick="navTo('pagLibreria')" style="cursor:pointer">
+     <div class="lib-cat-stripe" style="background:${stripe(p)}"></div>
+     <div class="lib-card-body">
+      <div class="lib-company">${esc(p.compagnia||'—')}</div>
+      <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
+      <div class="lib-meta-row">
+       <span class="lib-tipo ${_tipoClass(p.tipo)}">${esc(p.tipo||'—')}</span>
+       ${nGar?`<span class="lib-garanzie-ct">${nGar} gar.</span>`:''}
+      </div>
+     </div>
+    </div>`;
+   }).join('');
+  }
  }
- // Recent list
+
+ // ── Clienti recenti (pannello destro) ───────────────────────────────────────
  const list = document.getElementById('recentList');
+ if (!list) return;
  if (!clients.length) {
- list.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><p>Nessun cliente ancora.<br>Inizia con un nuovo questionario.</p></div>`;
- return;
+  list.innerHTML = `<div style="padding:20px 18px;text-align:center;color:var(--gray-400);font-size:13px;line-height:1.6">
+   Nessun cliente ancora.<br>
+   <button onclick="startQuestionnaire()" style="margin-top:10px;padding:6px 14px;border-radius:7px;background:var(--polo);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600">+ Nuovo questionario</button>
+  </div>`;
+  return;
  }
- list.innerHTML = clients.slice(0,5).map(c => {
- const initials = c.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
- const date = new Date(c.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
- const recs = (c.raccomandazioni?.raccomandazioni||[]).slice(0,3);
- const chips = recs.map(r => `<span class="recent-chip">${esc(r.tipo)}</span>`).join('');
- return `<div class="recent-item" onclick="openClient('${c.id}')">
- <div class="recent-avatar">${initials}</div>
- <div style="flex:1;min-width:0">
- <div class="recent-name">${esc(c.nome)}</div>
- <div class="recent-meta">${date}</div>
- ${chips ? `<div class="recent-chips">${chips}</div>` : ''}
- </div>
- <div class="recent-arrow">›</div>
- </div>`;
+ list.innerHTML = clients.slice(0,6).map(c => {
+  const initials = c.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const date = new Date(c.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+  const tipi = [...new Set((c.raccomandazioni?.raccomandazioni||[]).map(r=>r.tipo))].slice(0,2).join(', ');
+  return `<div class="dash-panel-item" onclick="openClient('${c.id}')">
+   <div class="recent-avatar" style="width:32px;height:32px;font-size:12px">${initials}</div>
+   <div style="flex:1;min-width:0">
+    <div style="font-size:13px;font-weight:600;color:var(--gray-900)">${esc(c.nome)}</div>
+    <div style="font-size:11px;color:var(--gray-400)">${tipi||date}</div>
+   </div>
+   <div style="font-size:11px;color:var(--gray-400);flex-shrink:0">${date}</div>
+  </div>`;
  }).join('');
 }
 
