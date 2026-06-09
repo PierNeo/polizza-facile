@@ -6,6 +6,7 @@
     "tipo": "Casa",
     "url": "https://www.unipol.it/api/pub/ueba/download/doc/v1/fascicoli/c603e02d-7f8b-4fb8-881c-77ec578255fd",
     "url_type": "api",
+    "product_page": "https://www.unipol.it/prodotti/casa/unica",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -17,6 +18,7 @@
     "tipo": "Casa",
     "url": "https://www.unipol.it/api/pub/ueba/download/doc/v1/fascicoli/f73a4698-1445-4c7c-a28b-d568cc8a12d8",
     "url_type": "api",
+    "product_page": "https://www.unipol.it/prodotti/casa/casa-e-servizi",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -28,6 +30,7 @@
     "tipo": "Infortuni",
     "url": "https://www.unipol.it/api/pub/ueba/download/doc/v1/fascicoli/497c7be8-6f13-4daa-90ed-57f1509a3fa6",
     "url_type": "api",
+    "product_page": "https://www.unipol.it/prodotti/salute/unica-infortuni",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -61,6 +64,7 @@
     "tipo": "Infortuni",
     "url": "https://asset.generali.it/278418/Condizioni-di-Assicurazione-Generali-Sei-In-Sicurezza-Comfort.pdf",
     "url_type": "cdn",
+    "product_page": "https://www.generali.it/privati/infortuni",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -72,6 +76,7 @@
     "tipo": "Infortuni",
     "url": "https://asset.generali.it/281898/DIP-Aggiuntivo-Generali-Sei-In-Sicurezza-Top-281898.pdf",
     "url_type": "cdn",
+    "product_page": "https://www.generali.it/privati/infortuni",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -226,6 +231,7 @@
     "tipo": "Casa",
     "url": "https://as-mdlw-iis-companysite-rgprod01.azurewebsites.net/apifree/File/Download?id=3NC_TzazQrk8suQmogRn7Ipt_OoYBA16xqAcCuli4ejB47soAaFYCc4q5mIUMeAglu5DduVE9gMl7ySwyAK34VLa_Xgp5uhapCDHIl2gc7q1qlTeyn.ZnlSMe5SaV76WxcFaTL.kQRPmY4FifAzTfT2eDTx862Gq4p._1vKLvnNQPY.WG7DGNF_v7vyG66ruQdmL_gwO1X3qffoISrDDOD6NB6nsk9FLiavaZsLPdqmBpDxupJsSA53XU45coJyr43wmPzTQh2H2rdjP83.s77HR040TEIRxaZOx1m5sbLISVbI~",
     "url_type": "api",
+    "product_page": "https://www.italiana.it/casa/assicurazione-casa/tuttocasa",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -249,6 +255,7 @@
     "tipo": "Casa",
     "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa/helvetialamiacasafull/Set_Helvetia_Lamiacasa%20Full_ed.072025.pdf",
     "url_type": "dated",
+    "product_page": "https://www.helvetia.com/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa-arte/la-mia-casa-full.html",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -260,6 +267,7 @@
     "tipo": "Casa",
     "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa/helvetia-lamiacasa/2026/Set_LaMiaCasa_Proprietario.pdf",
     "url_type": "cdn",
+    "product_page": "https://www.helvetia.com/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa-arte/helvetia-lamiacasa.html",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -271,6 +279,7 @@
     "tipo": "Casa",
     "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa/helvetialamiacasamutuo/Set_Helvetia_Lamiacasa%20Mutuo.pdf",
     "url_type": "cdn",
+    "product_page": "https://www.helvetia.com/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/casa-arte/helvetia-lamiacasa.html",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -441,6 +450,7 @@
     "tipo": "Infortuni",
     "url": "https://www.helvetia.com/content/dam/os/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/salute/helvetia-protezione-oggi/Set%20Protezione%20Oggi%20Mobilit%C3%A0%20ed.%20062025.pdf",
     "url_type": "dated",
+    "product_page": "https://www.helvetia.com/it/web/it/prodotti-e-servizi/prodotti-dedicati-alle-agenzie-e-broker/privati/salute/helvetia-protezione-oggi.html",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -544,6 +554,7 @@
     "tipo": "Infortuni",
     "url": "https://click-partner.gruppocattolica.it/file/567205649885/salute-pers",
     "url_type": "cdn",
+    "product_page": "https://www.generali.it/assicurazioni/prodotti-brand-cattolica",
     "last_hash": null,
     "last_updated": null,
     "extracted": null

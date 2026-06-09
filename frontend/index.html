@@ -3098,6 +3098,10 @@ function cgaCardHtml(d) {
          style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #e53e3e;background:white;color:#e53e3e;cursor:pointer;font-weight:600">
          Carica PDF
         </button>
+        ${d.product_page ? `<a href="${d.product_page}" target="_blank" onclick="event.stopPropagation()"
+         style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--polo);background:white;color:var(--polo);cursor:pointer;font-weight:600;text-decoration:none">
+         Vai alla pagina ↗
+        </a>` : ''}
        </div>`
       :!hasData?`<div class="lib-date" style="margin-top:6px;color:var(--gray-400)">Verrà analizzata al confronto</div>`:''}
     `}
