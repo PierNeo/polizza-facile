@@ -9,7 +9,7 @@ import io
 import anthropic
 import httpx
 from pypdf import PdfReader, PdfWriter
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -2496,6 +2496,80 @@ async def library_add(req: LibraryAddRequest):
     catalog.append(new_entry)
     _save_catalog(catalog)
     return {"ok": True, "id": entry_id, "extracted": bool(new_entry.get("extracted"))}
+
+
+@app.post("/api/library/upload-pdf")
+async def library_upload_pdf(
+    id: str = Form(...),
+    file: UploadFile = File(...),
+    request: Request = None,
+):
+    """
+    Permette di caricare manualmente un PDF per una polizza CGA
+    il cui URL è scaduto o non funzionante.
+    Estrae i dati con lo stesso pipeline di _sync_entry.
+    """
+    _require_api_key(request)
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Solo file PDF accettati")
+
+    pdf_bytes = await file.read()
+    if len(pdf_bytes) < 500:
+        raise HTTPException(status_code=400, detail="PDF troppo piccolo o corrotto")
+    if len(pdf_bytes) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="PDF troppo grande (max 20 MB)")
+
+    catalog = _load_catalog()
+    entry = next((e for e in catalog if e["id"] == id), None)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Voce '{id}' non trovata nel catalogo")
+
+    logger.info(f"[upload-pdf] '{id}' — {len(pdf_bytes)} bytes, file: {file.filename}")
+
+    # Estrai con lo stesso pipeline di _sync_entry
+    try:
+        new_hash = hashlib.md5(pdf_bytes).hexdigest()
+        chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
+        results = await asyncio.gather(*[
+            _extract_sezioni_chunk(cb, ps, pe, pt, entry.get("prodotto", id), entry.get("tipo", ""))
+            for cb, ps, pe, pt in chunks
+        ])
+        results = [r for r in results if r]
+        if not results:
+            raise HTTPException(status_code=422, detail="Estrazione AI vuota — PDF illeggibile?")
+
+        extracted = _merge_sezioni(results) if len(results) > 1 else results[0]
+        extracted = _normalize_sezioni(extracted)
+        extracted["_catalog_id"] = id
+        extracted["_uploaded_file"] = file.filename
+
+        # Salva in Qdrant (best-effort)
+        await _q_set_library(id, extracted)
+
+        now = __import__("datetime").datetime.utcnow().isoformat() + "Z"
+        updated_entry = {
+            **entry,
+            "last_hash": new_hash,
+            "last_updated": now,
+            "sync_status": "updated",
+            "sync_error": None,
+            "extracted": extracted,
+            "uploaded_file": file.filename,
+        }
+        # Aggiorna catalogo
+        idx = next((i for i, e in enumerate(catalog) if e["id"] == id), None)
+        if idx is not None:
+            catalog[idx] = updated_entry
+        _save_catalog(catalog)
+
+        logger.info(f"[upload-pdf] '{id}' — completato ✓")
+        return {"ok": True, "entries": [updated_entry]}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[upload-pdf] '{id}' — errore: {e}")
+        raise HTTPException(status_code=500, detail=str(e)[:300])
 
 
 @app.post("/api/library/sync")

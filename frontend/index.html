@@ -2401,7 +2401,8 @@ async function basketConfronta() {
    overlay.id = 'basketExtractOverlay';
    overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center';
    overlay.innerHTML = `
-    <div style="background:#fff;border-radius:16px;padding:32px 40px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="background:#fff;border-radius:16px;padding:32px 40px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative">
+     <button id="basketExtractClose" onclick="document.getElementById('basketExtractOverlay').style.display='none'" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;color:#aaa;cursor:pointer;line-height:1" title="Annulla">×</button>
      <div style="font-size:32px;margin-bottom:12px">🤖</div>
      <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:6px">Analisi AI in corso</div>
      <div id="basketExtractMsg" style="font-size:13px;color:#666;margin-bottom:20px">Avvio...</div>
@@ -2715,6 +2716,96 @@ function cgaToggleGruppo(id) {
  if (open) _cgaOpenGroups.delete(id); else _cgaOpenGroups.add(id);
 }
 
+// Upload manuale PDF per polizze CGA con URL scaduto
+function cgaUploadPdf(id) {
+  // Input file nascosto riutilizzabile
+  let inp = document.getElementById('_cgaPdfInput');
+  if (!inp) {
+    inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'application/pdf';
+    inp.id = '_cgaPdfInput';
+    inp.style.display = 'none';
+    document.body.appendChild(inp);
+  }
+  // Pulisci listener precedenti
+  inp.onchange = null;
+  inp.value = '';
+  inp.onchange = async function() {
+    const file = inp.files[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.pdf')) { toast('Seleziona un file PDF'); return; }
+    if (file.size > 20 * 1024 * 1024) { toast('File troppo grande (max 20 MB)'); return; }
+
+    // Overlay di avanzamento
+    let ov = document.getElementById('basketExtractOverlay');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'basketExtractOverlay';
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center';
+      document.body.appendChild(ov);
+    }
+    ov.innerHTML = `<div style="background:#fff;border-radius:16px;padding:32px 28px;max-width:360px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+      <div style="font-size:15px;font-weight:600;margin-bottom:16px">Analisi in corso…</div>
+      <div id="_cgaUploadMsg" style="font-size:13px;color:#555;margin-bottom:16px">Caricamento PDF…</div>
+      <div style="height:6px;border-radius:3px;background:#e2e8f0"><div id="_cgaUploadBar" style="height:6px;border-radius:3px;background:#4e54c8;width:10%;transition:width .4s"></div></div>
+    </div>`;
+    ov.style.display = 'flex';
+
+    const setMsg = (txt, pct) => {
+      const m = document.getElementById('_cgaUploadMsg'); if (m) m.textContent = txt;
+      const b = document.getElementById('_cgaUploadBar'); if (b) b.style.width = pct + '%';
+    };
+
+    try {
+      setMsg('Caricamento PDF…', 20);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('id', id);
+
+      setMsg('Invio al server…', 40);
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 120000);
+      let res;
+      try {
+        res = await fetch(`${BACKEND}/api/library/upload-pdf`, {
+          method: 'POST',
+          headers: API_KEY ? { 'X-API-Key': API_KEY } : {},
+          body: formData,
+          signal: ctrl.signal
+        });
+      } finally { clearTimeout(timer); }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      setMsg('Estrazione AI…', 70);
+      const result = await res.json();
+      if (!result.ok) throw new Error(result.error || 'Estrazione fallita');
+
+      // Aggiorna cache locale
+      const entry = result.entries?.[0];
+      if (entry) {
+        const idx = _cgaData.findIndex(d => d.id === id);
+        if (idx !== -1) _cgaData[idx] = { ..._cgaData[idx], ...entry };
+        else _cgaData.push(entry);
+      }
+
+      setMsg('Completato!', 100);
+      await new Promise(r => setTimeout(r, 600));
+      toast('✓ PDF caricato e analizzato');
+      cgaRender();
+    } catch(e) {
+      toast(`Errore upload: ${e.message}`, 8000);
+    } finally {
+      ov.style.display = 'none';
+    }
+  };
+  inp.click();
+}
+
 // Analisi singola polizza on-demand
 // Estrae una sola polizza CGA dal backend — con retry automatico per Railway cold start
 async function cgaSyncOne(id, { silent = false, onStatus = null } = {}) {
@@ -2930,6 +3021,14 @@ function cgaCardHtml(d) {
       </button>
      </div>
      ${hasData&&updated?`<div class="lib-date" style="margin-top:8px">Analizzata ${updated}</div>`
+      :!hasData&&d.sync_status==='error'?`
+       <div style="margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:#e53e3e">⚠ URL PDF non valido</span>
+        <button onclick="event.stopPropagation();cgaUploadPdf('${d.id}')"
+         style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #e53e3e;background:white;color:#e53e3e;cursor:pointer;font-weight:600">
+         Carica PDF
+        </button>
+       </div>`
       :!hasData?`<div class="lib-date" style="margin-top:6px;color:var(--gray-400)">Verrà analizzata al confronto</div>`:''}
     `}
    </div>
