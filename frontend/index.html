@@ -2423,7 +2423,10 @@ async function basketConfronta() {
    const pct = Math.round(((i) / needExtract.length) * 80);
    setMsg(`(${i+1}/${needExtract.length}) ${item.compagnia} — ${item.prodotto}`, pct);
    try {
-    await cgaSyncOne(cgaId, { silent: true });
+    await cgaSyncOne(cgaId, {
+     silent: true,
+     onStatus: msg => setMsg(`(${i+1}/${needExtract.length}) ${msg}`, pct)
+    });
     const d = _cgaData.find(x => x.id === cgaId);
     if (d?.extracted) item.extracted = d.extracted;
    } catch(e) {
@@ -2704,47 +2707,66 @@ function cgaToggleGruppo(id) {
 }
 
 // Analisi singola polizza on-demand
-// Estrae una sola polizza CGA dal backend (torna true/false, throws su errore rete)
-async function cgaSyncOne(id, { silent = false } = {}) {
+// Estrae una sola polizza CGA dal backend — con retry automatico per Railway cold start
+async function cgaSyncOne(id, { silent = false, onStatus = null } = {}) {
  if (_cgaSyncing.has(id)) return false;
  _cgaSyncing.add(id);
+ const MAX_RETRIES = 4;
+ const RETRY_DELAYS = [0, 8000, 15000, 20000]; // ms prima di ogni tentativo
+ let lastErr;
  try {
-  // AbortController con timeout lungo (Railway cold start può richiedere ~60s)
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 120000);
-  let res;
-  try {
-   res = await fetch(`${BACKEND}/api/library/sync`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(API_KEY ? {'X-API-Key': API_KEY} : {}) },
-    body: JSON.stringify({ id }),
-    signal: ctrl.signal
-   });
-  } finally {
-   clearTimeout(timer);
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+   if (attempt > 0) {
+    const wait = RETRY_DELAYS[attempt];
+    if (onStatus) onStatus(`Server in avvio... tentativo ${attempt+1}/${MAX_RETRIES} (attesa ${wait/1000}s)`);
+    await new Promise(r => setTimeout(r, wait));
+   }
+   try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 90000);
+    let res;
+    try {
+     res = await fetch(`${BACKEND}/api/library/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(API_KEY ? {'X-API-Key': API_KEY} : {}) },
+      body: JSON.stringify({ id }),
+      signal: ctrl.signal
+     });
+    } finally {
+     clearTimeout(timer);
+    }
+    // 502/503 = Railway ancora freddo → ritenta
+    if (res.status === 502 || res.status === 503) {
+     lastErr = new Error(`Server non disponibile (HTTP ${res.status}) — in attesa che si svegli`);
+     continue;
+    }
+    if (!res.ok) throw new Error(`Errore server (HTTP ${res.status})`);
+    const result = await res.json();
+    if (!result.ok && !result.entries?.length) throw new Error(result.error || 'Nessun dato restituito dal server');
+    // Aggiorna cache locale
+    const idx = _cgaData.findIndex(d => d.id === id);
+    const entry = result.entries?.[0];
+    if (entry) {
+     if (idx !== -1) _cgaData[idx] = { ..._cgaData[idx], ...entry };
+     else _cgaData.push(entry);
+    } else if (idx === -1) {
+     await cgaLoad();
+    }
+    const updated = _cgaData.find(d => d.id === id);
+    if (!updated?.extracted) throw new Error('Estrazione AI non riuscita (PDF non leggibile o dati vuoti)');
+    if (!silent) toast('✓ Polizza analizzata');
+    return true;
+   } catch(e) {
+    if (e.name === 'AbortError') { lastErr = new Error('Timeout connessione'); continue; }
+    if (attempt < MAX_RETRIES - 1 && (e.message.includes('fetch') || e.message.includes('network') || e.message.includes('Failed'))) {
+     lastErr = e; continue; // retry su errori di rete
+    }
+    throw e; // altri errori: non ritentare
+   }
   }
-  if (!res.ok) throw new Error(`Errore server (HTTP ${res.status})`);
-  const result = await res.json();
-  if (!result.ok && !result.entries?.length) throw new Error(result.error || 'Nessun dato restituito dal server');
-  // Aggiorna cache locale
-  const idx = _cgaData.findIndex(d => d.id === id);
-  const entry = result.entries?.[0];
-  if (entry) {
-   if (idx !== -1) _cgaData[idx] = { ..._cgaData[idx], ...entry };
-   else _cgaData.push(entry);
-  } else if (idx === -1) {
-   await cgaLoad();
-  }
-  const updated = _cgaData.find(d => d.id === id);
-  if (!updated?.extracted) throw new Error('Estrazione AI non riuscita (dati vuoti)');
-  if (!silent) toast('✓ Polizza analizzata');
-  return true;
- } catch(e) {
-  const msg = e.name === 'AbortError' ? 'Timeout — il server ci sta mettendo troppo. Riprova tra qualche secondo.' : e.message;
-  throw new Error(msg);
+  throw lastErr || new Error('Server non raggiungibile dopo più tentativi');
  } finally {
   _cgaSyncing.delete(id);
-  // Aggiorna spinner sulla card solo se la vista CGA è visibile
   const panel = document.getElementById('libPanel2');
   if (panel && panel.style.display !== 'none') cgaRender();
  }
