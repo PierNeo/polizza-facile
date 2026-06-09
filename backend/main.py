@@ -2337,12 +2337,44 @@ async def _sync_entry(entry: dict) -> dict:
     url = entry.get("url", "")
     logger.info(f"[library sync] '{entry_id}' — {url}")
 
+    # Header realistici per bypassare blocchi anti-bot dei siti assicurativi
+    _BROWSER_HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf,*/*;q=0.8",
+        "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Cache-Control": "max-age=0",
+    }
+
     try:
         async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http:
-            r = await http.get(url, headers={"User-Agent": "Mozilla/5.0 (compatible; PFBot/1.0)"})
+            # Primo tentativo con header browser completi
+            r = await http.get(url, headers=_BROWSER_HEADERS)
+
+            # Alcuni siti vogliono prima una visita alla homepage (cookie/session)
+            if r.status_code in (400, 403, 429):
+                from urllib.parse import urlparse
+                origin = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+                logger.info(f"[library sync] '{entry_id}' — HTTP {r.status_code}, provo con Referer {origin}")
+                headers_with_ref = {**_BROWSER_HEADERS, "Referer": origin}
+                r = await http.get(url, headers=headers_with_ref)
+
             if r.status_code != 200:
                 logger.warning(f"[library sync] '{entry_id}' — HTTP {r.status_code}")
                 return {**entry, "sync_status": "error", "sync_error": f"HTTP {r.status_code}"}
+
+            # Verifica che sia davvero un PDF (alcuni siti restituiscono HTML di errore con 200)
+            content_type = r.headers.get("content-type", "")
+            if "html" in content_type and not url.lower().endswith(".pdf"):
+                logger.warning(f"[library sync] '{entry_id}' — risposta HTML invece di PDF")
+                return {**entry, "sync_status": "error", "sync_error": "URL restituisce HTML, non PDF"}
+
             pdf_bytes = r.content
 
         if len(pdf_bytes) < 500:
