@@ -1699,8 +1699,14 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 const BACKEND = (
   window.PF_BACKEND_URL ||
   (window.AGENZIA_CONFIG && window.AGENZIA_CONFIG.backendUrl) ||
-  'https://enthusiastic-bravery-production-085c.up.railway.app'
+  'https://polizza-facile-production.up.railway.app'
 ).replace(/\/$/, '');
+
+const API_KEY = (
+  window.PF_API_KEY ||
+  (window.AGENZIA_CONFIG && window.AGENZIA_CONFIG.apiKey) ||
+  'zMf0NH5qm80VXa6UXi26NQAUh0E20V9v'
+);
 
 const DEFAULT_QUESTIONNAIRE_CONFIG = {
  sezioni: [
