@@ -2336,20 +2336,42 @@ function basketRender() {
 async function basketConfronta() {
  if (_basket.length < 2) { toast('Seleziona almeno 2 polizze'); return; }
 
- // Estrazione lazy per CGA senza dati
+ // Controlla CGA senza PDF — avvisa ma non blocca se ha estratti
  const needExtract = _basket.filter(b => b.source === 'cga' && !b.extracted);
+ const cgaNoPdf = needExtract.filter(b => {
+  const d = _cgaData.find(x => x.id === b.id.replace('cga:',''));
+  return !d || (!d.url && !d.pdf_url && !d.filename);
+ });
+
+ if (cgaNoPdf.length > 0) {
+  const nomi = cgaNoPdf.map(b => b.prodotto||b.compagnia).join(', ');
+  toast(`Queste polizze non hanno un PDF nel database: ${nomi}. Aggiungile dalla libreria caricando il PDF.`, 6000);
+  return;
+ }
+
+ // Estrazione lazy per CGA con PDF ma non ancora estratte
  if (needExtract.length > 0) {
-  toast(`Analisi AI in corso (${needExtract.length} polizz${needExtract.length>1?'e':'a'})...`, 5000);
+  const btn = document.getElementById('btnBasketConfronta');
+  if(btn) { btn.disabled=true; btn.textContent='Analisi...'; }
+  toast(`Analisi AI in corso (${needExtract.length} polizz${needExtract.length>1?'e':'a'})...`, 8000);
   for (const item of needExtract) {
    const cgaId = item.id.replace('cga:', '');
-   await cgaSyncOne(cgaId);
-   const d = _cgaData.find(x => x.id === cgaId);
-   if (d && d.extracted) item.extracted = d.extracted;
+   try {
+    await cgaSyncOne(cgaId);
+    const d = _cgaData.find(x => x.id === cgaId);
+    if (d && d.extracted) item.extracted = d.extracted;
+   } catch(e) {
+    toast(`Errore analisi "${item.prodotto}": ${e.message}`, 5000);
+   }
   }
+  if(btn) { btn.disabled=false; btn.textContent='Confronta →'; }
  }
 
  const policies = _basket.map(b => b.extracted).filter(Boolean);
- if (policies.length < 2) { toast('Alcune polizze non hanno dati disponibili'); return; }
+ if (policies.length < 2) {
+  toast('Non è stato possibile estrarre i dati da alcune polizze. Aggiungi le polizze caricando il PDF dalla libreria.', 6000);
+  return;
+ }
  document.getElementById('resultsTitle').textContent = 'Confronto polizze';
  renderResults(policies);
  callSummary(policies).catch(()=>{});
