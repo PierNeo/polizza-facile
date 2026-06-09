@@ -94,6 +94,17 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
  margin:0 8px; flex-shrink:0;
 }
 
+/* Search box nav */
+.nav-search-box {
+ display:flex; align-items:center; gap:7px;
+ background:rgba(255,255,255,.07); border:0.5px solid rgba(255,255,255,.12);
+ border-radius:8px; padding:5px 10px; cursor:pointer; transition:all .15s;
+ margin-right:8px;
+}
+.nav-search-box:hover { background:rgba(255,255,255,.11); border-color:rgba(255,255,255,.2); }
+.nav-search-text { font-size:12px; color:rgba(255,255,255,.38); white-space:nowrap; }
+.nav-search-kbd { font-size:9px; background:rgba(255,255,255,.1); border-radius:4px; padding:1px 5px; color:rgba(255,255,255,.3); font-family:inherit; border:none; }
+
 /* CTA confronta — destra */
 .nav-spacer { flex:1; }
 .btn-nav-cta {
@@ -185,7 +196,59 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .topbar { display:none; }
 .topbar-stats, .topbar-stat, .topbar-stat-num { display:none; }
 
-/* ── DASHBOARD ─────────────────────────────────────────────────────────────── */
+/* ── DASHBOARD v2 ──────────────────────────────────────────────────────────── */
+.dash-v2 { padding:24px 32px; max-width:1100px; }
+.dash-stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:22px; }
+@media(max-width:900px) { .dash-stat-row { grid-template-columns:repeat(2,1fr); } }
+.dash-stat-card {
+ background:var(--white); border:1px solid rgba(0,0,0,.07);
+ border-radius:12px; padding:14px 18px;
+}
+.dash-stat-label { font-size:10px; font-weight:700; color:var(--gray-400); letter-spacing:.06em; text-transform:uppercase; margin-bottom:5px; }
+.dash-stat-val { font-size:26px; font-weight:800; color:var(--gray-900); letter-spacing:-.5px; line-height:1; }
+.dash-stat-sub { font-size:11px; color:var(--gray-400); margin-top:3px; }
+.dash-stat-sub.up { color:var(--green-dark); font-weight:600; }
+
+.dash-two-col { display:grid; grid-template-columns:1fr 220px; gap:14px; align-items:start; }
+@media(max-width:900px) { .dash-two-col { grid-template-columns:1fr; } }
+
+.dash-panel2 { background:var(--white); border:1px solid rgba(0,0,0,.07); border-radius:12px; }
+.dash-panel2-title { font-size:11px; font-weight:700; color:var(--gray-500); letter-spacing:.04em; padding:13px 16px 0; }
+
+.dash-activity-item {
+ display:flex; align-items:flex-start; gap:10px;
+ padding:10px 16px; border-bottom:1px solid rgba(0,0,0,.05);
+}
+.dash-activity-item:last-child { border-bottom:none; }
+.dash-act-icon {
+ width:28px; height:28px; border-radius:8px; flex-shrink:0;
+ display:flex; align-items:center; justify-content:center; font-size:14px;
+}
+.dash-act-title { font-size:12px; font-weight:600; color:var(--gray-900); line-height:1.35; }
+.dash-act-meta { font-size:10px; color:var(--gray-400); margin-top:2px; }
+.dash-act-badge { font-size:9px; font-weight:700; padding:2px 7px; border-radius:20px; white-space:nowrap; flex-shrink:0; margin-left:auto; }
+.badge-green { background:var(--green-soft); color:var(--green-dark); }
+.badge-amber { background:var(--amber-soft); color:#92400E; }
+.badge-blue { background:var(--blue-soft); color:var(--blue-dark); }
+
+.dash-mini-cat { display:flex; align-items:center; gap:8px; padding:8px 16px; border-bottom:1px solid rgba(0,0,0,.05); }
+.dash-mini-cat:last-child { border-bottom:none; }
+.dash-mini-cat-name { font-size:11px; color:var(--gray-600); font-weight:500; width:64px; flex-shrink:0; }
+.dash-mini-bar-wrap { flex:1; height:4px; background:var(--gray-100); border-radius:2px; }
+.dash-mini-bar { height:4px; border-radius:2px; }
+.dash-mini-cat-n { font-size:10px; font-weight:700; color:var(--gray-700); width:20px; text-align:right; flex-shrink:0; }
+
+.dash-quick-card {
+ margin:10px 12px 12px; background:var(--gold-soft);
+ border:1px solid rgba(200,151,28,.2); border-radius:10px;
+ padding:12px 14px; cursor:pointer; transition:all .15s;
+}
+.dash-quick-card:hover { box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+.dash-quick-title { font-size:12px; font-weight:700; color:var(--polo); margin-bottom:3px; display:flex; align-items:center; gap:6px; }
+.dash-quick-desc { font-size:10px; color:var(--gray-500); line-height:1.5; }
+.dash-quick-cta { font-size:11px; font-weight:700; color:var(--gold-dark); margin-top:8px; display:flex; align-items:center; gap:4px; }
+
+/* legacy — tenuto per compatibilità */
 .dash-layout { display:grid; grid-template-columns:2fr 1fr; gap:28px; align-items:start; }
 @media(max-width:900px) { .dash-layout { grid-template-columns:1fr; } }
 
@@ -333,8 +396,38 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .lib-cat-pill.pill-vita.active    { background:var(--cat-vita);   border-color:var(--cat-vita); }
 .lib-cat-pill.pill-salute.active  { background:var(--cat-salute); border-color:var(--cat-salute); }
 
+/* ── LIBRARY SIDEBAR ────────────────────────────────────────────────────────── */
+.lib-sidebar {
+ width:168px; flex-shrink:0; background:var(--gray-50);
+ border-right:1px solid var(--gray-200); padding:14px 0;
+ position:sticky; top:52px; height:calc(100vh - 52px); overflow-y:auto;
+}
+.lib-sb-section { padding:0 10px 10px; }
+.lib-sb-label { font-size:9px; font-weight:700; color:var(--gray-400); letter-spacing:.08em; text-transform:uppercase; padding:0 6px; margin-bottom:5px; }
+.lib-sb-item {
+ display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:7px;
+ font-size:12px; font-weight:500; color:var(--gray-500); cursor:pointer; transition:all .1s;
+ user-select:none;
+}
+.lib-sb-item:hover { background:rgba(0,0,0,.04); color:var(--gray-800); }
+.lib-sb-item.active { background:rgba(10,31,53,.08); color:var(--polo); font-weight:700; }
+.lib-sb-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.lib-sb-count { margin-left:auto; font-size:10px; font-weight:600; color:var(--gray-400); }
+.lib-sb-divider { height:1px; background:var(--gray-200); margin:4px 10px 10px; }
+
+/* Upload strip */
+.lib-upload-strip {
+ display:flex; align-items:center; gap:10px;
+ border:1.5px dashed var(--gray-300); border-radius:9px;
+ padding:9px 14px; cursor:pointer; margin-bottom:14px;
+ font-size:12px; color:var(--gray-400); background:var(--white);
+ transition:all .15s;
+}
+.lib-upload-strip:hover { border-color:var(--polo); color:var(--gray-600); background:var(--blue-soft); }
+.lib-upload-strip strong { color:var(--polo); font-weight:700; }
+
 /* LIBRARY GRID + CARDS */
-.library-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+.library-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
 .library-card {
  background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius);
  padding:0; box-shadow:var(--shadow-sm); transition:all .18s; cursor:pointer;
@@ -500,13 +593,49 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .progress-steps li.done .step-dot { background:var(--green); }
 
 /* RESULTS */
-.results-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
-.results-topbar h1 { font-size:21px; font-weight:700; letter-spacing:-.3px; }
+.results-topbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; border-bottom:1px solid var(--gray-200); }
+.results-topbar h1 { font-size:19px; font-weight:700; letter-spacing:-.3px; }
 .results-topbar-actions { display:flex; gap:8px; flex-wrap:wrap; }
-.btn-print { background:var(--polo); color:#fff; border:none; padding:9px 18px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+.btn-print { background:var(--polo); color:#fff; border:none; padding:7px 16px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
 .btn-print:hover { background:var(--polo-mid); }
-.score-cards { display:grid; gap:14px; margin-bottom:24px; }
-.score-card { background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius); padding:20px 22px; box-shadow:var(--shadow-sm); display:flex; align-items:center; gap:18px; transition:border .2s; }
+.score-cards { display:grid; gap:12px; padding-top:16px; padding-bottom:16px; }
+.score-card { background:var(--white); border:1.5px solid var(--gray-200); border-radius:var(--radius); padding:16px 20px; box-shadow:var(--shadow-sm); display:flex; align-items:center; gap:18px; transition:border .2s; }
+
+/* Results subnav */
+.res-subnav {
+ display:flex; gap:0; border-bottom:1px solid var(--gray-200);
+ padding:0 32px; background:var(--white); position:sticky; top:52px; z-index:80;
+}
+.res-sntab {
+ padding:10px 14px; font-size:12px; font-weight:500; color:var(--gray-400);
+ border:none; background:none; cursor:pointer; font-family:inherit;
+ border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .12s;
+}
+.res-sntab:hover { color:var(--gray-700); }
+.res-sntab.active { color:var(--polo); font-weight:700; border-bottom-color:var(--polo); }
+.res-panel { padding-top:20px; }
+
+/* AI summary v2 */
+.ai-summary-v2 {
+ background:linear-gradient(135deg,#EBF0F7 0%,#EFF6FF 100%);
+ border:1px solid #C7DFFE; border-radius:12px;
+ padding:16px 20px; margin-bottom:20px;
+}
+.ai-summary-v2-header {
+ display:flex; align-items:center; gap:8px;
+ font-size:12px; font-weight:700; color:var(--polo);
+ margin-bottom:10px;
+}
+.ai-model-badge {
+ font-size:9px; background:var(--polo); color:#fff;
+ padding:2px 8px; border-radius:20px; font-weight:700;
+}
+.ai-summary-v2-text { font-size:13px; line-height:1.75; color:var(--gray-700); }
+
+.ai-summary { background:linear-gradient(135deg,#EFF6FF 0%,#F5F3FF 100%); border:1px solid var(--blue-mid); border-radius:var(--radius); padding:20px 22px; margin-bottom:24px; }
+.ai-summary-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--blue); margin-bottom:7px; display:flex; align-items:center; gap:6px; }
+.ai-summary-text { font-size:14px; line-height:1.7; color:var(--gray-700); }
+.section-title { font-size:15px; font-weight:700; margin-bottom:12px; color:var(--gray-800); }
 .score-card.winner { border-color:var(--green); box-shadow:0 0 0 3px rgba(22,163,74,.08); }
 .score-ring { flex-shrink:0; position:relative; width:60px; height:60px; }
 .score-ring svg { transform:rotate(-90deg); }
@@ -869,9 +998,14 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  <!-- Nav secondaria -->
  <button class="nav-item" id="nav-impostazioni" onclick="navTo('pagImpostazioni')">Questionario</button>
 
- <!-- CTA -->
+ <!-- Search + CTA -->
  <div class="nav-spacer"></div>
- <button class="btn-nav-cta" id="nav-comparatore" onclick="startDirectComparison()">Confronta polizze →</button>
+ <div class="nav-search-box" onclick="navSearchFocus()" title="Cerca (⌘K)">
+  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;opacity:.45"><circle cx="6.5" cy="6.5" r="5" stroke="white" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+  <span class="nav-search-text">Cerca polizze, clienti...</span>
+  <kbd class="nav-search-kbd">⌘K</kbd>
+ </div>
+ <button class="btn-nav-cta" id="nav-comparatore" onclick="startDirectComparison()">Confronta →</button>
 </nav>
 
 <!-- MAIN CONTENT -->
@@ -884,70 +1018,89 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  <span id="statUltimo" style="display:none">—</span>
  <span id="statUltimoWrap" style="display:none"></span>
  <span id="dashTotalClients" style="display:none"></span>
+ <span id="statPolizze" style="display:none">0</span>
+ <span id="statClienti" style="display:none">0</span>
+ <span id="dashLibSub" style="display:none">0 polizze</span>
+ <span id="dashCliSub" style="display:none">0 clienti</span>
 
- <div class="page-content">
+ <div class="dash-v2">
 
-  <!-- HERO — sempre visibile -->
-  <div class="dash-hero" style="margin-bottom:28px">
-   <div class="dash-hero-text">
-    <h2>Polo Assicurativo Bassano</h2>
-    <p>Il tuo strumento per confrontare polizze e profilare i clienti con l'AI</p>
+  <!-- 4 stat cards -->
+  <div class="dash-stat-row">
+   <div class="dash-stat-card">
+    <div class="dash-stat-label">Polizze catalogo</div>
+    <div class="dash-stat-val" id="dashStatCatalogo">0</div>
+    <div class="dash-stat-sub" id="dashStatCatalogoSub">—</div>
    </div>
-   <div class="dash-hero-stats">
-    <div class="dash-hero-stat">
-     <div class="dash-hero-stat-n" id="statPolizze">0</div>
-     <div class="dash-hero-stat-l">Polizze</div>
-    </div>
-    <div class="dash-hero-stat">
-     <div class="dash-hero-stat-n" id="statClienti">0</div>
-     <div class="dash-hero-stat-l">Clienti</div>
-    </div>
+   <div class="dash-stat-card">
+    <div class="dash-stat-label">Le mie polizze</div>
+    <div class="dash-stat-val" id="dashStatMie">0</div>
+    <div class="dash-stat-sub" id="dashStatMieSub">caricate manualmente</div>
+   </div>
+   <div class="dash-stat-card">
+    <div class="dash-stat-label">Clienti profilati</div>
+    <div class="dash-stat-val" id="dashStatClienti">0</div>
+    <div class="dash-stat-sub" id="dashStatClientiSub">—</div>
+   </div>
+   <div class="dash-stat-card">
+    <div class="dash-stat-label">Polizze analizzate AI</div>
+    <div class="dash-stat-val" id="dashStatAnalizzate">0</div>
+    <div class="dash-stat-sub" id="dashStatAnalizzateSub">—</div>
    </div>
   </div>
 
-  <!-- 2 colonne: sinistra=polizze recenti (più spazio), destra=clienti+azioni -->
-  <div class="dash-layout">
+  <!-- Due colonne: attività + pannelli laterali -->
+  <div class="dash-two-col">
 
-   <!-- LEFT: polizze recenti + azione principale -->
-   <div>
-    <div class="dash-section-title" style="display:flex;align-items:center;justify-content:space-between">
-     <span>Polizze recenti</span>
-     <button onclick="navTo('pagLibreria')" style="font-size:11px;color:var(--polo);background:none;border:none;cursor:pointer;font-weight:600">Vedi tutte →</button>
+   <!-- Sinistra: attività recente -->
+   <div class="dash-panel2">
+    <div class="dash-panel2-title" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid rgba(0,0,0,.05)">
+     <span>Attività recente</span>
+     <button onclick="navTo('pagLibreria')" style="font-size:11px;color:var(--polo);background:none;border:none;cursor:pointer;font-weight:600">Vai alla libreria →</button>
     </div>
-    <div id="dashPolizzeGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:20px"></div>
-
-    <div class="dash-section-title">Avvio rapido</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-     <div class="dash-action-card featured" onclick="startQuestionnaire()" style="padding:18px 16px">
-      <div class="dac-title">Nuovo cliente</div>
-      <div class="dac-desc">Questionario AI in 3 min</div>
-     </div>
-     <div class="dash-action-card" onclick="startDirectComparison()" style="padding:18px 16px">
-      <div style="display:none"></div>
-      <div class="dac-title">Confronta subito</div>
-      <div class="dac-desc">Carica PDF o scegli dalla libreria</div>
-     </div>
-    </div>
-   </div>
-
-   <!-- RIGHT: clienti recenti -->
-   <div>
-    <div class="dash-section-title" style="display:flex;align-items:center;justify-content:space-between">
-     <span>Clienti recenti</span>
-     <button onclick="navTo('pagClienti')" style="font-size:11px;color:var(--polo);background:none;border:none;cursor:pointer;font-weight:600">Vedi tutti →</button>
-    </div>
-    <div class="dash-panel">
-     <div class="dash-panel-body" id="recentList">
-      <div style="padding:20px 18px;text-align:center;color:var(--gray-400);font-size:13px">
-       Nessun cliente ancora.<br>
-       <button onclick="startQuestionnaire()" style="margin-top:10px;padding:6px 14px;border-radius:7px;background:var(--polo);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600">+ Nuovo questionario</button>
+    <div id="dashActivityFeed">
+     <div class="dash-activity-item">
+      <div class="dash-act-icon" style="background:var(--blue-soft)">
+       <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#0066CC" stroke-width="1.5"/><path d="M5 8h6M8 5l3 3-3 3" stroke="#0066CC" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="flex:1">
+       <div class="dash-act-title">Nessuna attività ancora</div>
+       <div class="dash-act-meta">Carica la prima polizza o crea un cliente per iniziare</div>
       </div>
      </div>
     </div>
-    <span id="dashLibSub" style="display:none">0 polizze</span>
-    <span id="dashCliSub" style="display:none">0 clienti</span>
    </div>
 
+   <!-- Destra: mini panels -->
+   <div style="display:flex;flex-direction:column;gap:12px">
+
+    <!-- Catalogo per categoria -->
+    <div class="dash-panel2">
+     <div class="dash-panel2-title" style="padding-bottom:8px">Catalogo per categoria</div>
+     <div id="dashCatBars">
+      <div class="dash-mini-cat"><div class="dash-mini-cat-name">Casa</div><div class="dash-mini-bar-wrap"><div class="dash-mini-bar" style="width:56%;background:#2563EB"></div></div><div class="dash-mini-cat-n">—</div></div>
+      <div class="dash-mini-cat"><div class="dash-mini-cat-name">Infortuni</div><div class="dash-mini-bar-wrap"><div class="dash-mini-bar" style="width:44%;background:#D97706"></div></div><div class="dash-mini-cat-n">—</div></div>
+      <div class="dash-mini-cat"><div class="dash-mini-cat-name">Auto</div><div class="dash-mini-bar-wrap"><div class="dash-mini-bar" style="width:0%;background:#16A34A"></div></div><div class="dash-mini-cat-n">—</div></div>
+      <div class="dash-mini-cat"><div class="dash-mini-cat-name">Vita</div><div class="dash-mini-bar-wrap"><div class="dash-mini-bar" style="width:0%;background:#7C3AED"></div></div><div class="dash-mini-cat-n">—</div></div>
+     </div>
+    </div>
+
+    <!-- Quick start confronto -->
+    <div class="dash-panel2" style="padding-bottom:2px">
+     <div class="dash-panel2-title" style="padding-bottom:0">Avvio rapido</div>
+     <div class="dash-quick-card" onclick="startDirectComparison()">
+      <div class="dash-quick-title">Confronta polizze</div>
+      <div class="dash-quick-desc">Seleziona dalla libreria o carica PDF — l'AI estrae garanzie e franchigie</div>
+      <div class="dash-quick-cta">Inizia ora →</div>
+     </div>
+     <div class="dash-quick-card" onclick="startQuestionnaire()" style="margin-top:0;background:var(--blue-soft);border-color:rgba(0,102,204,.15)">
+      <div class="dash-quick-title" style="color:var(--blue-dark)">Nuovo cliente</div>
+      <div class="dash-quick-desc">Questionario AI per profilare il cliente in 3 minuti</div>
+      <div class="dash-quick-cta" style="color:var(--blue-dark)">Avvia →</div>
+     </div>
+    </div>
+
+   </div>
   </div>
  </div>
 </div>
@@ -988,51 +1141,110 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 
 <!-- LIBRERIA -->
 <div id="pagLibreria" style="display:none">
-<div class="page">
+<div class="page" style="padding:0">
 
  <!-- Basket bar sticky sotto topnav -->
- <div id="basketBar" style="display:none;background:var(--polo);padding:9px 40px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:52px;z-index:90;">
-  <div id="basketChips" style="display:flex;gap:8px;flex-wrap:wrap;flex:1"></div>
-  <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-   <button onclick="basketAddUpload()" style="font-size:12px;padding:5px 12px;border-radius:7px;border:1.5px dashed rgba(255,255,255,.5);background:none;color:#fff;cursor:pointer">+ PDF</button>
-   <button id="btnBasketConfronta" onclick="basketConfronta()" style="font-size:13px;padding:7px 20px;border-radius:7px;background:#fff;color:var(--polo);font-weight:700;border:none;cursor:pointer;opacity:.5" disabled>Confronta →</button>
+ <div id="basketBar" style="display:none;background:var(--polo);padding:8px 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:52px;z-index:90;">
+  <span style="font-size:10px;color:rgba(255,255,255,.5);font-weight:700;flex-shrink:0;letter-spacing:.04em">CONFRONTO</span>
+  <div id="basketChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+  <div id="basketSlots" style="display:flex;gap:5px;align-items:center"></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;margin-left:auto">
+   <button onclick="basketAddUpload()" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px dashed rgba(255,255,255,.4);background:none;color:rgba(255,255,255,.7);cursor:pointer;font-weight:600">+ PDF</button>
+   <button id="btnBasketConfronta" onclick="basketConfronta()" style="font-size:12px;padding:6px 18px;border-radius:7px;background:#fff;color:var(--polo);font-weight:700;border:none;cursor:pointer;opacity:.5" disabled>Confronta →</button>
   </div>
  </div>
- <div id="basketEmpty" style="background:rgba(10,31,53,.03);border:1.5px dashed var(--gray-200);border-radius:10px;padding:11px 18px;margin:20px 40px 0;font-size:13px;color:var(--gray-400);display:flex;align-items:center;justify-content:space-between;gap:12px">
-  <span>Seleziona polizze dalla libreria o carica un PDF per confrontarle</span>
-  <button onclick="basketAddUpload()" style="font-size:12px;padding:5px 12px;border-radius:7px;background:var(--polo);color:#fff;border:none;cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0">+ Carica PDF</button>
- </div>
 
- <div class="page-content" style="padding-top:20px">
-  <div class="page-header">
-   <div><div class="page-title">Polizze</div><div class="page-subtitle">Seleziona fino a 4 e premi Confronta</div></div>
+ <!-- Layout: sidebar sinistra + area principale -->
+ <div style="display:flex;min-height:calc(100vh - 52px)">
+
+  <!-- Sidebar filtri -->
+  <div class="lib-sidebar" id="libSidebar">
+   <div class="lib-sb-section">
+    <div class="lib-sb-label">Vista</div>
+    <div class="lib-sb-item active" id="libSbTutte" onclick="libSbFilter('tutte')">
+     <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+     Tutte
+     <span class="lib-sb-count" id="libSbCountTutte">—</span>
+    </div>
+    <div class="lib-sb-item" id="libSbMie" onclick="libSbFilter('mie')">
+     <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 14V6l5-3 5 3v8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="6" y="9" width="4" height="5" rx="0.5" stroke="currentColor" stroke-width="1.5"/></svg>
+     Le mie
+     <span class="lib-sb-count" id="libSbCountMie">—</span>
+    </div>
+    <div class="lib-sb-item" id="libSbCga" onclick="libSbFilter('cga')">
+     <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 8h5M8 5.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+     Database CGA
+     <span class="lib-sb-count" id="libSbCountCga">—</span>
+    </div>
+   </div>
+   <div class="lib-sb-divider"></div>
+   <div class="lib-sb-section">
+    <div class="lib-sb-label">Categoria</div>
+    <div class="lib-sb-item" id="libSbCasa" onclick="libSbFilter('cat:Casa')">
+     <span class="lib-sb-dot" style="background:#2563EB"></span> Casa
+     <span class="lib-sb-count" id="libSbCountCasa">—</span>
+    </div>
+    <div class="lib-sb-item" id="libSbInfortuni" onclick="libSbFilter('cat:Infortuni')">
+     <span class="lib-sb-dot" style="background:#D97706"></span> Infortuni
+     <span class="lib-sb-count" id="libSbCountInfortuni">—</span>
+    </div>
+    <div class="lib-sb-item" id="libSbAuto" onclick="libSbFilter('cat:RC Auto')">
+     <span class="lib-sb-dot" style="background:#16A34A"></span> RC Auto
+     <span class="lib-sb-count" id="libSbCountAuto">—</span>
+    </div>
+    <div class="lib-sb-item" id="libSbVita" onclick="libSbFilter('cat:Vita')">
+     <span class="lib-sb-dot" style="background:#7C3AED"></span> Vita
+     <span class="lib-sb-count" id="libSbCountVita">—</span>
+    </div>
+    <div class="lib-sb-item" id="libSbSalute" onclick="libSbFilter('cat:Salute')">
+     <span class="lib-sb-dot" style="background:#DB2777"></span> Salute
+     <span class="lib-sb-count" id="libSbCountSalute">—</span>
+    </div>
+   </div>
   </div>
 
-  <!-- Tab bar -->
-  <div style="display:flex;gap:0;border-bottom:1px solid var(--gray-200);margin-bottom:24px">
-   <button id="libTab1" onclick="libSwitchTab(1)" style="padding:10px 20px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--polo);color:var(--polo)">Le mie polizze</button>
-   <button id="libTab2" onclick="libSwitchTab(2)" style="padding:10px 20px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--gray-400)">Database CGA <span id="cgaBadge" style="font-size:10px;background:var(--gray-100);color:var(--gray-500);padding:1px 6px;border-radius:20px;margin-left:4px">—</span></button>
-  </div>
+  <!-- Area principale -->
+  <div style="flex:1;padding:18px 20px;overflow-y:auto">
 
-  <!-- Tab 1: Le mie polizze -->
-  <div id="libPanel1">
-   <div class="lib-cat-pills" id="libCatPills"></div>
-   <div class="library-grid" id="libraryGrid"></div>
-  </div>
+   <!-- Upload strip -->
+   <div class="lib-upload-strip" onclick="basketAddUpload()">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;color:var(--gray-400)"><path d="M8 2v8M5 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 11v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <span>Trascina un <strong>PDF</strong> qui oppure <strong>clicca per caricare</strong> una nuova polizza</span>
+   </div>
 
-  <!-- Tab 2: Database CGA -->
-  <div id="libPanel2" style="display:none">
-   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+   <!-- Intestazione area + azioni -->
+   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
     <div>
-     <div style="font-size:15px;font-weight:700;color:var(--gray-900);letter-spacing:-.2px">Catalogo polizze</div>
-     <div style="font-size:12px;color:var(--gray-400);margin-top:2px">Analizza le polizze che ti servono — paghi solo quelle che selezioni (~€0.05 caduna)</div>
+     <div class="page-title" style="font-size:15px" id="libAreaTitle">Tutte le polizze</div>
+     <div class="page-subtitle" id="libAreaSub">Seleziona fino a 4 e premi Confronta</div>
     </div>
     <button onclick="cgaOpenAdd()" class="btn btn-primary btn-sm">+ Nuova polizza</button>
    </div>
-   <div id="cgaAccordion"></div>
-  </div>
 
+   <!-- Le mie polizze -->
+   <div id="libPanel1">
+    <div class="lib-cat-pills" id="libCatPills"></div>
+    <div class="library-grid" id="libraryGrid"></div>
+   </div>
+
+   <!-- Database CGA -->
+   <div id="libPanel2" style="display:none">
+    <div id="cgaAccordion"></div>
+   </div>
+
+   <!-- Vista unificata (filtro sidebar categoria) -->
+   <div id="libPanelUnified" style="display:none">
+    <div class="library-grid" id="libUnifiedGrid"></div>
+   </div>
+
+   <!-- Basket empty hint (fuori dalla sidebar) -->
+   <div id="basketEmpty" style="display:none;border:1.5px dashed var(--gray-200);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--gray-400);display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <span>Seleziona polizze dalla libreria o carica un PDF per confrontarle</span>
+   </div>
+
+  </div>
  </div>
+
 </div>
 </div>
 
@@ -1154,7 +1366,8 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 
 <!-- RESULTS -->
 <div id="pagResults" style="display:none">
-<div class="page">
+<div class="page" style="padding:0">
+
  <!-- Header visibile solo in stampa -->
  <div class="print-header" id="printHeader">
   <div>
@@ -1166,24 +1379,50 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
    <div id="printDate" style="font-size:10px;color:#9ca3af;margin-top:2px"></div>
   </div>
  </div>
- <div class="results-topbar">
- <h1 id="resultsTitle">Confronto polizze</h1>
- <div class="results-topbar-actions">
- <button class="btn-print" onclick="printResults()">⬇ Esporta PDF</button>
- <button class="btn btn-ghost btn-sm" onclick="navTo('pagDashboard')">↩ Dashboard</button>
+
+ <!-- Topbar risultati -->
+ <div class="results-topbar" style="padding:10px 32px">
+  <h1 id="resultsTitle">Confronto polizze</h1>
+  <div class="results-topbar-actions">
+   <button class="btn-print" onclick="printResults()">Esporta PDF</button>
+   <button class="btn btn-ghost btn-sm" onclick="navTo('pagDashboard')">← Dashboard</button>
+  </div>
  </div>
+
+ <!-- Score cards -->
+ <div id="scoreCards" class="score-cards" style="padding:0 32px"></div>
+
+ <!-- Subnav tabs -->
+ <div class="res-subnav" id="resSubnav">
+  <button class="res-sntab active" id="resTab-ai" onclick="resSwitchTab('ai')">Analisi AI</button>
+  <button class="res-sntab" id="resTab-table" onclick="resSwitchTab('table')">Tabella dettaglio</button>
+  <button class="res-sntab" id="resTab-advice" onclick="resSwitchTab('advice')">Consigliata per</button>
  </div>
- <div id="scoreCards" class="score-cards"></div>
- <div id="aiSummary" class="ai-summary" style="display:none">
- <div class="ai-summary-label"> Analisi AI</div>
- <div class="ai-summary-text" id="aiSummaryText"></div>
+
+ <!-- Pannello AI -->
+ <div id="resPanel-ai" class="res-panel" style="padding:0 32px 24px">
+  <div id="aiSummary" class="ai-summary-v2" style="display:none">
+   <div class="ai-summary-v2-header">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.6 3.5L8 10l-3.1 1.5.6-3.5L3 5.5 6.5 5z" fill="#C8971C"/></svg>
+    <span>Analisi AI</span>
+    <span class="ai-model-badge">claude-sonnet</span>
+   </div>
+   <div class="ai-summary-v2-text" id="aiSummaryText"></div>
+  </div>
+  <div id="adviceGrid"></div>
+  <div id="exclGrid"></div>
  </div>
- <div class="section-title">Confronto garanzie</div>
- <div class="table-outer"><div class="table-scroll"><table id="compTable"></table></div></div>
- <div class="section-title" id="adviceTitle" style="display:none">Consigliata per chi...</div>
- <div class="advice-grid" id="adviceGrid"></div>
- <div class="section-title" id="exclTitle" style="display:none">Principali esclusioni</div>
- <div class="excl-grid" id="exclGrid"></div>
+
+ <!-- Pannello tabella -->
+ <div id="resPanel-table" class="res-panel" style="display:none;padding:0 32px 24px">
+  <div class="table-outer"><div class="table-scroll"><table id="compTable"></table></div></div>
+ </div>
+
+ <!-- Pannello consigliata -->
+ <div id="resPanel-advice" class="res-panel" style="display:none;padding:0 32px 24px">
+  <div id="adviceGridAlt"></div>
+ </div>
+
 </div>
 </div>
 
@@ -1591,66 +1830,110 @@ function renderDashboard() {
  updateBadges();
  const clients = getClients();
  const polizze = getPolizze();
+ const cgaAll = _cgaData || [];
+ const cgaAnalizzate = cgaAll.filter(d => d.extracted).length;
 
- // ── Polizze recenti (griglia sinistra) ──────────────────────────────────────
- const polGrid = document.getElementById('dashPolizzeGrid');
- if (polGrid) {
-  if (!polizze.length) {
-   polGrid.innerHTML = `<div style="grid-column:1/-1;border:1.5px dashed var(--gray-200);border-radius:12px;padding:28px;text-align:center;cursor:pointer;color:var(--gray-400)" onclick="startDirectComparison()">
-    <div style="font-size:28px;margin-bottom:8px;opacity:.5"></div>
-    <div style="font-size:13px;font-weight:600;margin-bottom:4px">Nessuna polizza ancora</div>
-    <div style="font-size:12px">Carica il primo PDF per iniziare</div>
-   </div>`;
-  } else {
-   const stripe = p => {
-    const t = (p.tipo||'').toLowerCase();
-    if (t==='casa'||t==='multirischio') return '#2563EB';
-    if (t==='infortuni') return '#D97706';
-    if (t==='rc auto') return '#16A34A';
-    if (t==='vita'||t==='risparmio') return '#7C3AED';
-    if (t==='salute') return '#DB2777';
-    return '#9CA3AF';
-   };
-   polGrid.innerHTML = polizze.slice(0,6).map(p => {
-    const nGar = p.extracted?.garanzie?.length || 0;
-    return `<div class="library-card" onclick="navTo('pagLibreria')" style="cursor:pointer">
-     <div class="lib-cat-stripe" style="background:${stripe(p)}"></div>
-     <div class="lib-card-body">
-      <div class="lib-company">${esc(p.compagnia||'—')}</div>
-      <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
-      <div class="lib-meta-row">
-       <span class="lib-tipo ${_tipoClass(p.tipo)}">${esc(p.tipo||'—')}</span>
-       ${nGar?`<span class="lib-garanzie-ct">${nGar} gar.</span>`:''}
-      </div>
-     </div>
-    </div>`;
-   }).join('');
-  }
+ // ── Stat cards ──────────────────────────────────────────────────────────────
+ const setEl = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+ setEl('dashStatCatalogo', cgaAll.length || '—');
+ setEl('dashStatCatalogoSub', cgaAll.length ? `${cgaAll.filter(d=>d.tipo==='Casa').length} Casa · ${cgaAll.filter(d=>d.tipo==='Infortuni').length} Infortuni` : 'clicca Polizze per caricare');
+ setEl('dashStatMie', polizze.length || '0');
+ setEl('dashStatMieSub', polizze.length ? `${polizze.length} PDF caricati` : 'nessuna ancora');
+ setEl('dashStatClienti', clients.length || '0');
+ setEl('dashStatClientiSub', clients.length ? `${clients.filter(c=>c.raccomandazioni).length} con raccomandazioni` : 'nessun cliente ancora');
+ setEl('dashStatAnalizzate', cgaAnalizzate || '0');
+ setEl('dashStatAnalizzateSub', cgaAll.length ? `${cgaAll.length - cgaAnalizzate} da analizzare` : '—');
+
+ // compat
+ setEl('statPolizze', cgaAll.length + polizze.length);
+ setEl('statClienti', clients.length);
+
+ // ── Mini bar chart categorie ─────────────────────────────────────────────────
+ const all = [...cgaAll, ...polizze];
+ const catCount = t => all.filter(p => (p.tipo||'').toLowerCase().includes(t.toLowerCase())).length;
+ const cats = [
+  { name:'Casa',      color:'#2563EB', count: all.filter(p=>['casa','multirischio'].includes((p.tipo||'').toLowerCase())).length },
+  { name:'Infortuni', color:'#D97706', count: all.filter(p=>(p.tipo||'').toLowerCase()==='infortuni').length },
+  { name:'Auto',      color:'#16A34A', count: all.filter(p=>(p.tipo||'').toLowerCase().includes('auto')).length },
+  { name:'Vita',      color:'#7C3AED', count: all.filter(p=>['vita','risparmio'].includes((p.tipo||'').toLowerCase())).length },
+ ];
+ const maxCat = Math.max(...cats.map(c=>c.count), 1);
+ const barsEl = document.getElementById('dashCatBars');
+ if (barsEl) {
+  barsEl.innerHTML = cats.map(c => `
+   <div class="dash-mini-cat">
+    <div class="dash-mini-cat-name">${c.name}</div>
+    <div class="dash-mini-bar-wrap"><div class="dash-mini-bar" style="width:${Math.round(c.count/maxCat*100)}%;background:${c.color}"></div></div>
+    <div class="dash-mini-cat-n">${c.count||'—'}</div>
+   </div>`).join('');
  }
 
- // ── Clienti recenti (pannello destro) ───────────────────────────────────────
- const list = document.getElementById('recentList');
- if (!list) return;
- if (!clients.length) {
-  list.innerHTML = `<div style="padding:20px 18px;text-align:center;color:var(--gray-400);font-size:13px;line-height:1.6">
-   Nessun cliente ancora.<br>
-   <button onclick="startQuestionnaire()" style="margin-top:10px;padding:6px 14px;border-radius:7px;background:var(--polo);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600">+ Nuovo questionario</button>
+ // ── Feed attività recente ─────────────────────────────────────────────────────
+ const feed = document.getElementById('dashActivityFeed');
+ if (!feed) return;
+
+ const items = [];
+
+ // Ultime polizze caricate (mie)
+ polizze.slice(0,3).forEach(p => {
+  items.push({
+   ts: p.ts || 0,
+   icon: `<div class="dash-act-icon" style="background:var(--green-soft)">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 13V5l4-2 4 2v8" stroke="#1D8348" stroke-width="1.5" stroke-linejoin="round"/><rect x="6" y="8" width="4" height="5" rx="0.5" stroke="#1D8348" stroke-width="1.5"/></svg>
+   </div>`,
+   title: `PDF caricato — ${esc(p.prodotto||p.filename||'Polizza')}`,
+   meta: `${esc(p.compagnia||'—')} · Le mie polizze`,
+   badge: `<span class="dash-act-badge badge-green">Estratto</span>`
+  });
+ });
+
+ // Ultimi clienti
+ clients.slice(0,3).forEach(c => {
+  const initials = (c.nome||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  items.push({
+   ts: new Date(c.data).getTime() || 0,
+   icon: `<div class="dash-act-icon" style="background:var(--blue-soft);font-size:10px;font-weight:700;color:var(--blue-dark)">${initials}</div>`,
+   title: `Cliente profilato — ${esc(c.nome)}`,
+   meta: `${c.raccomandazioni ? 'Con raccomandazioni AI' : 'Profilo base'} · ${new Date(c.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short'})}`,
+   badge: c.raccomandazioni ? `<span class="dash-act-badge badge-blue">Profilo AI</span>` : ''
+  });
+ });
+
+ // Ultimi CGA analizzati
+ cgaAll.filter(d=>d.extracted).slice(0,2).forEach(d => {
+  items.push({
+   ts: 0,
+   icon: `<div class="dash-act-icon" style="background:var(--amber-soft)">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.6 3.5L8 10l-3.1 1.5.6-3.5L3 5.5 6.5 5z" stroke="#D97706" stroke-width="1.5" stroke-linejoin="round"/></svg>
+   </div>`,
+   title: `Analisi AI — ${esc(d.prodotto||d.id)}`,
+   meta: `${esc(d.compagnia||'CGA')} · Database`,
+   badge: `<span class="dash-act-badge badge-amber">Analizzata</span>`
+  });
+ });
+
+ if (!items.length) {
+  feed.innerHTML = `<div class="dash-activity-item">
+   <div class="dash-act-icon" style="background:var(--gray-100)">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#98989E" stroke-width="1.5"/><path d="M8 5v4M8 11v.5" stroke="#98989E" stroke-width="1.5" stroke-linecap="round"/></svg>
+   </div>
+   <div style="flex:1">
+    <div class="dash-act-title">Nessuna attività ancora</div>
+    <div class="dash-act-meta">Carica la prima polizza o crea un cliente per iniziare</div>
+   </div>
   </div>`;
   return;
  }
- list.innerHTML = clients.slice(0,6).map(c => {
-  const initials = c.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const date = new Date(c.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
-  const tipi = [...new Set((c.raccomandazioni?.raccomandazioni||[]).map(r=>r.tipo))].slice(0,2).join(', ');
-  return `<div class="dash-panel-item" onclick="openClient('${c.id}')">
-   <div class="recent-avatar" style="width:32px;height:32px;font-size:12px">${initials}</div>
+
+ feed.innerHTML = items.slice(0,6).map(i => `
+  <div class="dash-activity-item">
+   ${i.icon}
    <div style="flex:1;min-width:0">
-    <div style="font-size:13px;font-weight:600;color:var(--gray-900)">${esc(c.nome)}</div>
-    <div style="font-size:11px;color:var(--gray-400)">${tipi||date}</div>
+    <div class="dash-act-title">${i.title}</div>
+    <div class="dash-act-meta">${i.meta}</div>
    </div>
-   <div style="font-size:11px;color:var(--gray-400);flex-shrink:0">${date}</div>
-  </div>`;
- }).join('');
+   ${i.badge}
+  </div>`).join('');
 }
 
 //
@@ -1827,46 +2110,17 @@ function _tipoClass(tipo) {
  return {casa:'lib-tipo-casa',infortuni:'lib-tipo-infort','rc auto':'lib-tipo-rcauto',vita:'lib-tipo-vita',salute:'lib-tipo-salute',altro:''}[k]||'';
 }
 
-function renderLibreria() {
+function _renderMieGrid() {
  const polizze = getPolizze();
  const grid = document.getElementById('libraryGrid');
  if (!grid) return;
 
- // Render filtri categoria
- const pillsEl = document.getElementById('libCatPills');
- if (pillsEl) {
-  const counts = {};
-  polizze.forEach(p => { const k=_tipoToKey(p.tipo); counts[k]=(counts[k]||0)+1; });
-  const defs = [
-   {k:'tutti', label:'Tutte', cls:''},
-   {k:'casa',    label:'Casa',     cls:'pill-casa'},
-   {k:'infortuni',label:'Infortuni',cls:'pill-infort'},
-   {k:'rc auto', label:'RC Auto',  cls:'pill-rcauto'},
-   {k:'vita',    label:'Vita',     cls:'pill-vita'},
-   {k:'salute',  label:'Salute',   cls:'pill-salute'},
-   {k:'altro',   label:'Altro',    cls:''},
-  ];
-  pillsEl.innerHTML = defs
-   .filter(d => d.k==='tutti' || counts[d.k])
-   .map(d => {
-    const cnt = d.k==='tutti' ? polizze.length : counts[d.k]||0;
-    const badge = cnt>0 ? ` <span style="font-size:10px;opacity:.7">${cnt}</span>` : '';
-    return `<div class="lib-cat-pill ${d.cls} ${_libCatFilter===d.k?'active':''}" onclick="_setLibCat('${d.k}')">${d.label}${badge}</div>`;
-   }).join('');
- }
-
  if (!polizze.length) {
-  grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza salvata.<br>Caricale tramite il pulsante in alto o durante un confronto PDF.</p></div>`;
+  grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza salvata.<br>Caricale con il pulsante in alto o durante un confronto PDF.</p></div>`;
   return;
  }
 
- const filtered = _libCatFilter==='tutti' ? polizze : polizze.filter(p => _tipoToKey(p.tipo)===_libCatFilter);
- if (!filtered.length) {
-  grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"></div><p>Nessuna polizza <strong>${_libCatFilter}</strong> in libreria.</p></div>`;
-  return;
- }
-
- grid.innerHTML = filtered.map(p => {
+ grid.innerHTML = polizze.map(p => {
   const inBasket = _basket.find(b => b.id === p.id);
   const date = new Date(p.data).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
   const nGar = p.extracted?.garanzie?.length || 0;
@@ -1889,7 +2143,16 @@ function renderLibreria() {
  }).join('');
 }
 
-function _setLibCat(k) { _libCatFilter = k; renderLibreria(); }
+function _setLibCat(k) { _libCatFilter = k; _renderMieGrid(); }
+
+function renderLibreria() {
+ libSbUpdateCounts();
+ libSbFilter(_libSbFilter || 'tutte');
+ // Aggiorna sempre la griglia "mie" se visibile
+ if (!_libSbFilter || _libSbFilter === 'tutte' || _libSbFilter === 'mie') {
+  _renderMieGrid();
+ }
+}
 
 function libToggleBasket(id) {
  const existing = _basket.find(b => b.id === id);
@@ -1972,13 +2235,97 @@ let _cgaSyncing = new Set(); // ID polizze in corso di analisi
 function libSwitchTab(n) {
  document.getElementById('libPanel1').style.display = n===1 ? '' : 'none';
  document.getElementById('libPanel2').style.display = n===2 ? '' : 'none';
- document.getElementById('libTab1').style.borderBottomColor = n===1 ? 'var(--polo)' : 'transparent';
- document.getElementById('libTab1').style.color = n===1 ? 'var(--polo)' : 'var(--gray-400)';
- document.getElementById('libTab1').style.fontWeight = n===1 ? '600' : '500';
- document.getElementById('libTab2').style.borderBottomColor = n===2 ? 'var(--polo)' : 'transparent';
- document.getElementById('libTab2').style.color = n===2 ? 'var(--polo)' : 'var(--gray-400)';
- document.getElementById('libTab2').style.fontWeight = n===2 ? '600' : '500';
  if (n===2 && !_cgaData.length) cgaLoad();
+}
+
+// ── Sidebar filter ───────────────────────────────────────────────────────────
+let _libSbFilter = 'tutte';
+function libSbFilter(filter) {
+ _libSbFilter = filter;
+ // Aggiorna active state sidebar
+ document.querySelectorAll('.lib-sb-item').forEach(el => el.classList.remove('active'));
+ const idMap = {
+  'tutte':'libSbTutte','mie':'libSbMie','cga':'libSbCga',
+  'cat:Casa':'libSbCasa','cat:Infortuni':'libSbInfortuni',
+  'cat:RC Auto':'libSbAuto','cat:Vita':'libSbVita','cat:Salute':'libSbSalute'
+ };
+ const activeEl = document.getElementById(idMap[filter]);
+ if (activeEl) activeEl.classList.add('active');
+
+ const p1 = document.getElementById('libPanel1');
+ const p2 = document.getElementById('libPanel2');
+ const pu = document.getElementById('libPanelUnified');
+ const titleEl = document.getElementById('libAreaTitle');
+ const subEl = document.getElementById('libAreaSub');
+
+ if (filter === 'tutte') {
+  p1.style.display = ''; p2.style.display = 'block'; if(pu) pu.style.display='none';
+  if(titleEl) titleEl.textContent = 'Tutte le polizze';
+  if(subEl) subEl.textContent = 'Seleziona fino a 4 e premi Confronta';
+  if (!_cgaData.length) cgaLoad();
+ } else if (filter === 'mie') {
+  p1.style.display = ''; p2.style.display = 'none'; if(pu) pu.style.display='none';
+  if(titleEl) titleEl.textContent = 'Le mie polizze';
+  if(subEl) subEl.textContent = 'PDF caricati manualmente';
+  _renderMieGrid();
+ } else if (filter === 'cga') {
+  p1.style.display = 'none'; p2.style.display = 'block'; if(pu) pu.style.display='none';
+  if(titleEl) titleEl.textContent = 'Database CGA';
+  if(subEl) subEl.textContent = 'Catalogo polizze disponibili';
+  if (!_cgaData.length) cgaLoad();
+ } else if (filter.startsWith('cat:')) {
+  const cat = filter.replace('cat:','');
+  p1.style.display = 'none'; p2.style.display = 'none'; if(pu) pu.style.display='';
+  if(titleEl) titleEl.textContent = cat;
+  if(subEl) subEl.textContent = 'Filtrato per categoria';
+  // Render unified grid
+  const all = [...getPolizze(), ..._cgaData];
+  const filtered = all.filter(p => (p.tipo||'').toLowerCase() === cat.toLowerCase()
+   || (cat==='Casa' && ['casa','multirischio'].includes((p.tipo||'').toLowerCase()))
+   || (cat==='RC Auto' && (p.tipo||'').toLowerCase().includes('auto')));
+  const ugrid = document.getElementById('libUnifiedGrid');
+  if (ugrid) {
+   if (!filtered.length) {
+    ugrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>Nessuna polizza <strong>${esc(cat)}</strong> trovata.</p></div>`;
+   } else {
+    ugrid.innerHTML = filtered.map(p => {
+     const isCga = !p.data; // CGA items hanno un formato diverso
+     if (isCga) return cgaCardHtml(p);
+     const inBasket = _basket.find(b => b.id === p.id);
+     const stripe = _tipoStripe(p.tipo);
+     return `<div class="library-card ${inBasket?'selected':''}" onclick="libToggleBasket('${p.id}')">
+      <div class="lib-cat-stripe" style="background:${stripe}"></div>
+      <div class="lib-card-body">
+       ${inBasket?'<div class="lib-check"></div>':''}
+       <div class="lib-company">${esc(p.compagnia||'—')}</div>
+       <div class="lib-product">${esc(p.prodotto||p.filename)}</div>
+       <div class="lib-meta-row"><span class="lib-tipo ${_tipoClass(p.tipo)}">${esc(p.tipo||'—')}</span></div>
+      </div></div>`;
+    }).join('');
+   }
+  }
+ }
+}
+
+function libSbUpdateCounts() {
+ const mie = getPolizze();
+ const cga = _cgaData || [];
+ const all = [...mie, ...cga];
+ const setC = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v||''; };
+ setC('libSbCountTutte', all.length || '');
+ setC('libSbCountMie', mie.length || '');
+ setC('libSbCountCga', cga.length || '');
+ const catCount = (cat) => all.filter(p => {
+  const t = (p.tipo||'').toLowerCase();
+  if (cat==='Casa') return t==='casa'||t==='multirischio';
+  if (cat==='RC Auto') return t.includes('auto');
+  return t === cat.toLowerCase();
+ }).length;
+ setC('libSbCountCasa', catCount('Casa') || '');
+ setC('libSbCountInfortuni', catCount('Infortuni') || '');
+ setC('libSbCountAuto', catCount('RC Auto') || '');
+ setC('libSbCountVita', catCount('Vita') || '');
+ setC('libSbCountSalute', catCount('Salute') || '');
 }
 
 async function cgaLoad() {
@@ -2057,6 +2404,8 @@ function cgaRender() {
   const id = 'cgaGrp_' + tipo.replace(/\s/g,'_');
   const el = document.getElementById(id); if(el) el.style.display='block';
  });
+ // Aggiorna contatori sidebar
+ if (typeof libSbUpdateCounts === 'function') libSbUpdateCounts();
 }
 
 function cgaToggleGruppo(id) {
@@ -2900,12 +3249,27 @@ function renderResults(policies) {
  if (hasSezioni) buildTableSezioni(policies, cols);
  else buildTable(policies, cols);
 
- document.getElementById('adviceGrid').innerHTML=policies.map((p,i)=>p.consigliata_per?`<div class="advice-card"><div class="advice-icon">${['','','',''][i]}</div><div><div class="advice-company">${esc(p.compagnia||'')}</div><div class="advice-for">${esc(p.prodotto||'')}</div><div class="advice-text">${esc(p.consigliata_per)}</div></div></div>`:'').join('');
- document.getElementById('adviceTitle').style.display=policies.some(p=>p.consigliata_per)?'block':'none';
+ const adviceHtml = policies.map((p,i)=>p.consigliata_per?`<div class="advice-card"><div class="advice-icon">${['','','',''][i]}</div><div><div class="advice-company">${esc(p.compagnia||'')}</div><div class="advice-for">${esc(p.prodotto||'')}</div><div class="advice-text">${esc(p.consigliata_per)}</div></div></div>`:'').join('');
+ document.getElementById('adviceGrid').innerHTML=adviceHtml;
+ const adviceAlt = document.getElementById('adviceGridAlt'); if(adviceAlt) adviceAlt.innerHTML=adviceHtml;
  const hasExcl=policies.some(p=>p.esclusioni?.length);
- document.getElementById('exclGrid').innerHTML=hasExcl?policies.map(p=>p.esclusioni?.length?`<div class="excl-card"><div class="excl-header"><span class="excl-company">${esc(p.compagnia||'')}</span><span class="excl-product"> ${esc(p.prodotto||'')}</span></div><div class="excl-list">${p.esclusioni.map(e=>`<div class="excl-item">${esc(e)}</div>`).join('')}</div></div>`:'').join(''):'';
- document.getElementById('exclTitle').style.display=hasExcl?'block':'none';
+ const exclHtml=hasExcl?policies.map(p=>p.esclusioni?.length?`<div class="excl-card"><div class="excl-header"><span class="excl-company">${esc(p.compagnia||'')}</span><span class="excl-product"> ${esc(p.prodotto||'')}</span></div><div class="excl-list">${p.esclusioni.map(e=>`<div class="excl-item">${esc(e)}</div>`).join('')}</div></div>`:'').join(''):'';
+ document.getElementById('exclGrid').innerHTML=exclHtml;
  document.getElementById('exclGrid').style.gridTemplateColumns=`repeat(${Math.min(policies.length,2)},1fr)`;
+ // Mostra tab advice solo se ci sono dati
+ const advTab = document.getElementById('resTab-advice');
+ if(advTab) advTab.style.display = policies.some(p=>p.consigliata_per) ? '' : 'none';
+ // Tab subnav - reset alla tab AI
+ resSwitchTab('ai');
+}
+
+function resSwitchTab(tab) {
+ ['ai','table','advice'].forEach(t => {
+  const panel = document.getElementById('resPanel-'+t);
+  const btn = document.getElementById('resTab-'+t);
+  if(panel) panel.style.display = t===tab ? '' : 'none';
+  if(btn) btn.classList.toggle('active', t===tab);
+ });
 }
 
 function buildTable(policies,cols) {
