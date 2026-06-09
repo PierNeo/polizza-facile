@@ -2484,6 +2484,42 @@ async def _sync_entry(entry: dict) -> dict:
 
 # ── ENDPOINTS LIBRERIA ────────────────────────────────────────────────────────
 
+@app.get("/api/library/check-urls")
+async def library_check_urls(request: Request):
+    """
+    Testa tutti gli URL del catalogo CGA e riporta quali funzionano.
+    Utile per capire quali polizze sono scaricabili automaticamente.
+    """
+    _require_api_key(request)
+    catalog = _load_catalog()
+
+    async def _check(entry: dict) -> dict:
+        url = entry.get("url", "")
+        cached = (PDF_CACHE_DIR / f"{entry['id']}.pdf").exists()
+        if not url:
+            return {"id": entry["id"], "prodotto": entry.get("prodotto","?"),
+                    "status": "no_url", "cached": cached}
+        try:
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as http:
+                r = await http.head(url, headers=_BROWSER_HEADERS)
+                # Alcuni server non supportano HEAD, prova GET con stream
+                if r.status_code in (405, 501):
+                    r = await http.get(url, headers=_BROWSER_HEADERS)
+            return {"id": entry["id"], "prodotto": entry.get("prodotto","?"),
+                    "compagnia": entry.get("compagnia","?"),
+                    "status": r.status_code, "cached": cached,
+                    "ok": r.status_code == 200}
+        except Exception as e:
+            return {"id": entry["id"], "prodotto": entry.get("prodotto","?"),
+                    "compagnia": entry.get("compagnia","?"),
+                    "status": "error", "error": str(e)[:100], "cached": cached, "ok": False}
+
+    results = await asyncio.gather(*[_check(e) for e in catalog])
+    ok    = [r for r in results if r.get("ok")]
+    fail  = [r for r in results if not r.get("ok")]
+    return {"total": len(results), "ok": len(ok), "fail": len(fail), "results": results}
+
+
 @app.get("/api/library")
 async def library_list():
     """Restituisce tutte le polizze estratte in libreria."""
