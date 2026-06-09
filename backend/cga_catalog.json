@@ -191,8 +191,8 @@
     "compagnia": "ITAS Mutua",
     "prodotto": "ITAS Polizza Multirischio Casa",
     "tipo": "Casa",
-    "url": "https://www.gruppoitas.it/documents/20121/0/Condizioni%20di%20assicurazione%20ita.pdf/d1e2f84e-5427-e368-3e6f-02197f163b72",
-    "url_type": "cdn",
+    "url": "https://www.gruppoitas.it/o/portali-ist-s-api/api/v1/download?companyId=20097&groupId=20121&codComp=022&codRamo=0E&codProd=2007&tipoStampa=CGI_I&prgStampa=0&sysdate=2023-06-16T09:32:36&fname=CONDIZIONI+DI+ASSICURAZIONE.pdf",
+    "url_type": "api",
     "last_hash": null,
     "last_updated": null,
     "extracted": null
@@ -235,12 +235,12 @@
     "compagnia": "Zurich Insurance",
     "prodotto": "MetroperMetroQuadro",
     "tipo": "Casa",
-    "url": "https://www.zurich.it/api/ArchivioDigitale/Download?uuid=c60c309b-c17e-4bf5-b966-7a145babd6ff",
+    "url": "https://www.zurich.it/api/ArchivioDigitale/Download?uuid=54ea82ec-1352-4456-a69c-e0716f2394e4",
     "url_type": "api",
     "last_hash": null,
     "last_updated": null,
     "extracted": null,
-    "note": "UUID stabile Zurich API"
+    "note": "UUID aggiornato da archivio Zurich"
   },
   {
     "id": "helvetia-lamiacasa-full",
@@ -324,11 +324,12 @@
     "compagnia": "Vittoria Assicurazioni",
     "prodotto": "Vittoria con te — Casa e Famiglia",
     "tipo": "Casa",
-    "url": "https://storage.googleapis.com/sito-istituzionale-prod/1/2025/07/PBRI01CGA-EDZ-0625.pdf",
+    "url": "https://www.vittoriaassicurazioni.com/Allegati/Privati/PDF_Casa_Famiglia/Vittoria%20con%20te%20-%20Casa%20e%20Famiglia/PB.RI01-CGA-EDZ-0521.pdf",
     "url_type": "cdn",
     "last_hash": null,
     "last_updated": null,
-    "extracted": null
+    "extracted": null,
+    "note": "Ed. 05/2021 — URL stabile su vittoriaassicurazioni.com"
   },
   {
     "id": "sara-in-casa",
@@ -355,47 +356,50 @@
   {
     "id": "zurich-relax-casa",
     "compagnia": "Zurich Insurance",
-    "prodotto": "Zurich Relax Casa",
+    "prodotto": "Zurich For Family",
     "tipo": "Casa",
-    "url": "https://www.zurich.it/api/archiviodigitale/download?uuid=b8d224c7-3460-4aff-a6b9-8bc7fa9a0186",
+    "url": "https://www.zurich.it/api/ArchivioDigitale/Download?uuid=127f2e6f-d3d8-4f32-af58-10d58f02fe2b",
     "url_type": "api",
     "last_hash": null,
     "last_updated": null,
-    "extracted": null
+    "extracted": null,
+    "note": "Prodotto rinominato: Zurich Relax Casa non esiste più, sostituito con Zurich For Family"
   },
   {
     "id": "zurich-calamita-naturali",
     "compagnia": "Zurich Insurance",
-    "prodotto": "Zurich Protezione Calamità Naturali",
+    "prodotto": "Zurich MetroperMetroQuadro (CGA)",
     "tipo": "Casa",
-    "url": "https://www.zurich.it/api/archiviodigitale/download?uuid=6a6c546b-85c9-408a-97d9-1b6c572e3ce6",
+    "url": "https://www.zurich.it/api/ArchivioDigitale/Download?uuid=ee78d0a9-4940-4c05-a3ac-1666bea46d90",
     "url_type": "api",
     "last_hash": null,
     "last_updated": null,
-    "extracted": null
+    "extracted": null,
+    "note": "CGA completo MetroperMetroQuadro — sostituisce vecchio UUID Calamità Naturali (prodotto B2B)"
   },
   {
     "id": "hdi-globale-casa",
     "compagnia": "HDI Assicurazioni",
     "prodotto": "HDI Globale Casa",
     "tipo": "Casa",
-    "url": "https://www.hdiassicurazioni.it/documents/36140/3848760/P5051_05_2013_FASCICOLO_INFORMATIVO",
+    "url": "https://hdiassicurazioni.youser.tech/upl/documents/prodotti/globale-casa/Globale-Casa_condizioni-di-assicurazione_Mod-P5811_12_2025.pdf",
     "url_type": "cdn",
-    "note": "URL da verificare — potrebbe essere vecchio",
     "last_hash": null,
     "last_updated": null,
-    "extracted": null
+    "extracted": null,
+    "note": "Ed. 12/2025 — CDN aggiornato youser.tech"
   },
   {
     "id": "hdi-globale-infortuni",
     "compagnia": "HDI Assicurazioni",
     "prodotto": "HDI Globale Infortuni e IPM",
     "tipo": "Infortuni",
-    "url": "https://www.hdiassicurazioni.it/documents/36140/3730282/Globale+Infortuni+e+IPM+-+Condizioni+di+Assicurazione+-+Mod.+S4291+-+Ed.+10_2021.pdf/",
+    "url": "https://www.hdiassicurazioni.it/documents/36140/10130515/Globale+Infortuni+e+IPM+-+Condizioni+di+Assicurazione+-+Mod.+S4291+-+Ed.+07_2024.pdf/",
     "url_type": "cdn",
     "last_hash": null,
     "last_updated": null,
-    "extracted": null
+    "extracted": null,
+    "note": "Ed. 07/2024"
   },
   {
     "id": "nobis-casa-noi",
@@ -457,11 +461,12 @@
     "compagnia": "Vittoria Assicurazioni",
     "prodotto": "Vittoria Assicurazione Infortuni Famiglia",
     "tipo": "Infortuni",
-    "url": "https://irp.cdn-website.com/fccdd0fd/files/uploaded/PB025324-AZ-EDZ-0620.pdf",
+    "url": "https://www.vittoriaassicurazioni.com/Allegati/Privati/PDF_Salute_benessere/assicurazione%20infortuni%20per%20la%20famiglia/CGA_Assicurazione-Infortuni-Famiglia_1210.pdf",
     "url_type": "cdn",
     "last_hash": null,
     "last_updated": null,
-    "extracted": null
+    "extracted": null,
+    "note": "URL stabile su vittoriaassicurazioni.com"
   },
   {
     "id": "reale-mutua-unica-infortuni",
@@ -525,11 +530,12 @@
     "compagnia": "Zurich Insurance",
     "prodotto": "MetroperMetroQuadro Forma Mutuo",
     "tipo": "Casa",
-    "url": "https://www.zurich.it/api/ArchivioDigitale/Download?uuid=2402bd66-73e9-4ad5-9348-ce0722bdcab2",
+    "url": "https://www.zurich.it/api/archiviodigitale/download?uuid=83b7f661-c11a-493a-a21f-5da555519f6d",
     "url_type": "api",
     "last_hash": null,
     "last_updated": null,
-    "extracted": null
+    "extracted": null,
+    "note": "UUID da archivio Zurich 2018"
   },
   {
     "id": "cattolica-infortuni",

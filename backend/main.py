@@ -2504,11 +2504,18 @@ async def library_check_urls(request: Request, api_key: str = ""):
             return {"id": entry["id"], "prodotto": entry.get("prodotto","?"),
                     "status": "no_url", "cached": cached}
         try:
-            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as http:
+            from urllib.parse import urlparse
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as http:
                 r = await http.head(url, headers=_BROWSER_HEADERS)
-                # Alcuni server non supportano HEAD, prova GET con stream
+                # Alcuni server non supportano HEAD
                 if r.status_code in (405, 501):
                     r = await http.get(url, headers=_BROWSER_HEADERS)
+                # Alcuni CDN (es. Allianz) richiedono Referer — ritenta
+                if r.status_code in (400, 403):
+                    origin = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+                    r = await http.head(url, headers={**_BROWSER_HEADERS, "Referer": origin})
+                    if r.status_code in (405, 501):
+                        r = await http.get(url, headers={**_BROWSER_HEADERS, "Referer": origin})
             return {"id": entry["id"], "prodotto": entry.get("prodotto","?"),
                     "compagnia": entry.get("compagnia","?"),
                     "status": r.status_code, "cached": cached,
