@@ -197,7 +197,7 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .topbar-stats, .topbar-stat, .topbar-stat-num { display:none; }
 
 /* ── DASHBOARD v2 ──────────────────────────────────────────────────────────── */
-.dash-v2 { padding:24px 32px; max-width:1100px; }
+.dash-v2 { padding:24px 32px; }
 .dash-stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:22px; }
 @media(max-width:900px) { .dash-stat-row { grid-template-columns:repeat(2,1fr); } }
 .dash-stat-card {
@@ -2357,7 +2357,7 @@ async function cgaLoad() {
   }));
 
   const count = _cgaData.filter(d => d.extracted).length;
-  document.getElementById('cgaBadge').textContent = count > 0 ? count : _cgaData.length;
+  const badge = document.getElementById('cgaBadge'); if(badge) badge.textContent = count > 0 ? count : _cgaData.length;
   cgaRender();
  } catch(e) {
   grid.innerHTML = `<div style="font-size:13px;color:var(--red);padding:16px 0">Errore caricamento catalogo: ${esc(e.message)}</div>`;
