@@ -2485,12 +2485,16 @@ async def _sync_entry(entry: dict) -> dict:
 # ── ENDPOINTS LIBRERIA ────────────────────────────────────────────────────────
 
 @app.get("/api/library/check-urls")
-async def library_check_urls(request: Request):
+async def library_check_urls(request: Request, api_key: str = ""):
     """
     Testa tutti gli URL del catalogo CGA e riporta quali funzionano.
     Utile per capire quali polizze sono scaricabili automaticamente.
     """
-    _require_api_key(request)
+    # Accetta api_key sia come query param che come header
+    key = api_key or request.headers.get("X-API-Key","")
+    expected = os.getenv("API_KEY","")
+    if expected and key != expected:
+        raise HTTPException(status_code=401, detail="API key non valida")
     catalog = _load_catalog()
 
     async def _check(entry: dict) -> dict:
