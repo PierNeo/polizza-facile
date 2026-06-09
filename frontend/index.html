@@ -1297,6 +1297,15 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 
    <!-- Database CGA -->
    <div id="libPanel2" style="display:none">
+    <div style="margin-bottom:14px">
+     <div style="display:flex;align-items:center;gap:8px;border:1.5px solid var(--gray-200);border-radius:10px;padding:8px 12px;background:#fff;transition:border-color .15s" onfocusin="this.style.borderColor='var(--polo)'" onfocusout="this.style.borderColor='var(--gray-200)'">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="color:var(--gray-400);flex-shrink:0"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.8"/><path d="M13.5 13.5l3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input id="cgaSearchInput" type="text" placeholder="Cerca nel database CGA..."
+       style="flex:1;border:none;outline:none;font-size:13px;color:var(--gray-800);font-family:inherit;background:transparent"
+       oninput="cgaSearchFilter(this.value)" autocomplete="off">
+      <span id="cgaSearchClear" style="display:none;cursor:pointer;color:var(--gray-400);font-size:16px" onclick="cgaSearchClear()">×</span>
+     </div>
+    </div>
     <div id="cgaAccordion"></div>
    </div>
 
@@ -2469,10 +2478,23 @@ function cgaRender() {
   return;
  }
 
- // Raggruppa per tipo, poi per compagnia
- const tipi = [...new Set(_cgaData.map(d => d.tipo||'Altro'))].sort();
+ // Filtra per query di ricerca
+ const visibleData = _cgaSearchQ
+  ? _cgaData.filter(d =>
+     (d.compagnia||'').toLowerCase().includes(_cgaSearchQ) ||
+     (d.prodotto||'').toLowerCase().includes(_cgaSearchQ) ||
+     (d.tipo||'').toLowerCase().includes(_cgaSearchQ))
+  : _cgaData;
+
+ if (_cgaSearchQ && !visibleData.length) {
+  acc.innerHTML = `<div style="text-align:center;padding:32px 20px;color:var(--gray-400);font-size:13px">Nessun risultato per "${esc(_cgaSearchQ)}"</div>`;
+  return;
+ }
+
+ // Raggruppa per tipo
+ const tipi = [...new Set(visibleData.map(d => d.tipo||'Altro'))].sort();
  acc.innerHTML = tipi.map(tipo => {
-  const polizze = _cgaData.filter(d => (d.tipo||'Altro') === tipo);
+  const polizze = visibleData.filter(d => (d.tipo||'Altro') === tipo);
   const estratte = polizze.filter(d => d.extracted).length;
   const grpId = 'cgaGrp_' + tipo.replace(/\s/g,'_');
   const stripe = _tipoStripe(tipo);
@@ -2492,13 +2514,42 @@ function cgaRender() {
     </div>
    </div>`;
  }).join('');
- // Apri tutti i gruppi di default
+ // Accordions chiusi di default
  tipi.forEach(tipo => {
   const id = 'cgaGrp_' + tipo.replace(/\s/g,'_');
-  const el = document.getElementById(id); if(el) el.style.display='block';
+  const el = document.getElementById(id);
+  const arrow = document.getElementById(id+'Arrow');
+  if(el) el.style.display='none';
+  if(arrow) arrow.style.transform='rotate(-90deg)';
  });
  // Aggiorna contatori sidebar
  if (typeof libSbUpdateCounts === 'function') libSbUpdateCounts();
+}
+
+let _cgaSearchQ = '';
+function cgaSearchFilter(q) {
+ _cgaSearchQ = q.toLowerCase().trim();
+ const clear = document.getElementById('cgaSearchClear');
+ if (clear) clear.style.display = _cgaSearchQ ? '' : 'none';
+ cgaRender();
+ // Se c'è una query, apri tutti i gruppi con risultati
+ if (_cgaSearchQ) {
+  _cgaData.forEach(d => {
+   const id = 'cgaGrp_' + (d.tipo||'Altro').replace(/\s/g,'_');
+   const el = document.getElementById(id);
+   const arrow = document.getElementById(id+'Arrow');
+   if(el) el.style.display='block';
+   if(arrow) arrow.style.transform='';
+  });
+ }
+}
+function cgaSearchClear() {
+ const inp = document.getElementById('cgaSearchInput');
+ if(inp) inp.value='';
+ _cgaSearchQ = '';
+ const clear = document.getElementById('cgaSearchClear');
+ if(clear) clear.style.display='none';
+ cgaRender();
 }
 
 function cgaToggleGruppo(id) {
@@ -2765,12 +2816,15 @@ function startDirectComparison(withClient) {
 function editQuestionnaire() { renderSection(currentSectionIdx); navTo('pagQuestionario'); }
 
 function renderLibSelectSection() {
- const polizze = getPolizze();
  const section = document.getElementById('libSelectSection');
  const divider = document.getElementById('dividerOr');
- if (!polizze.length) { section.style.display='none'; divider.textContent='Carica un PDF'; return; }
+ // Mostra sempre la sezione (Le mie + CGA database)
  section.style.display = 'block';
  divider.textContent = 'oppure carica un nuovo PDF';
+ // Carica CGA se non ancora caricato, poi aggiorna il dropdown
+ if (!(_cgaData||[]).length) {
+  cgaLoad().then(() => { lscRender(); });
+ }
  lscRender();
  updateUploadButton();
 }
@@ -2797,16 +2851,23 @@ function lscRender() {
  }
 }
 
+function _lscLookup(id) {
+ if (id.startsWith('cga:')) {
+  const d = _cgaData.find(x => 'cga:'+x.id === id);
+  return d ? { label: (d.compagnia||'') + (d.prodotto?' — '+d.prodotto:''), tipo: d.tipo||'' } : null;
+ }
+ const p = getPolizze().find(x => x.id === id);
+ return p ? { label: (p.compagnia||'') + ((p.prodotto||p.filename)?' — '+(p.prodotto||p.filename):''), tipo: p.tipo||'' } : null;
+}
+
 function _lscRenderChips() {
  const chips = document.getElementById('lscChips');
  if (!chips) return;
- const polizze = getPolizze();
  chips.innerHTML = [...libSelected].map(id => {
-  const p = polizze.find(x=>x.id===id);
-  if (!p) return '';
-  const label = (p.compagnia ? p.compagnia+' — ' : '') + (p.prodotto||p.filename||'Polizza');
+  const info = _lscLookup(id);
+  if (!info) return '';
   return `<div class="lsc-chip">
-   <span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(label)}</span>
+   <span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(info.label||id)}</span>
    <button class="lsc-chip-rm" onclick="lscRemove('${id}')" title="Rimuovi">✕</button>
   </div>`;
  }).join('');
@@ -2815,30 +2876,47 @@ function _lscRenderChips() {
 function _lscRenderDropdown() {
  const dd = document.getElementById('lscDropdown');
  if (!dd || !_lscOpen) return;
- const polizze = getPolizze();
  const q = (document.getElementById('lscSearchInput')?.value||'').toLowerCase().trim();
  const fileSlots = files.filter(f=>f.status==='ready').length;
  const atMax = libSelected.size + fileSlots >= 4;
+
+ // Unisci Le mie + CGA
+ const mie = getPolizze().map(p => ({ id: p.id, compagnia: p.compagnia||'', prodotto: p.prodotto||p.filename||'', tipo: p.tipo||'', src: 'mia' }));
+ const cga = (_cgaData||[]).map(d => ({ id: 'cga:'+d.id, compagnia: d.compagnia||'', prodotto: d.prodotto||'', tipo: d.tipo||'', src: 'cga' }));
+ const all = [...mie, ...cga];
+
  const filtered = q
-  ? polizze.filter(p=>(p.compagnia||'').toLowerCase().includes(q)||(p.prodotto||p.filename||'').toLowerCase().includes(q)||(p.tipo||'').toLowerCase().includes(q))
-  : polizze;
+  ? all.filter(p => p.compagnia.toLowerCase().includes(q) || p.prodotto.toLowerCase().includes(q) || p.tipo.toLowerCase().includes(q))
+  : all;
+
  if (!filtered.length) {
   dd.innerHTML = `<div class="lsc-dd-empty">Nessuna polizza trovata</div>`;
   return;
  }
- dd.innerHTML = filtered.map(p => {
-  const sel = libSelected.has(p.id);
-  const disabled = !sel && atMax;
-  return `<div class="lsc-dd-item${sel?' selected':''}${disabled?' disabled':''}"
-   onclick="${disabled?'toast(\'Massimo 4 polizze\')':'lscToggle(\''+p.id+'\')'}">
-   <div class="lsc-dd-check">${sel?'✓':''}</div>
-   <div class="lsc-dd-meta">
-    <div class="lsc-dd-company">${esc(p.compagnia||'—')}</div>
-    <div class="lsc-dd-product">${esc(p.prodotto||p.filename||'Polizza')}</div>
-   </div>
-   <div class="lsc-dd-tipo">${esc(p.tipo||'')}</div>
-  </div>`;
- }).join('');
+
+ // Raggruppa: Le mie prima, poi CGA
+ const sections = [];
+ const mieF = filtered.filter(p=>p.src==='mia');
+ const cgaF = filtered.filter(p=>p.src==='cga');
+ if (mieF.length) sections.push({ label:'Le mie', items: mieF });
+ if (cgaF.length) sections.push({ label:'Database CGA', items: cgaF });
+
+ dd.innerHTML = sections.map(sec => `
+  <div style="padding:5px 14px 3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400)">${sec.label}</div>
+  ${sec.items.map(p => {
+   const sel = libSelected.has(p.id);
+   const disabled = !sel && atMax;
+   return `<div class="lsc-dd-item${sel?' selected':''}${disabled?' disabled':''}"
+    onclick="${disabled?'toast(\'Massimo 4 polizze\')':'lscToggle(\''+p.id+'\')'}">
+    <div class="lsc-dd-check">${sel?'✓':''}</div>
+    <div class="lsc-dd-meta">
+     <div class="lsc-dd-company">${esc(p.compagnia||'—')}</div>
+     <div class="lsc-dd-product">${esc(p.prodotto||'Polizza')}</div>
+    </div>
+    <div class="lsc-dd-tipo">${esc(p.tipo)}</div>
+   </div>`;
+  }).join('')}
+ `).join('');
 }
 
 function lscOpen() {
@@ -3159,9 +3237,22 @@ async function readPdfBase64(file) {
 // COMPARISON FLOW
 // 
 async function startComparison() {
- const libPolicies = getPolizze().filter(p=>libSelected.has(p.id)).map(p=>p.extracted);
+ // Separa IDs "Le mie" da CGA
+ const mieIds = [...libSelected].filter(id => !id.startsWith('cga:'));
+ const cgaIds = [...libSelected].filter(id => id.startsWith('cga:')).map(id => id.replace('cga:',''));
+
+ const libPolicies = getPolizze().filter(p=>mieIds.includes(p.id)).map(p=>p.extracted).filter(Boolean);
+
+ // Per CGA: estrazione lazy se non disponibile
+ const cgaPolicies = [];
+ for (const cgaId of cgaIds) {
+  let d = (_cgaData||[]).find(x => x.id === cgaId);
+  if (d && !d.extracted) { await cgaSyncOne(cgaId); d = (_cgaData||[]).find(x => x.id === cgaId); }
+  if (d && d.extracted) cgaPolicies.push(d.extracted);
+ }
+ const allLibPolicies = [...libPolicies, ...cgaPolicies];
  const newFiles = files.filter(f=>f.status==='ready');
- if(libPolicies.length + newFiles.length < 2) return;
+ if(allLibPolicies.length + newFiles.length < 2) return;
 
  navTo('pagLoading');
  document.getElementById('loadingTitle').textContent='Analisi polizze';
@@ -3175,7 +3266,7 @@ async function startComparison() {
  startProgressBar(estimatedSec);
 
  try {
- const extracted = [...libPolicies];
+ const extracted = [...allLibPolicies];
  for(let i=0;i<newFiles.length;i++){
   steps[i].status='active'; renderSteps(steps);
   // Callback progresso SSE: aggiorna la barra e il testo di stato
