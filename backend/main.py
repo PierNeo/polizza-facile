@@ -2357,10 +2357,10 @@ async def _sync_entry(entry: dict) -> dict:
         extracted["_catalog_id"] = entry_id
         extracted["_url"] = url
 
-        # Salva in Qdrant
+        # Salva in Qdrant (best-effort — errori non bloccanti)
         await _q_set_library(entry_id, extracted)
 
-        # Aggiorna entry con nuovo hash e timestamp
+        # Aggiorna entry con nuovo hash, timestamp e dati estratti
         now = __import__("datetime").datetime.utcnow().isoformat() + "Z"
         updated_entry = {
             **entry,
@@ -2368,6 +2368,7 @@ async def _sync_entry(entry: dict) -> dict:
             "last_updated": now,
             "sync_status": "updated",
             "sync_error": None,
+            "extracted": extracted,   # ← incluso nella risposta e salvato nel JSON
         }
         logger.info(f"[library sync] '{entry_id}' — completato ✓")
         return updated_entry
