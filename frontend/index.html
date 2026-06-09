@@ -2290,10 +2290,23 @@ function basketRender() {
  cgaRender();
 }
 
-function basketConfronta() {
+async function basketConfronta() {
  if (_basket.length < 2) { toast('Seleziona almeno 2 polizze'); return; }
+
+ // Estrazione lazy per CGA senza dati
+ const needExtract = _basket.filter(b => b.source === 'cga' && !b.extracted);
+ if (needExtract.length > 0) {
+  toast(`Analisi AI in corso (${needExtract.length} polizz${needExtract.length>1?'e':'a'})...`, 5000);
+  for (const item of needExtract) {
+   const cgaId = item.id.replace('cga:', '');
+   await cgaSyncOne(cgaId);
+   const d = _cgaData.find(x => x.id === cgaId);
+   if (d && d.extracted) item.extracted = d.extracted;
+  }
+ }
+
  const policies = _basket.map(b => b.extracted).filter(Boolean);
- if (policies.length < 2) { toast('Alcune polizze non hanno dati estratti'); return; }
+ if (policies.length < 2) { toast('Alcune polizze non hanno dati disponibili'); return; }
  document.getElementById('resultsTitle').textContent = 'Confronto polizze';
  renderResults(policies);
  callSummary(policies).catch(()=>{});
@@ -2517,14 +2530,7 @@ async function cgaSyncOne(id) {
   } else {
    await cgaLoad();
   }
-  // Auto-aggiungi al basket dopo analisi completata
-  const d = _cgaData.find(x => x.id === id);
-  if (d && d.extracted) {
-   const added = basketAdd({ id: 'cga:'+id, compagnia: d.compagnia, prodotto: d.prodotto, tipo: d.tipo, source: 'cga', extracted: d.extracted });
-   toast(added ? '✓ Analizzata e aggiunta al confronto' : 'Analizzata con successo');
-  } else {
-   toast('Polizza analizzata con successo');
-  }
+  toast('✓ Polizza analizzata');
  } catch(e) {
   toast('Errore analisi: ' + e.message);
  } finally {
@@ -2597,50 +2603,41 @@ async function cgaSubmitAdd() {
 function cgaCardHtml(d) {
   const inBasket = _basket.find(b => b.id === 'cga:'+d.id);
   const hasData = !!d.extracted;
-  const isError = d.sync_status === 'error';
+  const syncing = _cgaSyncing.has(d.id);
   const updated = d.last_updated ? new Date(d.last_updated).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}) : null;
   const stripe = _tipoStripe(d.tipo);
   const tipoCls = _tipoClass(d.tipo);
   const nGar = d.extracted?.garanzie?.length || 0;
-  const syncing = _cgaSyncing.has(d.id);
 
-  return `<div class="library-card ${inBasket&&hasData?'selected':''}"
-   onclick="${hasData&&!syncing?`cgaToggleBasket('${d.id}')`:''}"
-   style="${!hasData?'cursor:default;':''}" >
+  return `<div class="library-card ${inBasket?'selected':''}"
+   onclick="${!syncing?`cgaToggleBasket('${d.id}')`:''}"
+   style="${syncing?'cursor:default;opacity:.7':''}">
    <div class="lib-cat-stripe" style="background:${stripe}"></div>
    <div class="lib-card-body">
-    ${inBasket&&hasData?'<div class="lib-check"></div>':''}
+    ${inBasket?'<div class="lib-check"></div>':''}
     <div class="lib-company">${esc(d.compagnia||'—')}</div>
     <div class="lib-product">${esc(d.prodotto||'—')}</div>
     <div class="lib-meta-row" style="margin-bottom:10px">
      <span class="lib-tipo ${tipoCls}">${esc(d.tipo||'—')}</span>
      ${hasData&&nGar?`<span class="lib-garanzie-ct">${nGar} gar.</span>`:''}
     </div>
-
-    ${hasData ? `
-     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button onclick="event.stopPropagation();cgaShowDetail('${d.id}')"
-       style="font-size:11px;padding:4px 10px;border-radius:7px;border:1px solid var(--gray-200);background:white;cursor:pointer;color:var(--gray-600);font-weight:500">
-       Dettaglio
-      </button>
-      <button onclick="event.stopPropagation();cgaToggleBasket('${d.id}')"
-       style="font-size:11px;padding:4px 10px;border-radius:7px;border:none;background:${inBasket?'var(--green-soft)':'var(--polo)'};color:${inBasket?'var(--green-dark)':'#fff'};cursor:pointer;font-weight:600">
-       ${inBasket?'Nel confronto':'+ Confronta'}
-      </button>
-     </div>
-     ${updated?`<div class="lib-date" style="margin-top:8px">Analizzata ${updated}</div>`:''}
-    ` : syncing ? `
+    ${syncing ? `
      <div style="display:flex;align-items:center;gap:8px;padding:6px 0">
       <div style="width:14px;height:14px;border:2px solid var(--gray-200);border-top-color:var(--polo);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
       <span style="font-size:12px;color:var(--gray-500)">Analisi in corso...</span>
      </div>
     ` : `
-     <button onclick="event.stopPropagation();cgaSyncOne('${d.id}')"
-      style="width:100%;padding:7px 0;border-radius:8px;border:1.5px dashed var(--gray-300);background:transparent;cursor:pointer;font-size:12px;color:var(--gray-500);font-weight:600;transition:all .15s"
-      onmouseover="this.style.borderColor='var(--polo)';this.style.color='var(--polo)'"
-      onmouseout="this.style.borderColor='var(--gray-300)';this.style.color='var(--gray-500)'">
-      ${isError?'↺ Riprova analisi':'⚡ Analizza e confronta'}
-     </button>
+     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      ${hasData ? `<button onclick="event.stopPropagation();cgaShowDetail('${d.id}')"
+       style="font-size:11px;padding:4px 10px;border-radius:7px;border:1px solid var(--gray-200);background:white;cursor:pointer;color:var(--gray-600);font-weight:500">
+       Dettaglio</button>` : ''}
+      <button onclick="event.stopPropagation();cgaToggleBasket('${d.id}')"
+       style="font-size:11px;padding:4px 10px;border-radius:7px;border:none;background:${inBasket?'var(--green-soft)':'var(--polo)'};color:${inBasket?'var(--green-dark)':'#fff'};cursor:pointer;font-weight:600">
+       ${inBasket?'✓ Nel confronto':'+ Confronta'}
+      </button>
+     </div>
+     ${hasData&&updated?`<div class="lib-date" style="margin-top:8px">Analizzata ${updated}</div>`
+      :!hasData?`<div class="lib-date" style="margin-top:6px;color:var(--gray-400)">Verrà analizzata al confronto</div>`:''}
     `}
    </div>
   </div>`;
@@ -2704,8 +2701,8 @@ function cgaToggleBasket(id) {
  const existing = _basket.find(b => b.id === basketId);
  if (existing) { basketRemove(basketId); return; }
  const d = _cgaData.find(x => x.id === id);
- if (!d || !d.extracted) return;
- basketAdd({ id: basketId, compagnia: d.compagnia, prodotto: d.prodotto, tipo: d.tipo, source: 'cga', extracted: d.extracted });
+ if (!d) return;
+ basketAdd({ id: basketId, compagnia: d.compagnia, prodotto: d.prodotto, tipo: d.tipo, source: 'cga', extracted: d.extracted || null });
 }
 
 async function cgaSync(targetId) {
