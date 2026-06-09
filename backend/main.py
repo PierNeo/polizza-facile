@@ -37,14 +37,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
-# Default vuoto = nessuna origine ammessa se .env non è configurato (sicuro per produzione)
+# Se ALLOWED_ORIGINS non è impostato, permette tutto (default per sviluppo/SaaS)
 _env_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
-if _env_origins == "*":
+if _env_origins == "*" or not _env_origins:
     _origins = ["*"]
-elif _env_origins:
-    _origins = [o.strip() for o in _env_origins.split(",") if o.strip()]
 else:
-    _origins = []  # sicuro: nessun accesso cross-origin di default
+    _origins = [o.strip() for o in _env_origins.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
