@@ -971,51 +971,85 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 </div>
 
 <!-- MODAL AGGIUNGI POLIZZA -->
-<div id="cgaAddModal" style="display:none;position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:24px">
- <div style="background:var(--white);border-radius:var(--radius);width:100%;max-width:480px;box-shadow:var(--shadow-lg);overflow:hidden">
-  <div style="padding:20px 24px 16px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between">
-   <div>
-    <div style="font-size:17px;font-weight:700;color:var(--gray-900);letter-spacing:-.2px">Aggiungi polizza</div>
-    <div style="font-size:12px;color:var(--gray-400);margin-top:2px">Inserisci i dati e opzionalmente un PDF — l'analisi AI avviene solo su richiesta</div>
-   </div>
-   <button onclick="cgaCloseAdd()" style="font-size:22px;background:none;border:none;cursor:pointer;color:var(--gray-400);line-height:1">×</button>
+<div id="cgaAddModal" style="display:none;position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:20px">
+ <div style="background:var(--white);border-radius:var(--radius);width:100%;max-width:500px;box-shadow:var(--shadow-lg);overflow:hidden;max-height:90vh;overflow-y:auto">
+
+  <!-- Header -->
+  <div style="padding:18px 22px 14px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1">
+   <div style="font-size:16px;font-weight:700;color:var(--gray-900);letter-spacing:-.2px">Aggiungi polizza alla libreria</div>
+   <button onclick="cgaCloseAdd()" style="font-size:22px;background:none;border:none;cursor:pointer;color:var(--gray-400);line-height:1;width:28px;height:28px;display:flex;align-items:center;justify-content:center">×</button>
   </div>
-  <form id="cgaAddForm" onsubmit="event.preventDefault();cgaSubmitAdd()" style="padding:20px 24px">
-   <div style="margin-bottom:14px">
-    <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:5px">Compagnia *</label>
-    <input id="cgaAddCompagnia" class="search-input" placeholder="es. Generali, Allianz, Unipol..." required style="width:100%">
+
+  <div style="padding:20px 22px">
+
+   <!-- STATO 1: Drop zone (default) -->
+   <div id="addModalDropZone" style=""
+    ondragover="event.preventDefault();this.style.borderColor='var(--polo)';this.style.background='var(--blue-soft)'"
+    ondragleave="this.style.borderColor='var(--gray-200)';this.style.background=''"
+    ondrop="event.preventDefault();this.style.borderColor='var(--gray-200)';this.style.background='';addModalHandleFile(event.dataTransfer.files[0])"
+    onclick="document.getElementById('addModalFileInput').click()"
+    style="border:2px dashed var(--gray-200);border-radius:14px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .15s;background:var(--gray-50);margin-bottom:16px">
+    <div style="font-size:32px;margin-bottom:10px">📄</div>
+    <div style="font-size:14px;font-weight:700;color:var(--gray-800);margin-bottom:4px">Trascina il PDF qui</div>
+    <div style="font-size:12px;color:var(--gray-400);margin-bottom:12px">oppure clicca per selezionarlo</div>
+    <div style="display:inline-flex;align-items:center;gap:6px;background:var(--polo);color:#fff;padding:7px 18px;border-radius:8px;font-size:12px;font-weight:600">
+     Scegli PDF
+    </div>
+    <input id="addModalFileInput" type="file" accept=".pdf" style="display:none" onchange="addModalHandleFile(this.files[0])">
    </div>
-   <div style="margin-bottom:14px">
-    <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:5px">Nome prodotto *</label>
-    <input id="cgaAddProdotto" class="search-input" placeholder="es. CasaProtect, Globale Famiglia..." required style="width:100%">
+
+   <!-- STATO 2: Analisi in corso -->
+   <div id="addModalLoading" style="display:none;text-align:center;padding:32px 24px;margin-bottom:16px">
+    <div style="width:36px;height:36px;border:3px solid var(--gray-200);border-top-color:var(--polo);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px"></div>
+    <div style="font-size:14px;font-weight:600;color:var(--gray-700);margin-bottom:4px">AI sta leggendo il PDF...</div>
+    <div style="font-size:12px;color:var(--gray-400)" id="addModalLoadingFile"></div>
    </div>
-   <div style="margin-bottom:14px">
-    <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:5px">Tipo *</label>
-    <select id="cgaAddTipo" class="search-input" required style="width:100%">
-     <option value="">Seleziona...</option>
-     <option value="Casa">Casa / Multirischio</option>
-     <option value="Infortuni">Infortuni</option>
-     <option value="RC Auto">RC Auto</option>
-     <option value="Vita">Vita / Risparmio</option>
-     <option value="Salute">Salute</option>
-     <option value="altro">Altro</option>
-    </select>
+
+   <!-- STATO 3: Campi (prefillati dopo estrazione, o compilabili manualmente) -->
+   <form id="addModalForm" style="display:none" onsubmit="event.preventDefault();addModalSave()">
+    <!-- File selezionato -->
+    <div id="addModalFileChip" style="display:none;align-items:center;gap:8px;background:var(--blue-soft);border:1.5px solid var(--polo);border-radius:9px;padding:8px 12px;margin-bottom:16px;font-size:12px;color:var(--polo)">
+     <span style="font-size:16px">📄</span>
+     <span id="addModalFileName" style="font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+     <button type="button" onclick="addModalResetFile()" style="background:none;border:none;cursor:pointer;color:var(--polo);opacity:.6;font-size:15px" title="Rimuovi">✕</button>
+    </div>
+
+    <div style="margin-bottom:13px">
+     <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-500);display:block;margin-bottom:5px">Compagnia *</label>
+     <input id="addModalCompagnia" class="search-input" placeholder="es. Generali, Allianz, Unipol..." required style="width:100%">
+    </div>
+    <div style="margin-bottom:13px">
+     <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-500);display:block;margin-bottom:5px">Nome prodotto *</label>
+     <input id="addModalProdotto" class="search-input" placeholder="es. CasaProtect, Globale Famiglia..." required style="width:100%">
+    </div>
+    <div style="margin-bottom:18px">
+     <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-500);display:block;margin-bottom:5px">Tipo *</label>
+     <select id="addModalTipo" class="search-input" required style="width:100%">
+      <option value="">Seleziona...</option>
+      <option value="Casa">Casa / Multirischio</option>
+      <option value="Infortuni">Infortuni</option>
+      <option value="RC Auto">RC Auto</option>
+      <option value="Vita">Vita / Risparmio</option>
+      <option value="Salute">Salute</option>
+      <option value="altro">Altro</option>
+     </select>
+    </div>
+    <div id="addModalStatus" style="font-size:12px;color:var(--red);margin-bottom:10px;min-height:14px"></div>
+    <div style="display:flex;gap:10px">
+     <button type="submit" id="addModalSubmit" class="btn btn-primary" style="flex:1">Salva in libreria</button>
+     <button type="button" class="btn btn-ghost" onclick="cgaCloseAdd()">Annulla</button>
+    </div>
+   </form>
+
+   <!-- Link compilazione manuale (visibile quando drop zone attiva) -->
+   <div id="addModalManualLink" style="text-align:center">
+    <button type="button" onclick="addModalShowManual()"
+     style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--gray-400);text-decoration:underline;padding:0">
+     oppure inserisci manualmente senza PDF
+    </button>
    </div>
-   <div style="margin-bottom:14px">
-    <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:5px">URL PDF <span style="font-weight:400;color:var(--gray-400)">(opzionale)</span></label>
-    <input id="cgaAddUrl" class="search-input" type="url" placeholder="https://..." style="width:100%">
-   </div>
-   <div style="margin-bottom:20px">
-    <label style="font-size:12px;font-weight:600;color:var(--gray-600);display:block;margin-bottom:5px">Oppure carica PDF <span style="font-weight:400;color:var(--gray-400)">(opzionale)</span></label>
-    <input id="cgaAddFile" type="file" accept=".pdf" style="font-size:12px;color:var(--gray-600)">
-    <div style="font-size:11px;color:var(--gray-400);margin-top:5px">Se carichi un PDF, l'analisi AI verrà avviata subito (~€0.05)</div>
-   </div>
-   <div id="cgaAddStatus" style="font-size:12px;color:var(--red);margin-bottom:10px;min-height:16px"></div>
-   <div style="display:flex;gap:10px">
-    <button type="submit" id="cgaAddSubmit" class="btn btn-primary" style="flex:1">Salva nel catalogo</button>
-    <button type="button" class="btn btn-ghost" onclick="cgaCloseAdd()">Annulla</button>
-   </div>
-  </form>
+
+  </div>
  </div>
 </div>
 
@@ -2595,65 +2629,112 @@ async function cgaSyncOne(id) {
 }
 
 // ── MODAL AGGIUNGI POLIZZA ───────────────────────────────────────────────────
+let _addModalExtracted = null; // dati estratti dall'AI
+let _addModalFile = null;
+
 function cgaOpenAdd() {
+ _addModalExtracted = null; _addModalFile = null;
  document.getElementById('cgaAddModal').style.display = 'flex';
- document.getElementById('cgaAddForm').reset();
- document.getElementById('cgaAddStatus').textContent = '';
+ _addModalReset();
 }
 function cgaCloseAdd() {
  document.getElementById('cgaAddModal').style.display = 'none';
 }
 
-async function cgaSubmitAdd() {
- const compagnia = document.getElementById('cgaAddCompagnia').value.trim();
- const prodotto  = document.getElementById('cgaAddProdotto').value.trim();
- const tipo      = document.getElementById('cgaAddTipo').value;
- const url       = document.getElementById('cgaAddUrl').value.trim();
- const file      = document.getElementById('cgaAddFile').files[0];
+function _addModalReset() {
+ document.getElementById('addModalDropZone').style.display = '';
+ document.getElementById('addModalLoading').style.display = 'none';
+ document.getElementById('addModalForm').style.display = 'none';
+ document.getElementById('addModalManualLink').style.display = 'block';
+ document.getElementById('addModalFileInput').value = '';
+ document.getElementById('addModalCompagnia').value = '';
+ document.getElementById('addModalProdotto').value = '';
+ document.getElementById('addModalTipo').value = '';
+ document.getElementById('addModalStatus').textContent = '';
+ document.getElementById('addModalFileChip').style.display = 'none';
+}
 
- if (!compagnia || !prodotto || !tipo) {
-  document.getElementById('cgaAddStatus').textContent = 'Compila compagnia, prodotto e tipo';
-  return;
- }
+function addModalShowManual() {
+ _addModalFile = null; _addModalExtracted = null;
+ document.getElementById('addModalDropZone').style.display = 'none';
+ document.getElementById('addModalLoading').style.display = 'none';
+ document.getElementById('addModalManualLink').style.display = 'none';
+ document.getElementById('addModalFileChip').style.display = 'none';
+ document.getElementById('addModalForm').style.display = '';
+}
 
- const btn = document.getElementById('cgaAddSubmit');
- btn.disabled = true; btn.textContent = 'Salvataggio...';
- document.getElementById('cgaAddStatus').textContent = '';
+function addModalResetFile() {
+ _addModalFile = null; _addModalExtracted = null;
+ document.getElementById('addModalDropZone').style.display = '';
+ document.getElementById('addModalLoading').style.display = 'none';
+ document.getElementById('addModalFileChip').style.display = 'none';
+ document.getElementById('addModalManualLink').style.display = 'block';
+ document.getElementById('addModalCompagnia').value = '';
+ document.getElementById('addModalProdotto').value = '';
+ document.getElementById('addModalTipo').value = '';
+}
 
+async function addModalHandleFile(file) {
+ if (!file || !file.name.toLowerCase().endsWith('.pdf')) { toast('Seleziona un file PDF'); return; }
+ _addModalFile = file;
+ // Mostra loading
+ document.getElementById('addModalDropZone').style.display = 'none';
+ document.getElementById('addModalManualLink').style.display = 'none';
+ document.getElementById('addModalLoading').style.display = '';
+ document.getElementById('addModalLoadingFile').textContent = file.name;
+ document.getElementById('addModalForm').style.display = 'none';
  try {
-  // Costruiamo il payload
-  const payload = { compagnia, prodotto, tipo, url: url || null };
-
-  // Se c'è un PDF lo convertiamo in base64
-  if (file) {
-   const b64 = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-   });
-   payload.pdf_base64 = b64;
-   payload.filename = file.name;
-  }
-
-  const res = await fetch(`${BACKEND}/api/library/add`, {
-   method: 'POST',
-   headers: { 'Content-Type': 'application/json', ...(API_KEY ? {'X-API-Key': API_KEY} : {}) },
-   body: JSON.stringify(payload)
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const result = await res.json();
-  toast(`"${prodotto}" aggiunta al catalogo`);
-  cgaCloseAdd();
-  // Ricarica il catalogo
-  _cgaData = [];
-  await cgaLoad();
+  // Estrazione AI (stessa pipeline della comparazione)
+  const pdfBase64 = await readPdfBase64(file);
+  const extracted = await callExtract(null, file.name, null, pdfBase64);
+  _addModalExtracted = extracted;
+  // Prefill campi
+  document.getElementById('addModalCompagnia').value = extracted.compagnia || '';
+  document.getElementById('addModalProdotto').value = extracted.prodotto || '';
+  // Mappa tipo
+  const tipoMap = { 'casa':'Casa', 'infortuni':'Infortuni', 'rc auto':'RC Auto', 'vita':'Vita', 'salute':'Salute' };
+  const tipoNorm = (extracted.tipo||'').toLowerCase();
+  const tipoVal = Object.entries(tipoMap).find(([k])=>tipoNorm.includes(k))?.[1] || '';
+  document.getElementById('addModalTipo').value = tipoVal;
+  // Mostra file chip + form
+  document.getElementById('addModalFileName').textContent = file.name;
+  document.getElementById('addModalFileChip').style.display = 'flex';
  } catch(e) {
-  document.getElementById('cgaAddStatus').textContent = 'Errore: ' + e.message;
+  // Estrazione fallita: mostra form vuoto con messaggio
+  document.getElementById('addModalStatus').textContent = 'Estrazione AI non riuscita — compila manualmente';
  } finally {
-  btn.disabled = false; btn.textContent = 'Salva nel catalogo';
+  document.getElementById('addModalLoading').style.display = 'none';
+  document.getElementById('addModalForm').style.display = '';
+  document.getElementById('addModalManualLink').style.display = 'none';
  }
 }
+
+async function addModalSave() {
+ const compagnia = document.getElementById('addModalCompagnia').value.trim();
+ const prodotto  = document.getElementById('addModalProdotto').value.trim();
+ const tipo      = document.getElementById('addModalTipo').value;
+ if (!compagnia || !prodotto || !tipo) {
+  document.getElementById('addModalStatus').textContent = 'Compila tutti i campi obbligatori';
+  return;
+ }
+ const btn = document.getElementById('addModalSubmit');
+ btn.disabled = true; btn.textContent = 'Salvataggio...';
+ try {
+  const extracted = _addModalExtracted || { compagnia, prodotto, tipo, garanzie: [], massimali: [], franchigie: [], esclusioni: [] };
+  extracted.compagnia = compagnia; extracted.prodotto = prodotto; extracted.tipo = tipo;
+  savePolizzaToLib(extracted, _addModalFile?.name || prodotto+'.pdf');
+  toast(`✓ "${prodotto}" aggiunta alla libreria`);
+  cgaCloseAdd();
+  renderLibreria();
+  updateBadges();
+ } catch(e) {
+  document.getElementById('addModalStatus').textContent = 'Errore: ' + e.message;
+  btn.disabled = false; btn.textContent = 'Salva in libreria';
+ }
+}
+
+// Compat: vecchie chiamate a cgaSubmitAdd non usate ma evita errori
+function cgaSubmitAdd() { addModalSave(); }
 
 function cgaCardHtml(d) {
   const inBasket = _basket.find(b => b.id === 'cga:'+d.id);
