@@ -538,8 +538,76 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .upload-context { background:var(--blue-soft); border:1px solid var(--blue-mid); border-radius:10px; padding:11px 15px; margin-bottom:20px; font-size:13px; color:var(--blue-dark); display:flex; align-items:center; gap:8px; }
 
 .lib-select-section { margin-bottom:24px; }
-.lib-select-title { font-size:14px; font-weight:700; color:var(--gray-700); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
-.lib-select-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+.lib-select-title { font-size:14px; font-weight:700; color:var(--gray-700); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.lsc-subtitle { font-size:12px; color:var(--gray-400); font-weight:400; }
+/* chips row */
+.lsc-chips-row { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px; min-height:0; }
+.lsc-chip {
+ display:inline-flex; align-items:center; gap:6px;
+ background:var(--blue-soft); border:1.5px solid var(--polo);
+ border-radius:8px; padding:5px 10px 5px 11px;
+ font-size:12px; font-weight:600; color:var(--polo);
+ white-space:nowrap;
+}
+.lsc-chip-rm {
+ background:none; border:none; cursor:pointer;
+ color:var(--polo); opacity:.6; font-size:15px; line-height:1;
+ padding:0; margin-left:2px;
+ transition:opacity .15s;
+}
+.lsc-chip-rm:hover { opacity:1; }
+/* combobox */
+.lsc-combobox-wrap { position:relative; }
+.lsc-input-row {
+ display:flex; align-items:center; gap:8px;
+ border:1.5px solid var(--gray-200); border-radius:10px;
+ padding:9px 12px; background:#fff;
+ transition:border-color .15s, box-shadow .15s;
+}
+.lsc-combobox-wrap:focus-within .lsc-input-row {
+ border-color:var(--polo); box-shadow:0 0 0 3px rgba(10,31,53,.07);
+}
+.lsc-search-input {
+ flex:1; border:none; outline:none; font-size:13px;
+ color:var(--gray-800); background:transparent;
+ font-family:inherit;
+}
+.lsc-search-input::placeholder { color:var(--gray-400); }
+.lsc-slot-badge {
+ font-size:11px; font-weight:700; color:var(--gray-400);
+ background:var(--gray-100); border-radius:5px;
+ padding:2px 7px; white-space:nowrap;
+}
+.lsc-slot-badge.full { color:var(--gold); background:#fef9ec; }
+/* dropdown */
+.lsc-dropdown {
+ position:absolute; top:calc(100% + 5px); left:0; right:0;
+ background:#fff; border:1.5px solid var(--gray-200);
+ border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.10);
+ z-index:200; max-height:260px; overflow-y:auto;
+ padding:5px 0;
+}
+.lsc-dd-empty { padding:14px 16px; font-size:13px; color:var(--gray-400); text-align:center; }
+.lsc-dd-item {
+ display:flex; align-items:center; gap:10px;
+ padding:9px 14px; cursor:pointer;
+ transition:background .12s;
+}
+.lsc-dd-item:hover { background:var(--gray-50); }
+.lsc-dd-item.selected { background:var(--blue-soft); }
+.lsc-dd-item.disabled { opacity:.4; cursor:default; }
+.lsc-dd-check {
+ width:17px; height:17px; border-radius:5px; border:1.5px solid var(--gray-300);
+ flex-shrink:0; display:flex; align-items:center; justify-content:center;
+ font-size:10px; color:#fff; background:#fff; transition:.12s;
+}
+.lsc-dd-item.selected .lsc-dd-check { background:var(--polo); border-color:var(--polo); }
+.lsc-dd-meta { flex:1; min-width:0; }
+.lsc-dd-company { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-400); }
+.lsc-dd-product { font-size:13px; font-weight:600; color:var(--gray-800); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lsc-dd-tipo { font-size:11px; color:var(--blue); margin-left:auto; flex-shrink:0; }
+/* compat — keep old classes in case referenced */
+.lib-select-grid { display:none; }
 .lib-select-card {
  border:1.5px solid var(--gray-200); border-radius:10px; padding:13px 14px;
  cursor:pointer; transition:all .15s; background:var(--white);
@@ -1324,8 +1392,20 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 
  <!-- Library selection (if any saved) -->
  <div class="lib-select-section" id="libSelectSection" style="display:none">
- <div class="lib-select-title"> Dalla libreria <span style="font-size:12px;color:var(--gray-400);font-weight:400">(seleziona fino a 4)</span></div>
- <div class="lib-select-grid" id="libSelectGrid"></div>
+  <div class="lib-select-title">📚 Dalla libreria <span class="lsc-subtitle">seleziona fino a 4</span></div>
+  <!-- Selected chips -->
+  <div class="lsc-chips-row" id="lscChips"></div>
+  <!-- Combobox -->
+  <div class="lsc-combobox-wrap" id="lscComboboxWrap">
+   <div class="lsc-input-row">
+    <svg width="15" height="15" viewBox="0 0 20 20" fill="none" style="flex-shrink:0;color:var(--gray-400)"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.7"/><path d="M13.5 13.5l3 3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    <input type="text" class="lsc-search-input" id="lscSearchInput"
+     placeholder="Cerca compagnia o prodotto..."
+     oninput="lscOnInput()" onfocus="lscOpen()" autocomplete="off">
+    <span class="lsc-slot-badge" id="lscSlotBadge">0/4</span>
+   </div>
+   <div class="lsc-dropdown" id="lscDropdown" style="display:none"></div>
+  </div>
  </div>
 
  <div class="divider-or" id="dividerOr">oppure carica un nuovo PDF</div>
@@ -2684,20 +2764,11 @@ function editQuestionnaire() { renderSection(currentSectionIdx); navTo('pagQuest
 function renderLibSelectSection() {
  const polizze = getPolizze();
  const section = document.getElementById('libSelectSection');
- const grid = document.getElementById('libSelectGrid');
  const divider = document.getElementById('dividerOr');
  if (!polizze.length) { section.style.display='none'; divider.textContent='Carica un PDF'; return; }
  section.style.display = 'block';
  divider.textContent = 'oppure carica un nuovo PDF';
- grid.innerHTML = polizze.map(p => {
- const sel = libSelected.has(p.id);
- return `<div class="lib-select-card ${sel?'sel':''}" onclick="toggleLibSelUpload('${p.id}')">
- <div class="lsc-check"></div>
- <div class="lsc-company">${esc(p.compagnia)}</div>
- <div class="lsc-product">${esc(p.prodotto||p.filename)}</div>
- <div class="lsc-tipo">${esc(p.tipo)}</div>
- </div>`;
- }).join('');
+ lscRender();
  updateUploadButton();
 }
 
@@ -2705,8 +2776,110 @@ function toggleLibSelUpload(id) {
  if (libSelected.has(id)) libSelected.delete(id);
  else if (libSelected.size + files.filter(f=>f.status==='ready').length < 4) libSelected.add(id);
  else { toast('Massimo 4 polizze totali'); return; }
- renderLibSelectSection();
+ lscRender();
+ updateUploadButton();
 }
+
+// ── Searchable combobox for library selection ──────────────────
+let _lscOpen = false;
+
+function lscRender() {
+ _lscRenderChips();
+ _lscRenderDropdown();
+ const badge = document.getElementById('lscSlotBadge');
+ if (badge) {
+  const total = libSelected.size + files.filter(f=>f.status==='ready').length;
+  badge.textContent = total+'/4';
+  badge.className = 'lsc-slot-badge' + (total>=4?' full':'');
+ }
+}
+
+function _lscRenderChips() {
+ const chips = document.getElementById('lscChips');
+ if (!chips) return;
+ const polizze = getPolizze();
+ chips.innerHTML = [...libSelected].map(id => {
+  const p = polizze.find(x=>x.id===id);
+  if (!p) return '';
+  const label = (p.compagnia ? p.compagnia+' — ' : '') + (p.prodotto||p.filename||'Polizza');
+  return `<div class="lsc-chip">
+   <span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(label)}</span>
+   <button class="lsc-chip-rm" onclick="lscRemove('${id}')" title="Rimuovi">✕</button>
+  </div>`;
+ }).join('');
+}
+
+function _lscRenderDropdown() {
+ const dd = document.getElementById('lscDropdown');
+ if (!dd || !_lscOpen) return;
+ const polizze = getPolizze();
+ const q = (document.getElementById('lscSearchInput')?.value||'').toLowerCase().trim();
+ const fileSlots = files.filter(f=>f.status==='ready').length;
+ const atMax = libSelected.size + fileSlots >= 4;
+ const filtered = q
+  ? polizze.filter(p=>(p.compagnia||'').toLowerCase().includes(q)||(p.prodotto||p.filename||'').toLowerCase().includes(q)||(p.tipo||'').toLowerCase().includes(q))
+  : polizze;
+ if (!filtered.length) {
+  dd.innerHTML = `<div class="lsc-dd-empty">Nessuna polizza trovata</div>`;
+  return;
+ }
+ dd.innerHTML = filtered.map(p => {
+  const sel = libSelected.has(p.id);
+  const disabled = !sel && atMax;
+  return `<div class="lsc-dd-item${sel?' selected':''}${disabled?' disabled':''}"
+   onclick="${disabled?'toast(\'Massimo 4 polizze\')':'lscToggle(\''+p.id+'\')'}">
+   <div class="lsc-dd-check">${sel?'✓':''}</div>
+   <div class="lsc-dd-meta">
+    <div class="lsc-dd-company">${esc(p.compagnia||'—')}</div>
+    <div class="lsc-dd-product">${esc(p.prodotto||p.filename||'Polizza')}</div>
+   </div>
+   <div class="lsc-dd-tipo">${esc(p.tipo||'')}</div>
+  </div>`;
+ }).join('');
+}
+
+function lscOpen() {
+ _lscOpen = true;
+ const dd = document.getElementById('lscDropdown');
+ if (dd) { dd.style.display='block'; _lscRenderDropdown(); }
+}
+
+function lscOnInput() {
+ _lscOpen = true;
+ const dd = document.getElementById('lscDropdown');
+ if (dd) { dd.style.display='block'; _lscRenderDropdown(); }
+}
+
+function lscClose() {
+ _lscOpen = false;
+ const dd = document.getElementById('lscDropdown');
+ if (dd) dd.style.display='none';
+}
+
+function lscToggle(id) {
+ if (libSelected.has(id)) libSelected.delete(id);
+ else {
+  const fileSlots = files.filter(f=>f.status==='ready').length;
+  if (libSelected.size + fileSlots >= 4) { toast('Massimo 4 polizze totali'); return; }
+  libSelected.add(id);
+ }
+ lscRender();
+ updateUploadButton();
+ // keep focus on input
+ document.getElementById('lscSearchInput')?.focus();
+}
+
+function lscRemove(id) {
+ libSelected.delete(id);
+ lscRender();
+ updateUploadButton();
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+ const wrap = document.getElementById('lscComboboxWrap');
+ if (wrap && !wrap.contains(e.target)) lscClose();
+});
 
 function updateUploadButton() {
  const libReady = libSelected.size;
