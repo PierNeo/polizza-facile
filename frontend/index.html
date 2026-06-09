@@ -2514,18 +2514,20 @@ function cgaRender() {
     </div>
    </div>`;
  }).join('');
- // Accordions chiusi di default
+ // Ripristina stato aperto/chiuso; chiudi per default solo i nuovi gruppi
  tipi.forEach(tipo => {
   const id = 'cgaGrp_' + tipo.replace(/\s/g,'_');
   const el = document.getElementById(id);
   const arrow = document.getElementById(id+'Arrow');
-  if(el) el.style.display='none';
-  if(arrow) arrow.style.transform='rotate(-90deg)';
+  const wasOpen = _cgaOpenGroups.has(id);
+  if(el) el.style.display = wasOpen ? 'block' : 'none';
+  if(arrow) arrow.style.transform = wasOpen ? '' : 'rotate(-90deg)';
  });
  // Aggiorna contatori sidebar
  if (typeof libSbUpdateCounts === 'function') libSbUpdateCounts();
 }
 
+let _cgaOpenGroups = new Set(); // traccia gruppi aperti per sopravvivere al re-render
 let _cgaSearchQ = '';
 function cgaSearchFilter(q) {
  _cgaSearchQ = q.toLowerCase().trim();
@@ -2559,6 +2561,8 @@ function cgaToggleGruppo(id) {
  const open = el.style.display !== 'none';
  el.style.display = open ? 'none' : 'block';
  if (arrow) arrow.style.transform = open ? 'rotate(-90deg)' : '';
+ // Aggiorna stato persistente
+ if (open) _cgaOpenGroups.delete(id); else _cgaOpenGroups.add(id);
 }
 
 // Analisi singola polizza on-demand
