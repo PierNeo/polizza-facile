@@ -970,6 +970,38 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  </div>
 </div>
 
+<!-- MODAL SYNC CATALOGO -->
+<div id="syncModal" style="display:none;position:fixed;inset:0;z-index:1002;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:24px">
+ <div style="background:var(--white);border-radius:var(--radius);width:100%;max-width:460px;box-shadow:var(--shadow-lg);padding:24px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+   <div style="font-size:16px;font-weight:700;color:var(--gray-900)">Sincronizzazione catalogo</div>
+   <span id="syncModalStatus" style="font-size:12px;color:var(--gray-400)">In corso...</span>
+  </div>
+  <!-- Progress bar -->
+  <div style="background:var(--gray-100);border-radius:100px;height:6px;margin-bottom:16px;overflow:hidden">
+   <div id="syncProgressBar" style="height:100%;background:var(--polo);border-radius:100px;width:0%;transition:width .3s"></div>
+  </div>
+  <!-- Current policy -->
+  <div id="syncCurrentStep" style="font-size:12px;color:var(--gray-500);margin-bottom:16px;min-height:16px"></div>
+  <!-- Stats -->
+  <div id="syncStats" style="display:none;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+   <div style="background:var(--gray-50);border-radius:10px;padding:12px;text-align:center">
+    <div style="font-size:22px;font-weight:800;color:var(--green-dark)" id="syncStatOk">0</div>
+    <div style="font-size:11px;color:var(--gray-400)">Estratte</div>
+   </div>
+   <div style="background:var(--gray-50);border-radius:10px;padding:12px;text-align:center">
+    <div style="font-size:22px;font-weight:800;color:var(--gray-500)" id="syncStatSkip">0</div>
+    <div style="font-size:11px;color:var(--gray-400)">Invariate</div>
+   </div>
+   <div style="background:var(--gray-50);border-radius:10px;padding:12px;text-align:center">
+    <div style="font-size:22px;font-weight:800;color:var(--red)" id="syncStatErr">0</div>
+    <div style="font-size:11px;color:var(--gray-400)">Errori</div>
+   </div>
+  </div>
+  <button id="syncModalClose" onclick="document.getElementById('syncModal').style.display='none'" class="btn btn-primary" style="width:100%;display:none">Chiudi</button>
+ </div>
+</div>
+
 <!-- MODAL AGGIUNGI POLIZZA -->
 <div id="cgaAddModal" style="display:none;position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:20px">
  <div style="background:var(--white);border-radius:var(--radius);width:100%;max-width:500px;box-shadow:var(--shadow-lg);overflow:hidden;max-height:90vh;overflow-y:auto">
@@ -1320,7 +1352,10 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
      <div class="page-title" style="font-size:15px" id="libAreaTitle">Tutte le polizze</div>
      <div class="page-subtitle" id="libAreaSub">Seleziona fino a 4 e premi Confronta</div>
     </div>
-    <button onclick="cgaOpenAdd()" class="btn btn-primary btn-sm">+ Nuova polizza</button>
+    <div style="display:flex;gap:8px;align-items:center">
+     <button id="btnSyncAll" onclick="cgaSyncAll()" class="btn btn-ghost btn-sm" style="display:none">↻ Sincronizza catalogo</button>
+     <button onclick="cgaOpenAdd()" class="btn btn-primary btn-sm">+ Nuova polizza</button>
+    </div>
    </div>
 
    <!-- Le mie polizze -->
@@ -2416,6 +2451,10 @@ function libSbFilter(filter) {
  const titleEl = document.getElementById('libAreaTitle');
  const subEl = document.getElementById('libAreaSub');
 
+ // Mostra/nascondi il pulsante Sincronizza solo in vista CGA
+ const syncBtn = document.getElementById('btnSyncAll');
+ if(syncBtn && filter !== 'cga') syncBtn.style.display = 'none';
+
  if (filter === 'tutte') {
   p1.style.display = ''; p2.style.display = 'block'; if(pu) pu.style.display='none';
   if(titleEl) titleEl.textContent = 'Tutte le polizze';
@@ -2431,6 +2470,8 @@ function libSbFilter(filter) {
   if(titleEl) titleEl.textContent = 'Database CGA';
   if(subEl) subEl.textContent = 'Catalogo polizze disponibili';
   if (!_cgaData.length) cgaLoad();
+  const syncBtn = document.getElementById('btnSyncAll');
+  if(syncBtn) syncBtn.style.display = '';
  } else if (filter.startsWith('cat:')) {
   const cat = filter.replace('cat:','');
   p1.style.display = 'none'; p2.style.display = 'none'; if(pu) pu.style.display='';
@@ -2863,6 +2904,76 @@ function cgaToggleBasket(id) {
  basketAdd({ id: basketId, compagnia: d.compagnia, prodotto: d.prodotto, tipo: d.tipo, source: 'cga', extracted: d.extracted || null });
 }
 
+// ── SYNC TUTTO IL CATALOGO (SSE streaming) ──────────────────────────────────
+async function cgaSyncAll() {
+ const modal = document.getElementById('syncModal');
+ const bar   = document.getElementById('syncProgressBar');
+ const step  = document.getElementById('syncCurrentStep');
+ const stats = document.getElementById('syncStats');
+ const close = document.getElementById('syncModalClose');
+ const status= document.getElementById('syncModalStatus');
+
+ // Reset UI
+ bar.style.width='0%'; step.textContent='Connessione al backend...';
+ stats.style.display='none'; close.style.display='none';
+ status.textContent='In corso...';
+ modal.style.display='flex';
+
+ const btn = document.getElementById('btnSyncAll');
+ if(btn) { btn.disabled=true; btn.textContent='Sincronizzazione...'; }
+
+ try {
+  const headers = API_KEY ? {'Content-Type':'application/json','X-API-Key':API_KEY} : {'Content-Type':'application/json'};
+  const res = await fetch(`${BACKEND}/api/library/sync-stream`, { method:'POST', headers, body:'{}' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+
+  while(true) {
+   const { done, value } = await reader.read();
+   if (done) break;
+   buf += dec.decode(value, { stream: true });
+   const lines = buf.split('\n');
+   buf = lines.pop();
+   for (const line of lines) {
+    if (!line.startsWith('data:')) continue;
+    try {
+     const ev = JSON.parse(line.slice(5).trim());
+     if (ev.type === 'progress') {
+      bar.style.width = ev.pct + '%';
+      step.textContent = ev.step;
+     } else if (ev.type === 'entry') {
+      // Aggiorna cache locale
+      const idx = _cgaData.findIndex(d => d.id === ev.data.id);
+      if (idx !== -1) _cgaData[idx] = { ..._cgaData[idx], ...ev.data };
+      else _cgaData.push(ev.data);
+     } else if (ev.type === 'result') {
+      bar.style.width = '100%';
+      step.textContent = 'Completato!';
+      status.textContent = 'Completato';
+      document.getElementById('syncStatOk').textContent   = ev.stats.updated   || 0;
+      document.getElementById('syncStatSkip').textContent = ev.stats.unchanged || 0;
+      document.getElementById('syncStatErr').textContent  = ev.stats.errors    || 0;
+      stats.style.display = 'grid';
+      close.style.display = 'block';
+      cgaRender();
+      libSbUpdateCounts();
+     }
+    } catch(e) {}
+   }
+  }
+ } catch(e) {
+  step.textContent = 'Errore: ' + e.message;
+  status.textContent = 'Errore';
+  close.style.display = 'block';
+ } finally {
+  if(btn) { btn.disabled=false; btn.textContent='↻ Sincronizza catalogo'; }
+ }
+}
+
+// ── VECCHIO SYNC (compat) ────────────────────────────────────────────────────
 async function cgaSync(targetId) {
  const btn = document.getElementById('btnCgaSync');
  if (btn) { btn.disabled = true; btn.textContent = '↻ Sincronizzazione...'; }
@@ -4212,6 +4323,8 @@ function toast(msg,dur=3000) {
 //
 // Carica i dati dal server (Qdrant) al primo avvio, poi mostra la dashboard.
 // Se il server non è raggiungibile, usa la cache localStorage come fallback.
+// Warmup ping per Railway (evita cold start)
+fetch(`${BACKEND}/health`, { method:'GET' }).catch(()=>{});
 loadServerData().finally(() => renderDashboard());
 </script>
 </body>
