@@ -1006,7 +1006,6 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  <div class="page-content" style="padding-top:20px">
   <div class="page-header">
    <div><div class="page-title">Polizze</div><div class="page-subtitle">Seleziona fino a 4 e premi Confronta</div></div>
-   <button class="btn btn-primary btn-sm" onclick="basketAddUpload()">+ Carica PDF</button>
   </div>
 
   <!-- Tab bar -->
@@ -2043,7 +2042,7 @@ function cgaRender() {
      style="width:100%;padding:14px 20px;background:var(--white);border:none;cursor:pointer;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;color:var(--gray-900);letter-spacing:-.2px">
      <span style="width:10px;height:10px;border-radius:50%;background:${stripe};flex-shrink:0"></span>
      ${tipo}
-     <span style="font-size:11px;color:var(--gray-400);font-weight:400;background:var(--gray-100);padding:2px 8px;border-radius:20px">${estratte} analizzate · ${polizze.length - estratte} da analizzare</span>
+     <span style="font-size:11px;color:var(--gray-400);font-weight:400;background:var(--gray-100);padding:2px 8px;border-radius:20px">${polizze.length} polizze</span>
      <span id="${grpId}Arrow" style="margin-left:auto;font-size:11px;color:var(--gray-300);transition:transform .2s">▼</span>
     </button>
     <div id="${grpId}" style="border-top:1px solid rgba(0,0,0,.05)">
@@ -2205,7 +2204,7 @@ function cgaCardHtml(d) {
       style="width:100%;padding:7px 0;border-radius:8px;border:1.5px dashed var(--gray-300);background:transparent;cursor:pointer;font-size:12px;color:var(--gray-500);font-weight:600;transition:all .15s"
       onmouseover="this.style.borderColor='var(--polo)';this.style.color='var(--polo)'"
       onmouseout="this.style.borderColor='var(--gray-300)';this.style.color='var(--gray-500)'">
-      ${isError?'Riprova analisi':'Analizza con AI'} <span style="font-size:10px;opacity:.7;font-weight:400">~€0.05</span>
+      ${isError?'Riprova analisi':'Analizza con AI'}
      </button>
     `}
    </div>
