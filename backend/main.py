@@ -2249,22 +2249,60 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
 
 import pathlib
 
-_CATALOG_PATH = pathlib.Path(__file__).parent / "cga_catalog.json"
+# ── STORAGE PERSISTENTE ───────────────────────────────────────────────────────
+# Se Railway Volume è montato su /data lo usiamo (persiste tra deploy).
+# Fallback: /app/data (ephemeral, ma funziona tra restart).
+_DATA_DIR = pathlib.Path("/data") if pathlib.Path("/data").exists() else pathlib.Path(__file__).parent / "data"
+_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+PDF_CACHE_DIR = _DATA_DIR / "pdf_cache"
+PDF_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Catalogo: priorità a /data/cga_catalog.json (persistente), fallback a quello in repo
+_CATALOG_PATH_PERSISTENT = _DATA_DIR / "cga_catalog.json"
+_CATALOG_PATH_REPO       = pathlib.Path(__file__).parent / "cga_catalog.json"
+
 _LIBRARY_COLLECTION = "cga_library"
 _LIBRARY_PID_PREFIX = "lib:"  # es: "lib:unipol-unica-casa"
 
 
 def _load_catalog() -> list[dict]:
-    """Legge il catalogo da file JSON."""
-    if not _CATALOG_PATH.exists():
-        return []
-    with open(_CATALOG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """
+    Legge il catalogo da storage persistente.
+    Al primo avvio (file persistente assente) copia dal repo e fa merge:
+    le entry del repo vengono aggiunte se non presenti, senza sovrascrivere
+    quelle già estratte nel persistente.
+    """
+    repo_catalog: list[dict] = []
+    if _CATALOG_PATH_REPO.exists():
+        with open(_CATALOG_PATH_REPO, "r", encoding="utf-8") as f:
+            repo_catalog = json.load(f)
+
+    if not _CATALOG_PATH_PERSISTENT.exists():
+        # Prima volta: copia il catalogo del repo nel persistente
+        _save_catalog(repo_catalog)
+        return repo_catalog
+
+    with open(_CATALOG_PATH_PERSISTENT, "r", encoding="utf-8") as f:
+        persistent = json.load(f)
+
+    # Merge: aggiungi nuove entry dal repo senza toccare quelle già presenti
+    persistent_ids = {e["id"] for e in persistent}
+    added = 0
+    for entry in repo_catalog:
+        if entry["id"] not in persistent_ids:
+            persistent.append(entry)
+            added += 1
+    if added:
+        logger.info(f"[catalog] Aggiunte {added} nuove entry dal repo al catalogo persistente")
+        _save_catalog(persistent)
+
+    return persistent
 
 
 def _save_catalog(catalog: list[dict]):
-    """Salva il catalogo aggiornato su file."""
-    with open(_CATALOG_PATH, "w", encoding="utf-8") as f:
+    """Salva il catalogo nel path persistente."""
+    with open(_CATALOG_PATH_PERSISTENT, "w", encoding="utf-8") as f:
         json.dump(catalog, f, ensure_ascii=False, indent=2)
 
 
@@ -2352,7 +2390,12 @@ async def _sync_entry(entry: dict) -> dict:
         "Cache-Control": "max-age=0",
     }
 
+    # Percorso cache locale per questo entry
+    _pdf_cache_file = PDF_CACHE_DIR / f"{entry_id}.pdf"
+
     try:
+        pdf_bytes: bytes | None = None
+
         async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http:
             # Primo tentativo con header browser completi
             r = await http.get(url, headers=_BROWSER_HEADERS)
@@ -2365,30 +2408,41 @@ async def _sync_entry(entry: dict) -> dict:
                 headers_with_ref = {**_BROWSER_HEADERS, "Referer": origin}
                 r = await http.get(url, headers=headers_with_ref)
 
-            if r.status_code != 200:
-                logger.warning(f"[library sync] '{entry_id}' — HTTP {r.status_code}")
-                return {**entry, "sync_status": "error", "sync_error": f"HTTP {r.status_code}"}
+            if r.status_code == 200:
+                content_type = r.headers.get("content-type", "")
+                if "html" in content_type and not url.lower().endswith(".pdf"):
+                    logger.warning(f"[library sync] '{entry_id}' — risposta HTML invece di PDF")
+                else:
+                    pdf_bytes = r.content
 
-            # Verifica che sia davvero un PDF (alcuni siti restituiscono HTML di errore con 200)
-            content_type = r.headers.get("content-type", "")
-            if "html" in content_type and not url.lower().endswith(".pdf"):
-                logger.warning(f"[library sync] '{entry_id}' — risposta HTML invece di PDF")
-                return {**entry, "sync_status": "error", "sync_error": "URL restituisce HTML, non PDF"}
-
-            pdf_bytes = r.content
+            if pdf_bytes is None:
+                # URL fallito — prova la cache locale
+                if _pdf_cache_file.exists():
+                    logger.info(f"[library sync] '{entry_id}' — URL fallito (HTTP {r.status_code}), uso cache locale")
+                    pdf_bytes = _pdf_cache_file.read_bytes()
+                else:
+                    logger.warning(f"[library sync] '{entry_id}' — HTTP {r.status_code}, nessuna cache disponibile")
+                    return {**entry, "sync_status": "error", "sync_error": f"HTTP {r.status_code}"}
 
         if len(pdf_bytes) < 500:
             return {**entry, "sync_status": "error", "sync_error": "PDF troppo piccolo"}
+
+        # Salva sempre una copia locale (aggiorna se cambiato)
+        try:
+            _pdf_cache_file.write_bytes(pdf_bytes)
+            logger.info(f"[library sync] '{entry_id}' — PDF salvato in cache locale ({len(pdf_bytes)//1024}KB)")
+        except Exception as ce:
+            logger.warning(f"[library sync] '{entry_id}' — impossibile salvare cache: {ce}")
 
         # Hash del PDF
         new_hash = hashlib.md5(pdf_bytes).hexdigest()
         old_hash = entry.get("last_hash")
 
-        if new_hash == old_hash:
+        if new_hash == old_hash and entry.get("extracted"):
             logger.info(f"[library sync] '{entry_id}' — nessun cambiamento (hash identico)")
             return {**entry, "sync_status": "unchanged"}
 
-        # Hash diverso → ri-estrae
+        # Hash diverso (o mai estratto) → estrae
         logger.info(f"[library sync] '{entry_id}' — nuovo hash {new_hash[:8]}... estrazione v3")
         pdf_b64 = base64.b64encode(pdf_bytes).decode()
 
