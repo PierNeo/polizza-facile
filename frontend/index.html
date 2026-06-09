@@ -2515,10 +2515,16 @@ async function cgaSyncOne(id) {
   if (idx !== -1 && result.entries && result.entries[0]) {
    _cgaData[idx] = { ..._cgaData[idx], ...result.entries[0], extracted: result.entries[0].extracted };
   } else {
-   // Ricarica tutto
    await cgaLoad();
   }
-  toast('Polizza analizzata con successo');
+  // Auto-aggiungi al basket dopo analisi completata
+  const d = _cgaData.find(x => x.id === id);
+  if (d && d.extracted) {
+   const added = basketAdd({ id: 'cga:'+id, compagnia: d.compagnia, prodotto: d.prodotto, tipo: d.tipo, source: 'cga', extracted: d.extracted });
+   toast(added ? '✓ Analizzata e aggiunta al confronto' : 'Analizzata con successo');
+  } else {
+   toast('Polizza analizzata con successo');
+  }
  } catch(e) {
   toast('Errore analisi: ' + e.message);
  } finally {
@@ -2633,7 +2639,7 @@ function cgaCardHtml(d) {
       style="width:100%;padding:7px 0;border-radius:8px;border:1.5px dashed var(--gray-300);background:transparent;cursor:pointer;font-size:12px;color:var(--gray-500);font-weight:600;transition:all .15s"
       onmouseover="this.style.borderColor='var(--polo)';this.style.color='var(--polo)'"
       onmouseout="this.style.borderColor='var(--gray-300)';this.style.color='var(--gray-500)'">
-      ${isError?'Riprova analisi':'Analizza con AI'}
+      ${isError?'↺ Riprova analisi':'⚡ Analizza e confronta'}
      </button>
     `}
    </div>
