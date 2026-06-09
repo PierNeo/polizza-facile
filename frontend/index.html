@@ -2371,40 +2371,81 @@ function basketRender() {
 async function basketConfronta() {
  if (_basket.length < 2) { toast('Seleziona almeno 2 polizze'); return; }
 
- // Controlla CGA senza PDF — avvisa ma non blocca se ha estratti
+ // Polizze CGA che non hanno ancora dati estratti
  const needExtract = _basket.filter(b => b.source === 'cga' && !b.extracted);
+
+ // Verifica che abbiano un URL/PDF scaricabile
  const cgaNoPdf = needExtract.filter(b => {
   const d = _cgaData.find(x => x.id === b.id.replace('cga:',''));
   return !d || (!d.url && !d.pdf_url && !d.filename);
  });
-
  if (cgaNoPdf.length > 0) {
   const nomi = cgaNoPdf.map(b => b.prodotto||b.compagnia).join(', ');
-  toast(`Queste polizze non hanno un PDF nel database: ${nomi}. Aggiungile dalla libreria caricando il PDF.`, 6000);
+  toast(`PDF mancante per: ${nomi}. Carica manualmente il PDF dalla libreria.`, 6000);
   return;
  }
 
- // Estrazione lazy per CGA con PDF ma non ancora estratte
+ // ── Estrazione AI lazy ────────────────────────────────────────────────────
  if (needExtract.length > 0) {
   const btn = document.getElementById('btnBasketConfronta');
+  // Overlay di caricamento
+  let overlay = document.getElementById('basketExtractOverlay');
+  if (!overlay) {
+   overlay = document.createElement('div');
+   overlay.id = 'basketExtractOverlay';
+   overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center';
+   overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:32px 40px;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+     <div style="font-size:32px;margin-bottom:12px">🤖</div>
+     <div style="font-size:16px;font-weight:700;color:#111;margin-bottom:6px">Analisi AI in corso</div>
+     <div id="basketExtractMsg" style="font-size:13px;color:#666;margin-bottom:20px">Avvio...</div>
+     <div style="background:#f0f0f0;border-radius:100px;height:6px;overflow:hidden">
+      <div id="basketExtractBar" style="height:100%;background:#4F46E5;border-radius:100px;width:0%;transition:width .4s"></div>
+     </div>
+     <div id="basketExtractSub" style="font-size:11px;color:#999;margin-top:8px">Potrebbe richiedere 30-60 secondi</div>
+    </div>`;
+   document.body.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
   if(btn) { btn.disabled=true; btn.textContent='Analisi...'; }
-  toast(`Analisi AI in corso (${needExtract.length} polizz${needExtract.length>1?'e':'a'})...`, 8000);
-  for (const item of needExtract) {
+
+  const setMsg = (msg, pct) => {
+   const el = document.getElementById('basketExtractMsg');
+   const bar = document.getElementById('basketExtractBar');
+   if(el) el.textContent = msg;
+   if(bar) bar.style.width = pct + '%';
+  };
+
+  const errors = [];
+  for (let i = 0; i < needExtract.length; i++) {
+   const item = needExtract[i];
    const cgaId = item.id.replace('cga:', '');
+   const pct = Math.round(((i) / needExtract.length) * 80);
+   setMsg(`(${i+1}/${needExtract.length}) ${item.compagnia} — ${item.prodotto}`, pct);
    try {
-    await cgaSyncOne(cgaId);
+    await cgaSyncOne(cgaId, { silent: true });
     const d = _cgaData.find(x => x.id === cgaId);
-    if (d && d.extracted) item.extracted = d.extracted;
+    if (d?.extracted) item.extracted = d.extracted;
    } catch(e) {
-    toast(`Errore analisi "${item.prodotto}": ${e.message}`, 5000);
+    errors.push({ item, err: e.message });
    }
   }
+
+  setMsg('Completato', 100);
+  await new Promise(r => setTimeout(r, 400));
+  overlay.style.display = 'none';
   if(btn) { btn.disabled=false; btn.textContent='Confronta →'; }
+
+  if (errors.length > 0) {
+   const nomi = errors.map(e => `"${e.item.prodotto}": ${e.err}`).join('\n');
+   toast(`Errore estrazione:\n${nomi}`, 7000);
+   // Se ci sono ancora almeno 2 polizze con dati, procediamo lo stesso
+  }
  }
 
  const policies = _basket.map(b => b.extracted).filter(Boolean);
  if (policies.length < 2) {
-  toast('Non è stato possibile estrarre i dati da alcune polizze. Aggiungi le polizze caricando il PDF dalla libreria.', 6000);
+  toast('Dati insufficienti per il confronto — l\'estrazione AI non è riuscita. Controlla che Railway sia attivo e riprova.', 7000);
   return;
  }
  document.getElementById('resultsTitle').textContent = 'Confronto polizze';
@@ -2663,31 +2704,49 @@ function cgaToggleGruppo(id) {
 }
 
 // Analisi singola polizza on-demand
-async function cgaSyncOne(id) {
- if (_cgaSyncing.has(id)) return;
+// Estrae una sola polizza CGA dal backend (torna true/false, throws su errore rete)
+async function cgaSyncOne(id, { silent = false } = {}) {
+ if (_cgaSyncing.has(id)) return false;
  _cgaSyncing.add(id);
- cgaRender(); // mostra spinner
  try {
-  const res = await fetch(`${BACKEND}/api/library/sync`, {
-   method: 'POST',
-   headers: { 'Content-Type': 'application/json', ...(API_KEY ? {'X-API-Key': API_KEY} : {}) },
-   body: JSON.stringify({ id })
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  // AbortController con timeout lungo (Railway cold start può richiedere ~60s)
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 120000);
+  let res;
+  try {
+   res = await fetch(`${BACKEND}/api/library/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(API_KEY ? {'X-API-Key': API_KEY} : {}) },
+    body: JSON.stringify({ id }),
+    signal: ctrl.signal
+   });
+  } finally {
+   clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`Errore server (HTTP ${res.status})`);
   const result = await res.json();
-  // Aggiorna entry nel cache locale
+  if (!result.ok && !result.entries?.length) throw new Error(result.error || 'Nessun dato restituito dal server');
+  // Aggiorna cache locale
   const idx = _cgaData.findIndex(d => d.id === id);
-  if (idx !== -1 && result.entries && result.entries[0]) {
-   _cgaData[idx] = { ..._cgaData[idx], ...result.entries[0], extracted: result.entries[0].extracted };
-  } else {
+  const entry = result.entries?.[0];
+  if (entry) {
+   if (idx !== -1) _cgaData[idx] = { ..._cgaData[idx], ...entry };
+   else _cgaData.push(entry);
+  } else if (idx === -1) {
    await cgaLoad();
   }
-  toast('✓ Polizza analizzata');
+  const updated = _cgaData.find(d => d.id === id);
+  if (!updated?.extracted) throw new Error('Estrazione AI non riuscita (dati vuoti)');
+  if (!silent) toast('✓ Polizza analizzata');
+  return true;
  } catch(e) {
-  toast('Errore analisi: ' + e.message);
+  const msg = e.name === 'AbortError' ? 'Timeout — il server ci sta mettendo troppo. Riprova tra qualche secondo.' : e.message;
+  throw new Error(msg);
  } finally {
   _cgaSyncing.delete(id);
-  cgaRender();
+  // Aggiorna spinner sulla card solo se la vista CGA è visibile
+  const panel = document.getElementById('libPanel2');
+  if (panel && panel.style.display !== 'none') cgaRender();
  }
 }
 
