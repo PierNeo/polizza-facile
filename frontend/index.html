@@ -2448,7 +2448,10 @@ async function basketConfronta() {
 
  const policies = _basket.map(b => b.extracted).filter(Boolean);
  if (policies.length < 2) {
-  toast('Dati insufficienti per il confronto — l\'estrazione AI non è riuscita. Controlla che Railway sia attivo e riprova.', 7000);
+  const errDetail = errors.length > 0
+   ? errors.map(e => `${e.item.prodotto}: ${e.err}`).join('\n')
+   : 'nessun dato estratto';
+  toast(`Estrazione fallita — ${errDetail}`, 10000);
   return;
  }
  document.getElementById('resultsTitle').textContent = 'Confronto polizze';
@@ -2751,6 +2754,10 @@ async function cgaSyncOne(id, { silent = false, onStatus = null } = {}) {
      else _cgaData.push(entry);
     } else if (idx === -1) {
      await cgaLoad();
+    }
+    // Mostra l'errore specifico del backend se sync fallisce
+    if (entry?.sync_status === 'error') {
+     throw new Error(`Backend: ${entry.sync_error || 'errore sconosciuto'}`);
     }
     const updated = _cgaData.find(d => d.id === id);
     if (!updated?.extracted) throw new Error('Estrazione AI non riuscita (PDF non leggibile o dati vuoti)');
