@@ -77,7 +77,7 @@ app.add_middleware(ForceCORSMiddleware)
 
 def _require_api_key(request: Request):
     """Verifica l'API key nella richiesta. Lancia 401 se non valida."""
-    expected = os.getenv("API_KEY", "")
+    expected = os.getenv("APP_API_KEY", "")
     if not expected:
         return  # auth disabilitata se API_KEY non configurata su Railway
     key = request.headers.get("X-API-Key", "") or request.query_params.get("api_key", "")
@@ -89,7 +89,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     """Applica _require_api_key a tutti gli endpoint /api/* (esclusi OPTIONS)."""
     async def dispatch(self, request: StarletteRequest, call_next):
         if request.method != "OPTIONS" and request.url.path.startswith("/api/"):
-            expected = os.getenv("API_KEY", "")
+            expected = os.getenv("APP_API_KEY", "")
             if expected:
                 key = request.headers.get("X-API-Key", "") or request.query_params.get("api_key", "")
                 if key != expected:
