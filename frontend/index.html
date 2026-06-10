@@ -3864,7 +3864,7 @@ async function callExtract(text, filename, onProgress, pdfBase64) {
  }
  const res = await fetch(`${BACKEND}${endpoint}`, {
   method: 'POST',
-  headers: {'Content-Type': 'application/json'},
+  headers: {'Content-Type': 'application/json', ...(API_KEY ? {'X-API-Key': API_KEY} : {})},
   body
  });
  if (!res.ok) {
