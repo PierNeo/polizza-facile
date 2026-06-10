@@ -71,6 +71,39 @@ class ForceCORSMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(ForceCORSMiddleware)
 
+# ── API KEY AUTH ──────────────────────────────────────────────────────────────
+# Protegge tutti gli endpoint /api/* quando la env var API_KEY è configurata.
+# Se API_KEY non è impostata, l'autenticazione è disabilitata (retrocompatibile).
+
+def _require_api_key(request: Request):
+    """Verifica l'API key nella richiesta. Lancia 401 se non valida."""
+    expected = os.getenv("API_KEY", "")
+    if not expected:
+        return  # auth disabilitata se API_KEY non configurata su Railway
+    key = request.headers.get("X-API-Key", "") or request.query_params.get("api_key", "")
+    if key != expected:
+        raise HTTPException(status_code=401, detail="API key non valida")
+
+
+class APIKeyMiddleware(BaseHTTPMiddleware):
+    """Applica _require_api_key a tutti gli endpoint /api/* (esclusi OPTIONS)."""
+    async def dispatch(self, request: StarletteRequest, call_next):
+        if request.method != "OPTIONS" and request.url.path.startswith("/api/"):
+            expected = os.getenv("API_KEY", "")
+            if expected:
+                key = request.headers.get("X-API-Key", "") or request.query_params.get("api_key", "")
+                if key != expected:
+                    resp = StarletteResponse(
+                        content='{"detail":"API key non valida"}',
+                        status_code=401,
+                        media_type="application/json"
+                    )
+                    resp.headers["Access-Control-Allow-Origin"] = "*"
+                    return resp
+        return await call_next(request)
+
+app.add_middleware(APIKeyMiddleware)
+
 # ── CLIENT ANTHROPIC (ASYNC) ──────────────────────────────────────────────────
 client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -871,7 +904,7 @@ REGOLE CRITICHE:
     try:
         msg = await client.messages.create(
             model="claude-opus-4-6",
-            max_tokens=4096,
+            max_tokens=8192,
             tools=[EXTRACTION_TOOL_V2],
             tool_choice={"type": "tool", "name": "extract_policy_data"},
             messages=[{
@@ -892,6 +925,8 @@ REGOLE CRITICHE:
                 ]
             }]
         )
+        if msg.stop_reason == "max_tokens":
+            logger.warning(f"[extract-v2] TRONCATO (max_tokens) — alcuni dati potrebbero mancare")
         for block in msg.content:
             if block.type == "tool_use":
                 return block.input
@@ -1997,7 +2032,7 @@ async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: 
     try:
         msg = await client.messages.create(
             model="claude-opus-4-6",
-            max_tokens=4096,
+            max_tokens=8192,
             tools=[_sezione_schema(tipo_per_schema)],
             tool_choice={"type": "tool", "name": "extract_sezioni"},
             messages=[{
@@ -2008,6 +2043,8 @@ async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: 
                 ]
             }]
         )
+        if msg.stop_reason == "max_tokens":
+            logger.warning(f"[sezioni] TRONCATO (max_tokens) chunk {chunk_info} di '{filename}' — alcune sezioni potrebbero mancare")
         for block in msg.content:
             if block.type == "tool_use":
                 return block.input
