@@ -4322,20 +4322,6 @@ function buildTableSezioni(policies, cols) {
    });
    html += '</tr>';
   }
-  });
-
-  // ── Riga note — nascosta per default ────────────────────────────────────
-  if (hasNotes) {
-   html += `<tr class="tbl-detail tbl-hidden" data-sid="${sid}"><td class="row-label" style="color:var(--gray-400);font-size:11px">Note</td>`;
-   policies.forEach(p => {
-    const s=(p.sezioni||[]).find(x=>x.id===sid);
-    const nota=s&&s.note;
-    html += nota
-     ? `<td class="cell"><div class="cell-inner"><span class="note-text">${_truncCell(nota,100)}</span></div></td>`
-     : `<td class="cell"><div class="cell-inner"><span style="color:var(--gray-300)">—</span></div></td>`;
-   });
-   html += '</tr>';
-  }
  });
 
  html += '</tbody>';
