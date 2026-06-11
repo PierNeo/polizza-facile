@@ -6,6 +6,9 @@ import asyncio
 import logging
 import base64
 import io
+import time
+import threading
+from collections import defaultdict
 import anthropic
 import httpx
 from pypdf import PdfReader, PdfWriter
@@ -103,6 +106,60 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 app.add_middleware(APIKeyMiddleware)
+
+# ── RATE LIMITING ──────────────────────────────────────────────────────────────
+# Rate limiting in-memory sugli endpoint AI costosi.
+# Nessuna dipendenza esterna — dict + timestamp unix.
+# Si azzera a ogni restart Railway (accettabile per single-tenant).
+
+_rl_buckets: dict = defaultdict(list)
+_rl_mutex = threading.Lock()
+
+# (path_prefix, max_requests, window_seconds)
+_RATE_LIMITS: list = [
+    ("/api/library/sync",  10, 3600),  # sync catalogo — molto costoso
+    ("/api/cron-sync",      5, 3600),  # cron sync — estremamente costoso
+    ("/api/extract",       20, 3600),  # estrazione singola CGA
+    ("/api/match",         60, 3600),  # matching
+    ("/api/raccomanda",    30, 3600),  # raccomandazione
+    ("/api/summary",       30, 3600),  # summary AI
+]
+
+
+def _rl_check(path: str, api_key: str) -> tuple:
+    """Controlla rate limit. Ritorna (allowed, limit_or_None)."""
+    for prefix, max_req, window in _RATE_LIMITS:
+        if path.startswith(prefix):
+            bucket_key = f"{api_key[:16]}|{prefix}"
+            now = time.time()
+            with _rl_mutex:
+                hits = [t for t in _rl_buckets[bucket_key] if now - t < window]
+                if len(hits) >= max_req:
+                    return False, max_req
+                hits.append(now)
+                _rl_buckets[bucket_key] = hits
+            return True, max_req
+    return True, None
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Applica rate limiting agli endpoint AI costosi."""
+    async def dispatch(self, request: StarletteRequest, call_next):
+        if request.method != "OPTIONS":
+            api_key = request.headers.get("X-API-Key", "anon")
+            allowed, limit = _rl_check(request.url.path, api_key)
+            if not allowed:
+                resp = StarletteResponse(
+                    content=f'{{"detail":"Rate limit superato — max {limit} richieste/ora"}}',
+                    status_code=429,
+                    media_type="application/json"
+                )
+                resp.headers["Access-Control-Allow-Origin"] = "*"
+                resp.headers["Retry-After"] = "3600"
+                return resp
+        return await call_next(request)
+
+app.add_middleware(RateLimitMiddleware)
 
 # ── CLIENT ANTHROPIC (ASYNC) ──────────────────────────────────────────────────
 client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
@@ -2339,24 +2396,39 @@ def _load_catalog() -> list[dict]:
     with open(_CATALOG_PATH_PERSISTENT, "r", encoding="utf-8") as f:
         persistent = json.load(f)
 
-    # Merge: aggiungi nuove entry dal repo senza toccare quelle già presenti
-    persistent_ids = {e["id"] for e in persistent}
+    # Merge: aggiungi nuove entry + aggiorna url/url_type/prodotto/compagnia dal repo
+    persistent_map = {e["id"]: e for e in persistent}
     added = 0
+    updated = 0
     for entry in repo_catalog:
-        if entry["id"] not in persistent_ids:
+        if entry["id"] not in persistent_map:
             persistent.append(entry)
+            persistent_map[entry["id"]] = entry
             added += 1
-    if added:
-        logger.info(f"[catalog] Aggiunte {added} nuove entry dal repo al catalogo persistente")
+        else:
+            # Aggiorna metadati statici dal repo (URL, nomi) senza toccare dati estratti
+            existing = persistent_map[entry["id"]]
+            changed = False
+            for field in ("url", "url_type", "prodotto", "compagnia", "tipo", "note"):
+                if entry.get(field) != existing.get(field):
+                    existing[field] = entry.get(field)
+                    changed = True
+            if changed:
+                updated += 1
+    if added or updated:
+        logger.info(f"[catalog] Merge: {added} nuove entry, {updated} URL aggiornati dal repo")
         _save_catalog(persistent)
 
     return persistent
 
 
+_catalog_write_lock = threading.Lock()
+
 def _save_catalog(catalog: list[dict]):
-    """Salva il catalogo nel path persistente."""
-    with open(_CATALOG_PATH_PERSISTENT, "w", encoding="utf-8") as f:
-        json.dump(catalog, f, ensure_ascii=False, indent=2)
+    """Salva il catalogo nel path persistente (thread-safe)."""
+    with _catalog_write_lock:
+        with open(_CATALOG_PATH_PERSISTENT, "w", encoding="utf-8") as f:
+            json.dump(catalog, f, ensure_ascii=False, indent=2)
 
 
 async def _q_get_library(entry_id: str) -> dict | None:
