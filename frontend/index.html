@@ -738,7 +738,7 @@ tbody tr:last-child td { border-bottom:none; }
 tbody tr:hover td { background:var(--blue-soft) !important; }
 td.row-label { padding:12px 14px; font-weight:500; color:var(--gray-700); background:var(--white); font-size:12px; }
 td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
-.cell.c-best { background:var(--green-soft); }
+.cell.c-best { background:var(--white); }
 .cell.c-mid { background:var(--white); }
 .cell.c-absent { background:var(--gray-50); }
 .cell.c-optional { background:var(--gray-50); }
@@ -746,7 +746,7 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 .c-absent .absent-x { font-size:16px; color:var(--gray-300); }
 .c-optional .optional-tag { font-size:10px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:.5px; border:1px solid var(--blue-mid); border-radius:4px; padding:2px 7px; background:var(--blue-soft); }
 .massimale { font-size:13px; font-weight:700; color:var(--gray-900); }
-.massimale.best-val { color:var(--green-dark); }
+.massimale.best-val { color:var(--gray-900); }
 .detail-row { display:flex; gap:5px; flex-wrap:wrap; justify-content:center; }
 .detail-tag { font-size:10px; font-weight:600; padding:2px 6px; border-radius:20px; }
 .detail-tag.franchigia { background:var(--amber-soft); color:var(--amber); }
@@ -755,6 +755,47 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 .dip-badge { font-size:10px; font-weight:600; color:var(--purple); background:var(--purple-soft); border:1px solid #DDD6FE; border-radius:4px; padding:2px 7px; display:inline-flex; align-items:center; gap:3px; cursor:default; }
 .dip-badge:hover::after { content:attr(data-tip); position:absolute; z-index:50; background:var(--gray-800); color:#fff; font-size:11px; font-weight:400; padding:6px 10px; border-radius:6px; max-width:220px; white-space:normal; line-height:1.4; margin-top:4px; transform:translateX(-30%); }
 .note-text { font-size:10px; color:var(--gray-400); font-style:italic; margin-top:1px; }
+/* ── P3: tabella confronto avanzata ─────────────────────────────────────── */
+.table-toolbar { display:flex; align-items:center; gap:8px; padding:12px 0 8px; flex-wrap:wrap; }
+.tbl-view-btn { font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px; border:1px solid var(--gray-200); background:var(--white); cursor:pointer; color:var(--gray-500); transition:all .15s; }
+.tbl-view-btn.active { background:var(--polo); color:#fff; border-color:var(--polo); }
+.tbl-ref-hint { font-size:10px; color:var(--gray-400); margin-left:auto; }
+/* Reference column */
+td.col-ref { background:rgba(200,151,28,.07) !important; }
+th.col-ref { background:rgba(200,151,28,.15) !important; border-top-color:var(--gold) !important; }
+th.col-ref .th-product { color:var(--gold) !important; }
+td.col-ref .massimale { color:var(--gold-dark, #a07810) !important; }
+/* Stella nelle intestazioni */
+.th-ref-btn { background:none; border:none; cursor:pointer; font-size:11px; color:rgba(255,255,255,.3); padding:0 0 0 5px; transition:color .15s; vertical-align:middle; }
+.th-ref-btn:hover { color:var(--gold); }
+.th-ref-btn.active { color:var(--gold); }
+/* Data estrazione */
+.th-date { display:block; font-size:9px; color:rgba(255,255,255,.35); font-weight:400; margin-top:2px; }
+/* Tendina dettagli per sezione */
+tr.det-toggle-row td { background:var(--gray-50); border-bottom:1px solid var(--gray-100); padding:0; }
+.det-btn { font-size:10px; color:var(--gray-400); background:none; border:none; cursor:pointer; padding:5px 14px; display:flex; align-items:center; gap:5px; width:100%; text-align:left; }
+.det-btn:hover { color:var(--blue); }
+.det-btn .det-arr { font-size:9px; display:inline-block; transition:transform .15s; flex-shrink:0; }
+.det-btn.open .det-arr { transform:rotate(90deg); }
+tr.det-toggle-row.tbl-hidden { display:none; }
+/* Righe dettaglio (nascondibili) */
+tr.tbl-detail { background:var(--gray-50); }
+tr.tbl-detail td.row-label { background:var(--gray-50); }
+tr.tbl-detail td.cell { background:var(--gray-50) !important; }
+tr.tbl-detail.tbl-hidden { display:none; }
+/* Espansione celle lunghe */
+.cell-expand-btn { font-size:10px; color:var(--blue); cursor:pointer; display:block; margin-top:2px; background:none; border:none; padding:0; }
+.cell-expand-btn:hover { text-decoration:underline; }
+/* Stella miglior valore */
+.star-best { color:var(--gold); font-size:9px; font-weight:700; display:block; margin-top:1px; }
+/* Row label variants */
+.row-label-primary { font-weight:600; color:var(--gray-700) !important; font-size:12px !important; }
+.row-label-secondary { font-weight:400; color:var(--gray-400) !important; font-size:11px !important; }
+.row-label-hint { font-size:9px; font-weight:400; color:var(--gray-400); display:block; margin-top:1px; }
+/* KPI chips — franchigia e scoperto sempre visibili */
+.kpi-chip { display:inline-block; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600; }
+.kpi-franchigia { background:#FFF3E0; color:#E65100; border:1px solid #FFCC80; }
+.kpi-scoperto   { background:#FFF8E1; color:#F57F17; border:1px solid #FFE082; }
 .best-pill { font-size:9px; font-weight:700; background:var(--green); color:#fff; padding:1px 6px; border-radius:20px; text-transform:uppercase; letter-spacing:.3px; }
 .excl-grid { display:grid; gap:12px; }
 .excl-card { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow-sm); }
@@ -1550,35 +1591,16 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
  <!-- Score cards -->
  <div id="scoreCards" class="score-cards" style="padding:0 32px"></div>
 
- <!-- Subnav tabs -->
- <div class="res-subnav" id="resSubnav">
-  <button class="res-sntab active" id="resTab-ai" onclick="resSwitchTab('ai')">Analisi AI</button>
-  <button class="res-sntab" id="resTab-table" onclick="resSwitchTab('table')">Tabella dettaglio</button>
-  <button class="res-sntab" id="resTab-advice" onclick="resSwitchTab('advice')">Consigliata per</button>
- </div>
-
- <!-- Pannello AI -->
- <div id="resPanel-ai" class="res-panel" style="padding:0 32px 24px">
-  <div id="aiSummary" class="ai-summary-v2" style="display:none">
-   <div class="ai-summary-v2-header">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.6 3.5L8 10l-3.1 1.5.6-3.5L3 5.5 6.5 5z" fill="#C8971C"/></svg>
-    <span>Analisi AI</span>
-    <span class="ai-model-badge">claude-sonnet</span>
-   </div>
-   <div class="ai-summary-v2-text" id="aiSummaryText"></div>
-  </div>
-  <div id="adviceGrid"></div>
-  <div id="exclGrid"></div>
- </div>
-
  <!-- Pannello tabella -->
- <div id="resPanel-table" class="res-panel" style="display:none;padding:0 32px 24px">
+ <div id="resPanel-table" class="res-panel" style="padding:0 32px 24px">
+  <div class="table-toolbar">
+   <button class="tbl-view-btn active" data-mode="detail" onclick="tableSetView('detail')">Vista dettaglio</button>
+   <button class="tbl-view-btn" data-mode="summary" onclick="tableSetView('summary')">Vista sintetica</button>
+   <span class="tbl-ref-hint">★ clicca su colonna per marcare come riferimento</span>
+  </div>
   <div class="table-outer"><div class="table-scroll"><table id="compTable"></table></div></div>
- </div>
-
- <!-- Pannello consigliata -->
- <div id="resPanel-advice" class="res-panel" style="display:none;padding:0 32px 24px">
-  <div id="adviceGridAlt"></div>
+  <div id="exclGrid" style="display:grid;gap:12px;margin-top:20px"></div>
+  <div style="font-size:10px;color:var(--gray-400);margin-top:8px;line-height:1.5">Dati estratti automaticamente dalle CGA ufficiali — verificare prima di fare una proposta.</div>
  </div>
 
 </div>
@@ -2463,7 +2485,6 @@ async function basketConfronta() {
  }
  document.getElementById('resultsTitle').textContent = 'Confronto polizze';
  renderResults(policies);
- callSummary(policies).catch(()=>{});
  navTo('pagResults');
 }
 
@@ -3843,7 +3864,6 @@ function confirmVerifica() {
  const nome = clientAnswers['nome'];
  document.getElementById('resultsTitle').textContent = nome ? `Confronto polizze — ${nome}` : 'Confronto polizze';
  renderResults(verificaPolicies);
- callSummary(verificaPolicies).catch(()=>{});
  navTo('pagResults');
 }
 
@@ -3973,16 +3993,12 @@ function renderResults(policies) {
  const premiums=policies.map(p=>p.premio_num||0);
  const minPremium=Math.min(...premiums.filter(x=>x>0));
  document.getElementById('scoreCards').innerHTML=policies.map((p,i)=>{
- const isCheapest=p.premio_num>0&&p.premio_num===minPremium&&premiums.filter(x=>x>0).length>1;
- const coperturaBar = '';
  return `<div class="score-card" style="border-top:3px solid ${cols[i]}">
  <div class="score-body">
   <div class="score-company">${esc(p.compagnia||'—')}</div>
   <div class="score-product">${esc(p.prodotto||'—')}</div>
   <span class="score-tipo">${esc(p.tipo||'—')}</span>
-  ${p.premio?`<div class="score-premio">Premio: <strong>${esc(p.premio)}</strong>${isCheapest?' <span style="font-size:9px;background:var(--green-soft);color:var(--green-dark);padding:1px 6px;border-radius:20px;font-weight:700">Più economica</span>':''}</div>`:''}
-  ${coperturaBar}
-  <div class="score-badges">${(p.punti_di_forza||[]).slice(0,2).map(b=>`<span class="score-badge best">${esc(b)}</span>`).join('')}</div>
+  ${p.premio?`<div class="score-premio">Premio: <strong>${esc(p.premio)}</strong></div>`:''}
  </div>
  </div>`;
  }).join('');
@@ -3992,18 +4008,10 @@ function renderResults(policies) {
  if (hasSezioni) buildTableSezioni(policies, cols);
  else buildTable(policies, cols);
 
- const adviceHtml = policies.map((p,i)=>p.consigliata_per?`<div class="advice-card"><div class="advice-icon">${['','','',''][i]}</div><div><div class="advice-company">${esc(p.compagnia||'')}</div><div class="advice-for">${esc(p.prodotto||'')}</div><div class="advice-text">${esc(p.consigliata_per)}</div></div></div>`:'').join('');
- document.getElementById('adviceGrid').innerHTML=adviceHtml;
- const adviceAlt = document.getElementById('adviceGridAlt'); if(adviceAlt) adviceAlt.innerHTML=adviceHtml;
  const hasExcl=policies.some(p=>p.esclusioni?.length);
  const exclHtml=hasExcl?policies.map(p=>p.esclusioni?.length?`<div class="excl-card"><div class="excl-header"><span class="excl-company">${esc(p.compagnia||'')}</span><span class="excl-product"> ${esc(p.prodotto||'')}</span></div><div class="excl-list">${p.esclusioni.map(e=>`<div class="excl-item">${esc(e)}</div>`).join('')}</div></div>`:'').join(''):'';
  document.getElementById('exclGrid').innerHTML=exclHtml;
  document.getElementById('exclGrid').style.gridTemplateColumns=`repeat(${Math.min(policies.length,2)},1fr)`;
- // Mostra tab advice solo se ci sono dati
- const advTab = document.getElementById('resTab-advice');
- if(advTab) advTab.style.display = policies.some(p=>p.consigliata_per) ? '' : 'none';
- // Tab subnav - reset alla tab AI
- resSwitchTab('ai');
 }
 
 function resSwitchTab(tab) {
@@ -4081,12 +4089,11 @@ function buildTable(policies,cols) {
      }
      return;
     }
-    const isBest=nums[i]===maxNum&&maxNum>0;
-    html+=`<td class="cell ${isBest?'c-best':'c-mid'}"><div class="cell-inner">`;
+    html+=`<td class="cell c-mid"><div class="cell-inner">`;
     // Massimale: se presente mostralo, altrimenti controlla se la nota rimanda a DIP separati
     const _hasDipRef = !g.massimale && g.note && /\b(DIP|Condizioni Specifiche|modulo|formula|singoli Moduli)\b/i.test(g.note);
     if(g.massimale){
-     html+=`<span class="massimale ${isBest?'best-val':''}">${esc(g.massimale)}</span>`;
+     html+=`<span class="massimale">${esc(g.massimale)}</span>`;
     } else if(_hasDipRef){
      const tipText=g.note.length>100?g.note.slice(0,97)+'…':g.note;
      html+=`<span class="dip-badge" title="${esc(tipText)}"> Vedi DIP modulo</span>`;
@@ -4099,7 +4106,6 @@ function buildTable(policies,cols) {
     if(g.territorio&&g.territorio!=='Italia') det.push(`<span class="detail-tag" style="background:var(--blue-soft);color:var(--blue)">${esc(g.territorio)}</span>`);
     if(g.periodo_carenza) det.push(`<span class="detail-tag" style="background:var(--amber-soft);color:var(--amber)">Carenza ${esc(g.periodo_carenza)}</span>`);
     if(det.length) html+=`<div class="detail-row">${det.join('')}</div>`;
-    if(isBest) html+=`<span class="best-pill">migliore</span>`;
     // Note: non ripetiamo se già mostrate nel badge DIP
     if(g.note&&!_hasDipRef) html+=`<div class="note-text">${esc(g.note)}</div>`;
     html+='</div></td>';
@@ -4111,10 +4117,78 @@ function buildTable(policies,cols) {
  document.getElementById('compTable').innerHTML=html;
 }
 
+// ── P3: CONTROLLI TABELLA CONFRONTO ──────────────────────────────────────────
+let _tableViewMode = 'detail';
+let _tableRefCol   = -1;
+const _cellExpandStore = {}; // id → testo completo
+let _cellExpandSeq = 0;
+
+function tableSetView(mode) {
+ _tableViewMode = mode;
+ document.querySelectorAll('.tbl-view-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+ const tbl = document.getElementById('compTable');
+ if (!tbl) return;
+ if (mode === 'summary') {
+  // Nascondi righe toggle e dettagli
+  tbl.querySelectorAll('tr.det-toggle-row').forEach(tr => tr.classList.add('tbl-hidden'));
+  tbl.querySelectorAll('tr.tbl-detail').forEach(tr => tr.classList.add('tbl-hidden'));
+  tbl.querySelectorAll('.det-btn.open').forEach(btn => {
+   btn.classList.remove('open');
+   const arr = btn.querySelector('.det-arr'); if (arr) arr.style.transform = '';
+  });
+ } else {
+  // Mostra righe toggle; i dettagli restano chiusi finché non clicchi
+  tbl.querySelectorAll('tr.det-toggle-row').forEach(tr => tr.classList.remove('tbl-hidden'));
+ }
+}
+
+function toggleDet(sid) {
+ const btn = document.getElementById('tbtn-' + sid);
+ if (!btn) return;
+ const isOpen = btn.classList.toggle('open');
+ const arr = btn.querySelector('.det-arr'); if (arr) arr.style.transform = isOpen ? 'rotate(90deg)' : '';
+ document.querySelectorAll(`tr.tbl-detail[data-sid="${sid}"]`).forEach(tr =>
+  tr.classList.toggle('tbl-hidden', !isOpen));
+}
+
+function tableSectionToggle(sid) { /* rimosso — ora si usa toggleDet */ }
+
+function tableSetRef(colIdx) {
+ _tableRefCol = (_tableRefCol === colIdx) ? -1 : colIdx;
+ const tbl = document.getElementById('compTable');
+ if (!tbl) return;
+ tbl.querySelectorAll('.th-ref-btn').forEach(b => b.classList.remove('active'));
+ tbl.querySelectorAll('td.col-ref, th.col-ref').forEach(el => el.classList.remove('col-ref'));
+ if (_tableRefCol < 0) return;
+ const ci = _tableRefCol + 1; // col 0 = label
+ tbl.querySelectorAll('thead tr th').forEach((th, i) => { if (i === ci) th.classList.add('col-ref'); });
+ tbl.querySelectorAll('tbody tr').forEach(tr => {
+  const cells = tr.querySelectorAll('td');
+  if (cells[ci]) cells[ci].classList.add('col-ref');
+ });
+ const btns = tbl.querySelectorAll('.th-ref-btn');
+ if (btns[_tableRefCol]) btns[_tableRefCol].classList.add('active');
+}
+
+function tableCellExpand(btn, id) {
+ const full = _cellExpandStore[id];
+ if (!full) return;
+ btn.parentElement.innerHTML = esc(full);
+ delete _cellExpandStore[id];
+}
+
+function _truncCell(text, maxLen) {
+ if (!text || text.length <= maxLen) return esc(text || '');
+ const id = 'ce_' + (_cellExpandSeq++);
+ _cellExpandStore[id] = text;
+ return `${esc(text.substring(0, maxLen))}&hellip; <button class="cell-expand-btn" onclick="tableCellExpand(this,'${id}')">&darr; mostra tutto</button>`;
+}
+
 // ── TABELLA SEZIONI (v3) ──────────────────────────────────────────────────────
 function buildTableSezioni(policies, cols) {
  const NUMERI = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
- // Raccoglie tutte le sezioni uniche (per id) in ordine di prima occorrenza
+
+ // Sezioni uniche in ordine di prima occorrenza
  const sezioniOrder = [];
  const sezioniById = {};
  policies.forEach(p => {
@@ -4125,85 +4199,139 @@ function buildTableSezioni(policies, cols) {
   });
  });
 
- let html = '<thead><tr><th style="text-align:left;min-width:160px">Sezione / Campo</th>';
- policies.forEach((p,i) => html += `<th style="border-top:3px solid ${cols[i]}"><span class="th-company">${esc(p.compagnia||'')}</span><span class="th-product">${esc(p.prodotto||'')}</span></th>`);
- html += '</tr></thead><tbody>';
+ function fmtDate(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}); }
+  catch(e) { return ''; }
+ }
 
- const FIELDS = [
-  { key: 'massimale',  label: 'Massimale' },
-  { key: 'franchigia', label: 'Franchigia' },
-  { key: 'scoperto',   label: 'Scoperto' },
-  { key: 'sublimiti',  label: 'Sublimiti' },
- ];
+ // Thead — con stella riferimento e data estrazione
+ let html = '<thead><tr><th style="text-align:left;min-width:160px;vertical-align:middle">Sezione / Campo</th>';
+ policies.forEach((p,i) => {
+  const dt = fmtDate(p.last_updated);
+  html += `<th style="border-top:3px solid ${cols[i]};position:relative" id="th-col-${i}">
+   <button class="th-ref-btn" onclick="event.stopPropagation();tableSetRef(${i})" title="Marca come riferimento">★</button>
+   <span class="th-company">${esc(p.compagnia||'')}</span>
+   <span class="th-product">${esc(p.prodotto||'')}</span>
+   ${dt ? `<span class="th-date">Aggiorn. ${dt}</span>` : ''}
+  </th>`;
+ });
+ html += '</tr></thead><tbody>';
 
  sezioniOrder.forEach((sid, idx) => {
   const nomeSezione = sezioniById[sid];
   const num = NUMERI[idx] || `(${idx+1})`;
 
-  // Header sezione
+  // ── Header sezione ───────────────────────────────────────────────────────
   html += `<tr class="group-row"><td colspan="${policies.length+1}">${num} ${esc(nomeSezione)}</td></tr>`;
 
-  // Riga stato (inclusa / opzionale / esclusa)
-  html += `<tr><td class="row-label" style="color:var(--gray-400);font-size:11px">Copertura</td>`;
+  // ── Riga copertura — SEMPRE visibile ────────────────────────────────────
+  html += `<tr><td class="row-label row-label-secondary">Copertura</td>`;
   policies.forEach(p => {
    const s = (p.sezioni||[]).find(x => x.id === sid);
-   if (!s) { html += `<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`; return; }
-   if (s.inclusa) {
+   if (!s) {
+    html += `<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span></div></td>`;
+   } else if (s.inclusa) {
     html += `<td class="cell c-mid"><div class="cell-inner"><span style="color:var(--green-dark);font-weight:600;font-size:12px">✓ Inclusa</span></div></td>`;
    } else if (s.opzionale) {
-    html += `<td class="cell c-optional"><div class="cell-inner"><span class="optional-tag">+ Opzionale</span></div></td>`;
+    html += `<td class="cell c-optional"><div class="cell-inner"><span class="optional-tag">◆ Opzionale</span></div></td>`;
    } else {
     html += `<td class="cell c-absent"><div class="cell-inner"><span class="absent-x">—</span><span style="font-size:9px;color:var(--gray-300);margin-top:1px">Esclusa</span></div></td>`;
    }
   });
   html += '</tr>';
 
-  // Righe campi: massimale, franchigia, scoperto, sublimiti
-  FIELDS.forEach(({key, label}) => {
-   const hasAny = policies.some(p => {
-    const s = (p.sezioni||[]).find(x => x.id === sid);
-    return s && s[key];
-   });
-   if (!hasAny) return;
-
-   html += `<tr><td class="row-label">${esc(label)}</td>`;
+  // ── Riga Massimale — SEMPRE visibile, numero principale ─────────────────
+  const massNums = policies.map(p => { const s=(p.sezioni||[]).find(x=>x.id===sid); return s&&s.massimale_num>0?s.massimale_num:0; });
+  const maxMass = Math.max(...massNums);
+  const hasMass = policies.some(p => { const s=(p.sezioni||[]).find(x=>x.id===sid); return s&&s.massimale; });
+  if (hasMass) {
+   html += `<tr><td class="row-label row-label-primary">Massimale</td>`;
    policies.forEach(p => {
-    const s = (p.sezioni||[]).find(x => x.id === sid);
-    const val = s && s[key];
-    if (!val) {
-     html += `<td class="cell"><div class="cell-inner"><span style="color:var(--gray-300);font-size:12px">—</span></div></td>`;
-     return;
-    }
-    // Evidenzia valori numerici alti nel massimale
-    const isMassimale = key === 'massimale';
-    const isBig = isMassimale && s.massimale_num > 0;
-    html += `<td class="cell ${isBig ? 'c-mid' : ''}"><div class="cell-inner">`;
-    if (key === 'massimale') {
-     html += `<span class="massimale">${esc(val)}</span>`;
-    } else if (key === 'franchigia') {
-     html += `<span class="detail-tag franchigia">Fr. ${esc(val)}</span>`;
-    } else if (key === 'scoperto') {
-     html += `<span class="detail-tag scoperto">Sc. ${esc(val)}</span>`;
-    } else if (key === 'sublimiti') {
-     html += `<span style="font-size:11px;color:var(--gray-500);line-height:1.5">${esc(val)}</span>`;
-    }
+    const s=(p.sezioni||[]).find(x=>x.id===sid);
+    const val=s&&s.massimale;
+    if (!val) { html += `<td class="cell"><div class="cell-inner"><span style="color:var(--gray-300);font-size:14px">—</span></div></td>`; return; }
+    html += `<td class="cell c-mid"><div class="cell-inner">`;
+    html += `<span class="massimale">${esc(val)}</span>`;
     html += '</div></td>';
    });
    html += '</tr>';
+  }
+
+  // ── Riga Franchigia — SEMPRE visibile (cifra fissa a carico assicurato) ──
+  const hasFranch = policies.some(p => { const s=(p.sezioni||[]).find(x=>x.id===sid); return s&&s.franchigia; });
+  if (hasFranch) {
+   html += `<tr><td class="row-label row-label-primary">Franchigia <span class="row-label-hint">cifra fissa</span></td>`;
+   policies.forEach(p => {
+    const s=(p.sezioni||[]).find(x=>x.id===sid);
+    const val=s&&s.franchigia;
+    if (!val) { html += `<td class="cell"><div class="cell-inner"><span style="color:var(--gray-300);font-size:12px">—</span></div></td>`; return; }
+    html += `<td class="cell"><div class="cell-inner"><span class="kpi-chip kpi-franchigia">${esc(val)}</span></div></td>`;
+   });
+   html += '</tr>';
+  }
+
+  // ── Riga Scoperto — SEMPRE visibile (percentuale a carico assicurato) ────
+  const hasScoperto = policies.some(p => { const s=(p.sezioni||[]).find(x=>x.id===sid); return s&&s.scoperto; });
+  if (hasScoperto) {
+   html += `<tr><td class="row-label row-label-primary">Scoperto <span class="row-label-hint">% a carico</span></td>`;
+   policies.forEach(p => {
+    const s=(p.sezioni||[]).find(x=>x.id===sid);
+    const val=s&&s.scoperto;
+    if (!val) { html += `<td class="cell"><div class="cell-inner"><span style="color:var(--gray-300);font-size:12px">—</span></div></td>`; return; }
+    html += `<td class="cell"><div class="cell-inner"><span class="kpi-chip kpi-scoperto">${esc(val)}</span></div></td>`;
+   });
+   html += '</tr>';
+  }
+
+  // ── Tendina: solo sublimiti + note ───────────────────────────────────────
+  const hasSublimiti = policies.some(p => { const s=(p.sezioni||[]).find(x=>x.id===sid); return s&&s.sublimiti; });
+  const hasNotes = policies.some(p => { const s=(p.sezioni||[]).find(x=>x.id===sid); return s&&s.note; });
+
+  if (hasSublimiti || hasNotes) {
+   const tLabel = [hasSublimiti && 'Sublimiti', hasNotes && 'Note'].filter(Boolean).join(' · ');
+   html += `<tr class="det-toggle-row"><td colspan="${policies.length+1}">
+    <button class="det-btn" id="tbtn-${sid}" onclick="toggleDet('${sid}')">
+     <span class="det-arr">▶</span> ${tLabel}
+    </button>
+   </td></tr>`;
+  }
+
+  // Sublimiti (nascosti)
+  if (hasSublimiti) {
+   html += `<tr class="tbl-detail tbl-hidden" data-sid="${sid}"><td class="row-label">Sublimiti</td>`;
+   policies.forEach(p => {
+    const s=(p.sezioni||[]).find(x=>x.id===sid);
+    const val=s&&s.sublimiti;
+    html += val
+     ? `<td class="cell"><div class="cell-inner"><span style="font-size:11px;color:var(--gray-500);line-height:1.5;text-align:center">${_truncCell(val,90)}</span></div></td>`
+     : `<td class="cell"><div class="cell-inner"><span style="color:var(--gray-300);font-size:12px">—</span></div></td>`;
+   });
+   html += '</tr>';
+  }
+
+  // Note (nascoste)
+  if (hasNotes) {
+   html += `<tr class="tbl-detail tbl-hidden" data-sid="${sid}"><td class="row-label row-label-secondary">Note</td>`;
+   policies.forEach(p => {
+    const s=(p.sezioni||[]).find(x=>x.id===sid);
+    const nota=s&&s.note;
+    html += nota
+     ? `<td class="cell"><div class="cell-inner"><span class="note-text">${_truncCell(nota,100)}</span></div></td>`
+     : `<td class="cell"><div class="cell-inner"><span style="color:var(--gray-300)">—</span></div></td>`;
+   });
+   html += '</tr>';
+  }
   });
 
-  // Riga note (se presenti)
-  const hasNotes = policies.some(p => {
-   const s = (p.sezioni||[]).find(x => x.id === sid);
-   return s && s.note;
-  });
+  // ── Riga note — nascosta per default ────────────────────────────────────
   if (hasNotes) {
-   html += `<tr><td class="row-label" style="color:var(--gray-400);font-size:11px">Note</td>`;
+   html += `<tr class="tbl-detail tbl-hidden" data-sid="${sid}"><td class="row-label" style="color:var(--gray-400);font-size:11px">Note</td>`;
    policies.forEach(p => {
-    const s = (p.sezioni||[]).find(x => x.id === sid);
-    const nota = s && s.note;
+    const s=(p.sezioni||[]).find(x=>x.id===sid);
+    const nota=s&&s.note;
     html += nota
-     ? `<td class="cell"><div class="cell-inner"><span class="note-text">${esc(nota)}</span></div></td>`
+     ? `<td class="cell"><div class="cell-inner"><span class="note-text">${_truncCell(nota,100)}</span></div></td>`
      : `<td class="cell"><div class="cell-inner"><span style="color:var(--gray-300)">—</span></div></td>`;
    });
    html += '</tr>';
@@ -4212,6 +4340,11 @@ function buildTableSezioni(policies, cols) {
 
  html += '</tbody>';
  document.getElementById('compTable').innerHTML = html;
+
+ // Reset stato controlli al nuovo render
+ _tableViewMode = 'detail';
+ _tableRefCol = -1;
+ document.querySelectorAll('.tbl-view-btn').forEach(b => b.classList.toggle('active', b.dataset.mode==='detail'));
 }
 
 // Calcola gli score di tutte le polizze confrontate normalizzando i massimali
