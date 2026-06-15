@@ -755,6 +755,14 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 .dip-badge { font-size:10px; font-weight:600; color:var(--purple); background:var(--purple-soft); border:1px solid #DDD6FE; border-radius:4px; padding:2px 7px; display:inline-flex; align-items:center; gap:3px; cursor:default; }
 .dip-badge:hover::after { content:attr(data-tip); position:absolute; z-index:50; background:var(--gray-800); color:#fff; font-size:11px; font-weight:400; padding:6px 10px; border-radius:6px; max-width:220px; white-space:normal; line-height:1.4; margin-top:4px; transform:translateX(-30%); }
 .note-text { font-size:10px; color:var(--gray-400); font-style:italic; margin-top:1px; }
+/* ── Tabella Garanzie Casa (v4) ─────────────────────────────────────────── */
+.gz-mock-badge { display:inline-block; font-size:10px; font-weight:600; color:#856404; background:#fff3cd; border:1px solid #ffc107; padding:2px 8px; border-radius:4px; }
+.gz-chips { display:flex; flex-direction:column; align-items:center; gap:3px; }
+.gz-chip { font-size:10px; font-weight:600; padding:2px 8px; border-radius:4px; display:inline-block; white-space:nowrap; }
+.gz-chip-lbl { font-weight:400; opacity:.65; }
+.gz-chip-sub  { background:#E3F2FD; color:#0D47A1; border:1px solid #90CAF9; }
+.gz-chip-scop { background:#FFF8E1; color:#E65100; border:1px solid #FFE082; }
+.gz-chip-fra  { background:#FFF3E0; color:#BF360C; border:1px solid #FFCC80; }
 /* ── P3: tabella confronto avanzata ─────────────────────────────────────── */
 .table-toolbar { display:flex; align-items:center; gap:8px; padding:12px 0 8px; flex-wrap:wrap; }
 .tbl-view-btn { font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px; border:1px solid var(--gray-200); background:var(--white); cursor:pointer; color:var(--gray-500); transition:all .15s; }
@@ -3984,7 +3992,14 @@ function printResults() {
  const el2 = document.getElementById('printDate');
  if (el) el.textContent = title;
  if (el2) el2.textContent = `Documento generato il ${date}`;
+ // Nascondi pagina profilo se non c'è contenuto
+ const profileEl = document.getElementById('printProfile');
+ const hasSummary = !!(document.getElementById('pp-summary')?.textContent?.trim());
+ const hasRecs = !!(document.getElementById('pp-recs')?.textContent?.trim());
+ const hideProfile = profileEl && !hasSummary && !hasRecs;
+ if (hideProfile) profileEl.style.display = 'none';
  window.print();
+ if (hideProfile) profileEl.style.display = '';
 }
 
 function renderResults(policies) {
@@ -4003,9 +4018,11 @@ function renderResults(policies) {
  </div>`;
  }).join('');
 
- // Scegli renderer in base al formato del risultato
+ // Scegli renderer in base al tipo di polizza e formato dati
  const hasSezioni = policies.some(p => p.sezioni && p.sezioni.length > 0);
- if (hasSezioni) buildTableSezioni(policies, cols);
+ const isCasa = policies.length > 0 && policies.every(p => !p.tipo || p.tipo === 'Casa');
+ if (hasSezioni && isCasa) buildTableGaranzieCasa(policies, cols);
+ else if (hasSezioni) buildTableSezioni(policies, cols);
  else buildTable(policies, cols);
 
  const hasExcl=policies.some(p=>p.esclusioni?.length);
@@ -4328,6 +4345,239 @@ function buildTableSezioni(policies, cols) {
  document.getElementById('compTable').innerHTML = html;
 
  // Reset stato controlli al nuovo render
+ _tableViewMode = 'detail';
+ _tableRefCol = -1;
+ document.querySelectorAll('.tbl-view-btn').forEach(b => b.classList.toggle('active', b.dataset.mode==='detail'));
+}
+
+// ── SCHEMA + RENDERER GARANZIE CASA (v4) ─────────────────────────────────────
+// Schema fisso delle sezioni e sotto-garanzie per polizze Casa.
+// Quando l'estrazione AI produrrà p.garanzie_detail, i dati mock saranno rimossi.
+const CASA_SEZIONI_SCHEMA = [
+ { id:'incendio',   nome:'Incendio',               color:'#E65100', garanzie:[
+   { id:'incendio_b',     nome:'Incendio' },
+   { id:'eventi_atm',     nome:'Eventi atmosferici' },
+   { id:'fenomeno_el',    nome:'Fenomeno elettrico' },
+   { id:'sparg_acqua',    nome:"Spargimento d'acqua" },
+   { id:'ricerca_guasto', nome:'Ricerca del guasto' },
+   { id:'atti_vandal',    nome:'Atti vandalici' },
+   { id:'demolizione',    nome:'Demolizione e sgombero' },
+   { id:'fotovoltaico',   nome:'Impianti fotovoltaici' },
+ ]},
+ { id:'furto',      nome:'Furto',                  color:'#1565C0', garanzie:[
+   { id:'furto_b',      nome:'Furto' },
+   { id:'scippo',       nome:'Scippo' },
+   { id:'guasti_ladri', nome:'Guasti da ladri al fabbricato' },
+   { id:'preziosi',     nome:'Preziosi, raccolte e collezioni' },
+   { id:'denaro',       nome:'Denaro contante' },
+   { id:'oggetti_arte', nome:'Tappeti, arazzi, quadri, orologi, sculture' },
+ ]},
+ { id:'rc',         nome:'Responsabilità Civile',  color:'#1B5E20', garanzie:[
+   { id:'rc_figli',  nome:'Danni da fatto di figli minori' },
+   { id:'rc_cani',   nome:'Danni a cose provocate da cani' },
+   { id:'rc_inquin', nome:'Danni da inquinamento ambientale' },
+   { id:'rc_incend', nome:'Danni da incendio, esplosione o scoppio' },
+ ]},
+ { id:'cristalli',  nome:'Cristalli',              color:'#6A1B9A', garanzie:[
+   { id:'crist_b',    nome:'Rottura cristalli' },
+   { id:'crist_spec', nome:'Specchi e lastre' },
+   { id:'crist_san',  nome:'Sanitari' },
+ ]},
+ { id:'assistenza', nome:'Assistenza',             color:'#00695C', garanzie:[
+   { id:'ass_idraul', nome:'Intervento idraulico' },
+   { id:'ass_elett',  nome:'Intervento elettricista' },
+   { id:'ass_fabbro', nome:'Intervento fabbro' },
+   { id:'ass_allogg', nome:'Alloggio alternativo' },
+   { id:'ass_guard',  nome:'Guardianìa temporanea' },
+ ]},
+];
+
+// Dati placeholder per 3 profili di polizza. null = garanzia esclusa, {} = inclusa senza limiti specifici.
+const _MOCK_GARANZIE_CASA = [
+ // Profilo 0 — Prima (premium)
+ { incendio:{ mass:'€ 500.000', gz:{
+     incendio_b:     { fra:'€ 250' },
+     eventi_atm:     { sub:'€ 200.000', scop:'10% min. €500' },
+     fenomeno_el:    { sub:'€ 5.000' },
+     sparg_acqua:    { fra:'€ 250' },
+     ricerca_guasto: { sub:'€ 1.500' },
+     atti_vandal:    { sub:'€ 50.000' },
+     demolizione:    { sub:'10% del massimale' },
+     fotovoltaico:   { sub:'€ 10.000' },
+   }},
+   furto:{ mass:'€ 30.000', gz:{
+     furto_b:      { scop:'20% min. €250' },
+     scippo:       { sub:'€ 3.000' },
+     guasti_ladri: { sub:'€ 10.000' },
+     preziosi:     { sub:'€ 5.000', fra:'€ 250' },
+     denaro:       { sub:'€ 1.000' },
+     oggetti_arte: { sub:'€ 15.000' },
+   }},
+   rc:{ mass:'€ 1.000.000', gz:{
+     rc_figli:{}, rc_cani:{},
+     rc_inquin:{ sub:'€ 100.000' },
+     rc_incend:{},
+   }},
+   cristalli:{ mass:'€ 5.000', gz:{
+     crist_b:    { fra:'€ 100' },
+     crist_spec: { sub:'€ 1.000' },
+     crist_san:  { sub:'€ 500' },
+   }},
+   assistenza:{ mass:'€ 500/evento', gz:{
+     ass_idraul:{ sub:'€ 500' },
+     ass_elett: { sub:'€ 500' },
+     ass_fabbro:{ sub:'€ 500' },
+     ass_allogg:{ sub:'€ 2.000' },
+     ass_guard: null,
+   }},
+ },
+ // Profilo 1 — Classica (standard)
+ { incendio:{ mass:'€ 350.000', gz:{
+     incendio_b:     { fra:'€ 500' },
+     eventi_atm:     { sub:'€ 150.000', scop:'10% min. €750' },
+     fenomeno_el:    { sub:'€ 3.000' },
+     sparg_acqua:    { fra:'€ 500' },
+     ricerca_guasto: { sub:'€ 1.000' },
+     atti_vandal:    null,
+     demolizione:    { sub:'5% del massimale' },
+     fotovoltaico:   null,
+   }},
+   furto:{ mass:'€ 20.000', gz:{
+     furto_b:      { scop:'20% min. €300' },
+     scippo:       { sub:'€ 1.500' },
+     guasti_ladri: { sub:'€ 5.000' },
+     preziosi:     { sub:'€ 3.000', fra:'€ 500' },
+     denaro:       { sub:'€ 500' },
+     oggetti_arte: null,
+   }},
+   rc:{ mass:'€ 750.000', gz:{
+     rc_figli:{}, rc_cani:{},
+     rc_inquin: null,
+     rc_incend:{},
+   }},
+   cristalli:{ mass:'€ 3.000', gz:{
+     crist_b:    { fra:'€ 150' },
+     crist_spec: {},
+     crist_san:  null,
+   }},
+   assistenza:{ mass:'€ 300/evento', gz:{
+     ass_idraul:{ sub:'€ 300' },
+     ass_elett: { sub:'€ 300' },
+     ass_fabbro:{ sub:'€ 300' },
+     ass_allogg: null,
+     ass_guard:  null,
+   }},
+ },
+ // Profilo 2 — Base (entry level)
+ { incendio:{ mass:'€ 250.000', gz:{
+     incendio_b:     { fra:'€ 1.000' },
+     eventi_atm:     { sub:'€ 100.000', scop:'15% min. €1.000' },
+     fenomeno_el:    { sub:'€ 1.500' },
+     sparg_acqua:    { fra:'€ 1.000' },
+     ricerca_guasto: null,
+     atti_vandal:    null,
+     demolizione:    { sub:'5% del massimale' },
+     fotovoltaico:   null,
+   }},
+   furto:{ mass:'€ 10.000', gz:{
+     furto_b:      { scop:'20% min. €500' },
+     scippo:       null,
+     guasti_ladri: { sub:'€ 2.000' },
+     preziosi:     null,
+     denaro:       { sub:'€ 300' },
+     oggetti_arte: null,
+   }},
+   rc:{ mass:'€ 500.000', gz:{
+     rc_figli:{}, rc_cani:{},
+     rc_inquin: null,
+     rc_incend: null,
+   }},
+   cristalli: null,  // sezione esclusa
+   assistenza:{ mass:'€ 200/evento', gz:{
+     ass_idraul:{ sub:'€ 200' },
+     ass_elett:  null,
+     ass_fabbro:{ sub:'€ 200' },
+     ass_allogg: null,
+     ass_guard:  null,
+   }},
+ },
+];
+
+function buildTableGaranzieCasa(policies, cols) {
+ const isMock = !policies.some(p => p.garanzie_detail);
+
+ // ── Thead ────────────────────────────────────────────────────────────────────
+ let html = '<thead><tr>';
+ html += `<th style="text-align:left;min-width:200px;vertical-align:middle;padding:10px 14px">`;
+ if (isMock) html += '<span class="gz-mock-badge">⚠ Struttura di esempio</span>';
+ html += '</th>';
+ policies.forEach((p, i) => {
+  html += `<th style="border-top:3px solid ${cols[i]};position:relative" id="th-col-${i}">
+   <button class="th-ref-btn" onclick="event.stopPropagation();tableSetRef(${i})" title="Riferimento">★</button>
+   <span class="th-company">${esc(p.compagnia||'')}</span>
+   <span class="th-product">${esc(p.prodotto||'')}</span>
+  </th>`;
+ });
+ html += '</tr></thead><tbody>';
+
+ // ── Sezioni ──────────────────────────────────────────────────────────────────
+ CASA_SEZIONI_SCHEMA.forEach(sez => {
+  const c = sez.color;
+
+  // Riga intestazione sezione (con massimale per colonna)
+  html += `<tr>`;
+  html += `<td style="padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#fff;background:${c};border-bottom:1px solid rgba(255,255,255,.15)">
+   ${esc(sez.nome)}
+  </td>`;
+  policies.forEach((p, i) => {
+   const mi = Math.min(i, _MOCK_GARANZIE_CASA.length - 1);
+   const mock = _MOCK_GARANZIE_CASA[mi]?.[sez.id];
+   const real = (p.sezioni||[]).find(s => s.id === sez.id);
+   const mass = p.garanzie_detail?.[sez.id]?.mass || real?.massimale || mock?.mass || null;
+   const sezOff = !mock && !real;
+   html += `<td style="text-align:center;padding:8px 12px;background:${c};border-bottom:1px solid rgba(255,255,255,.15)">`;
+   if (sezOff) html += `<span style="font-size:11px;color:rgba(255,255,255,.35);font-style:italic">— Non inclusa</span>`;
+   else if (mass) html += `<span style="font-size:13px;font-weight:700;color:#fff">${esc(mass)}</span>`;
+   else html += `<span style="font-size:12px;color:rgba(255,255,255,.8)">✓ Inclusa</span>`;
+   html += '</td>';
+  });
+  html += '</tr>';
+
+  // Righe sotto-garanzie
+  sez.garanzie.forEach((gz, gi) => {
+   const rowBg = gi % 2 === 0 ? 'var(--white)' : 'var(--gray-50)';
+   html += `<tr>`;
+   html += `<td style="padding:9px 14px 9px 22px;font-size:11px;color:var(--gray-600);font-weight:500;background:${rowBg};border-left:3px solid ${c}33;border-bottom:1px solid var(--gray-100)">
+    ${esc(gz.nome)}
+   </td>`;
+
+   policies.forEach((p, i) => {
+    const mi = Math.min(i, _MOCK_GARANZIE_CASA.length - 1);
+    const mock = _MOCK_GARANZIE_CASA[mi]?.[sez.id];
+    const sezOff = !mock;
+    // garanzie_detail real (futuro) o fallback mock
+    const gzData = p.garanzie_detail?.[sez.id]?.gz?.[gz.id] ?? (sezOff ? null : (mock.gz?.[gz.id] ?? undefined));
+
+    html += `<td style="text-align:center;vertical-align:middle;padding:8px 10px;background:${rowBg};border-bottom:1px solid var(--gray-100)">`;
+    if (sezOff || gzData === null) {
+     html += `<span style="color:var(--gray-300);font-size:14px">—</span>`;
+    } else if (!gzData || (!gzData.sub && !gzData.scop && !gzData.fra)) {
+     html += `<span style="color:var(--green-dark);font-size:14px;font-weight:700">✓</span>`;
+    } else {
+     html += '<div class="gz-chips">';
+     if (gzData.sub)  html += `<span class="gz-chip gz-chip-sub"><span class="gz-chip-lbl">Sub </span>${esc(gzData.sub)}</span>`;
+     if (gzData.scop) html += `<span class="gz-chip gz-chip-scop"><span class="gz-chip-lbl">Scop </span>${esc(gzData.scop)}</span>`;
+     if (gzData.fra)  html += `<span class="gz-chip gz-chip-fra"><span class="gz-chip-lbl">Fra </span>${esc(gzData.fra)}</span>`;
+     html += '</div>';
+    }
+    html += '</td>';
+   });
+   html += '</tr>';
+  });
+ });
+
+ html += '</tbody>';
+ document.getElementById('compTable').innerHTML = html;
  _tableViewMode = 'detail';
  _tableRefCol = -1;
  document.querySelectorAll('.tbl-view-btn').forEach(b => b.classList.toggle('active', b.dataset.mode==='detail'));

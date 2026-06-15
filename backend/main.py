@@ -2082,16 +2082,48 @@ Per Rimborso spese: {"da_infortuni": true, "da_malattia": true} se entrambe pres
 Per Rendita: {"da_infortuni": true, "da_malattia": true} se entrambe presenti.
 Lascia null se la sezione non ha varianti distinte."""
 
+    # Campo garanzie_detail: solo per polizze Casa
+    garanzie_detail_schema = None
+    if tipo_polizza == "Casa":
+        garanzie_detail_schema = {
+            "type": ["object", "null"],
+            "description": """SOLO per polizze Casa. Estrai sublimite (sub), scoperto (scop), franchigia (fra) per ogni sotto-garanzia.
+Struttura richiesta:
+{
+  "incendio":   {"mass": "€ X", "gz": {"incendio_b": {"sub": null, "scop": null, "fra": "€ 250"}, "eventi_atm": {"sub": "€ 200.000", "scop": "10% min. €500", "fra": null}, ...}},
+  "furto":      {"mass": "€ X", "gz": {"furto_b": {...}, "scippo": {...}, "guasti_ladri": {...}, "preziosi": {...}, "denaro": {...}, "oggetti_arte": {...}}},
+  "rc":         {"mass": "€ X", "gz": {"rc_figli": {"sub": null, "scop": null, "fra": null}, "rc_cani": {...}, "rc_inquin": {...}, "rc_incend": {...}}},
+  "cristalli":  {"mass": "€ X", "gz": {"crist_b": {...}, "crist_spec": {...}, "crist_san": {...}}} oppure null se sezione assente,
+  "assistenza": {"mass": "€ X", "gz": {"ass_idraul": {...}, "ass_elett": {...}, "ass_fabbro": {...}, "ass_allogg": {...}, "ass_guard": {...}}}
+}
+Regole valore garanzia:
+— null: garanzia esclusa o non menzionata nel documento
+— {"sub": null, "scop": null, "fra": null}: garanzia inclusa ma senza limiti specifici indicati
+— valori: stringhe testuali come "€ 3.000", "10% min. €250", "5% del massimale"
+IDs garanzie (usa esattamente questi):
+  incendio:   incendio_b, eventi_atm, fenomeno_el, sparg_acqua, ricerca_guasto, atti_vandal, demolizione, fotovoltaico
+  furto:      furto_b, scippo, guasti_ladri, preziosi, denaro, oggetti_arte
+  rc:         rc_figli, rc_cani, rc_inquin, rc_incend
+  cristalli:  crist_b, crist_spec, crist_san
+  assistenza: ass_idraul, ass_elett, ass_fabbro, ass_allogg, ass_guard"""
+        }
+
+    properties = {
+        "compagnia":  {"type": ["string", "null"]},
+        "prodotto":   {"type": ["string", "null"]},
+        "tipo":       {"type": "string", "enum": ["RC Auto", "Casa", "Vita", "Infortuni", "Salute", "Multirischio", "Risparmio", "altro"]},
+        "premio":     {"type": ["string", "null"]},
+    }
+    if garanzie_detail_schema:
+        properties["garanzie_detail"] = garanzie_detail_schema
+
     return {
         "name": "extract_sezioni",
         "description": f"Estrae la struttura a sezioni di una polizza assicurativa italiana di tipo {tipo_polizza}.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "compagnia":  {"type": ["string", "null"]},
-                "prodotto":   {"type": ["string", "null"]},
-                "tipo":       {"type": "string", "enum": ["RC Auto", "Casa", "Vita", "Infortuni", "Salute", "Multirischio", "Risparmio", "altro"]},
-                "premio":     {"type": ["string", "null"]},
+                **properties,
                 "sezioni": {
                     "type": "array",
                     "items": {
@@ -2129,6 +2161,16 @@ Lascia null se la sezione non ha varianti distinte."""
 
 def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
     tipo_note = f"\nNOTA: questa polizza è di tipo '{tipo_hint}'. Estrai SOLO le sezioni del tipo corrispondente.\n" if tipo_hint else ""
+
+    garanzie_casa_note = ""
+    if tipo_hint == "Casa":
+        garanzie_casa_note = """
+— GARANZIE_DETAIL (obbligatorio per polizze Casa): compila il campo garanzie_detail con i dettagli di sublimite/scoperto/franchigia per ogni sotto-garanzia.
+  Cerca in: tabella riassuntiva, intestazioni di paragrafo, elenchi condizioni, note a fondo sezione.
+  sub = sublimite monetario specifico (es: "€ 3.000", "10% del massimale"). Se la garanzia è coperta dal massimale generale senza sublimite → null.
+  scop = scoperto percentuale a carico dell'assicurato (es: "20% min. €250"). null se assente.
+  fra = franchigia fissa a carico dell'assicurato (es: "€ 500"). null se assente.
+  Per le garanzie RC (rc_figli, rc_cani, rc_inquin, rc_incend): se coperte dal massimale RC generale senza limiti specifici → {"sub": null, "scop": null, "fra": null}. null solo se escluse."""
 
     sinonimi_casa_txt = "\n".join(
         f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
@@ -2179,7 +2221,7 @@ REGOLE CRITICHE:
     NON accorpare garanzie "da infortuni" e "da malattia" in una sola sezione se il documento le presenta separatamente.
 — STATO COMATOSO IRREVERSIBILE: se presente come garanzia/sezione separata (non solo menzionata nelle CG generali), estraila come id="stato_comatoso". Nel campo note indica se è legata alla garanzia Morte o autonoma, e la condizione di attivazione (es: "coma > 6 mesi", "stato vegetativo permanente").
 — Se una sezione è ESCLUSA esplicitamente: inclusa=false, opzionale=false. Se è opzionale acquistabile: inclusa=false, opzionale=true.
-— Estrai TUTTE le sezioni presenti o esplicitamente escluse."""
+— Estrai TUTTE le sezioni presenti o esplicitamente escluse.{garanzie_casa_note}"""
 
 
 # ── MODELLO REQUEST ───────────────────────────────────────────────────────────
@@ -2303,6 +2345,14 @@ def _merge_sezioni(results: list[dict]) -> dict:
                             existing[k] = s[k]
 
     merged["sezioni"] = list(sezioni_map.values())
+
+    # garanzie_detail: prende il più completo tra i chunk (conta chiavi gz non-null)
+    def _gd_score(gd):
+        if not gd: return 0
+        return sum(1 for sez in gd.values() if sez for gz in (sez.get("gz") or {}).values() if gz is not None)
+    best_gd = max((r.get("garanzie_detail") for r in results), key=lambda x: _gd_score(x) if x else 0, default=None)
+    if best_gd:
+        merged["garanzie_detail"] = best_gd
 
     # Metadati testuali dal primo non-null
     for field in ["compagnia", "prodotto", "premio", "consigliata_per"]:
