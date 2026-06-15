@@ -2240,7 +2240,11 @@ async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: 
             messages=[{
                 "role": "user",
                 "content": [
-                    {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}},
+                    {
+                        "type": "document",
+                        "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64},
+                        "cache_control": {"type": "ephemeral"},
+                    },
                     {"type": "text", "text": prompt}
                 ]
             }]
@@ -2359,10 +2363,11 @@ def _normalize_sezioni(result: dict) -> dict:
     return result
 
 
-async def _refine_sezioni(result: dict, first_chunk_bytes: bytes, filename: str) -> dict:
+async def _refine_sezioni(result: dict, first_chunk_bytes: bytes, filename: str, tipo_hint: str = "Casa") -> dict:
     """
     Secondo passaggio con Opus: recupera franchigie, scoperto e sublimiti mancanti
     nelle sezioni già estratte, usando il PDF originale (primo chunk + più denso).
+    Usa lo stesso schema tool e cache_control dell'estrazione iniziale → prompt cache hit sul PDF.
     """
     sezioni = result.get("sezioni", [])
     tipo = result.get("tipo", "Casa")
@@ -2423,32 +2428,41 @@ Restituisci SOLO un JSON con questa struttura:
 {{"sezioni": [ ...array completo aggiornato... ]}}"""
 
     try:
+        # Stessi tools e cache_control usati in _extract_sezioni_chunk → prompt cache hit sul PDF
         msg = await client.messages.create(
             model="claude-opus-4-6",
             max_tokens=4096,
+            tools=[_sezione_schema(tipo_hint)],
+            tool_choice={"type": "tool", "name": "extract_sezioni"},
             messages=[{
                 "role": "user",
                 "content": [
-                    {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}},
+                    {
+                        "type": "document",
+                        "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64},
+                        "cache_control": {"type": "ephemeral"},
+                    },
                     {"type": "text", "text": prompt}
                 ]
             }]
         )
-        raw = msg.content[0].text.strip()
-        match = re.search(r'\{"sezioni"[\s\S]*\}', raw)
-        if match:
-            updated = json.loads(match.group(0))
-            if "sezioni" in updated:
-                # Merge: aggiorna solo i campi che erano mancanti
-                updated_map = {s.get("id"): s for s in updated["sezioni"]}
-                for s in result["sezioni"]:
-                    sid = s.get("id")
-                    if sid in updated_map:
-                        for campo in ["franchigia", "scoperto", "sublimiti", "note"]:
-                            nuovo_val = updated_map[sid].get(campo)
-                            if nuovo_val and not s.get(campo):
-                                s[campo] = nuovo_val
-                logger.info(f"[sezioni] raffinamento completato per '{filename}'")
+        # Parsing tool_use (stesso formato di _extract_sezioni_chunk)
+        updated_sezioni = None
+        for block in msg.content:
+            if block.type == "tool_use":
+                updated_sezioni = block.input.get("sezioni", [])
+                break
+        if updated_sezioni:
+            updated_map = {s.get("id"): s for s in updated_sezioni}
+            for s in result["sezioni"]:
+                sid = s.get("id")
+                if sid in updated_map:
+                    for campo in ["franchigia", "scoperto", "sublimiti", "note"]:
+                        nuovo_val = updated_map[sid].get(campo)
+                        if nuovo_val and not s.get(campo):
+                            s[campo] = nuovo_val
+            logger.info(f"[sezioni] raffinamento completato per '{filename}' "
+                        f"(cache_read={getattr(msg.usage, 'cache_read_input_tokens', 0)} tok)")
     except Exception as e:
         logger.warning(f"[sezioni] raffinamento fallito per '{filename}': {e} — usando dati originali")
 
@@ -2498,7 +2512,7 @@ async def extract_sezioni(req: ExtractSezioniRequest):
 
         result = _merge_sezioni(results) if len(results) > 1 else results[0]
         result = _normalize_sezioni(result)
-        result = await _refine_sezioni(result, chunks[0][0], req.filename)
+        result = await _refine_sezioni(result, chunks[0][0], req.filename, tipo_effettivo)
         _extraction_cache[cache_key] = result
         return result
 
@@ -2562,7 +2576,7 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
                 await queue.put({"type": "progress", "step": "Applicazione dizionario sinonimi...", "pct": 88})
                 result = _normalize_sezioni(result)
                 await queue.put({"type": "progress", "step": "Raffinamento valori mancanti...", "pct": 93})
-                result = await _refine_sezioni(result, chunks[0][0], req.filename)
+                result = await _refine_sezioni(result, chunks[0][0], req.filename, tipo_effettivo)
                 _extraction_cache[cache_key] = result
                 await queue.put({"type": "result", "data": result})
 
