@@ -4531,10 +4531,20 @@ function buildTableGaranzieCasa(policies, cols) {
   </td>`;
   policies.forEach((p, i) => {
    const mi = Math.min(i, _MOCK_GARANZIE_CASA.length - 1);
-   const mock = _MOCK_GARANZIE_CASA[mi]?.[sez.id];
-   const real = (p.sezioni||[]).find(s => s.id === sez.id);
-   const mass = p.garanzie_detail?.[sez.id]?.mass || real?.massimale || mock?.mass || null;
-   const sezOff = !mock && !real;
+   // Se la polizza ha garanzie_detail estratto dall'AI → usa solo quelli (null = sezione esclusa)
+   // Altrimenti fallback ai dati mock di esempio
+   const hasDetail = p.garanzie_detail !== undefined;
+   const sezDetail = p.garanzie_detail?.[sez.id];
+   let mass, sezOff;
+   if (hasDetail) {
+    sezOff = sezDetail == null;  // null o undefined = non inclusa
+    mass = sezDetail?.mass || (p.sezioni||[]).find(s => s.id === sez.id)?.massimale || null;
+   } else {
+    const mock = _MOCK_GARANZIE_CASA[mi]?.[sez.id];
+    const real = (p.sezioni||[]).find(s => s.id === sez.id);
+    sezOff = !mock && !real;
+    mass = real?.massimale || mock?.mass || null;
+   }
    html += `<td style="text-align:center;padding:8px 12px;background:${c};border-bottom:1px solid rgba(255,255,255,.15)">`;
    if (sezOff) html += `<span style="font-size:11px;color:rgba(255,255,255,.35);font-style:italic">— Non inclusa</span>`;
    else if (mass) html += `<span style="font-size:13px;font-weight:700;color:#fff">${esc(mass)}</span>`;
@@ -4553,13 +4563,28 @@ function buildTableGaranzieCasa(policies, cols) {
 
    policies.forEach((p, i) => {
     const mi = Math.min(i, _MOCK_GARANZIE_CASA.length - 1);
-    const mock = _MOCK_GARANZIE_CASA[mi]?.[sez.id];
-    const sezOff = !mock;
-    // garanzie_detail real (futuro) o fallback mock
-    const gzData = p.garanzie_detail?.[sez.id]?.gz?.[gz.id] ?? (sezOff ? null : (mock.gz?.[gz.id] ?? undefined));
+    const hasDetail = p.garanzie_detail !== undefined;
+    const sezDetail = p.garanzie_detail?.[sez.id];
+    // Se abbiamo dati reali → usa SOLO quelli: null = esclusa, undefined nel gz = inclusa senza dettagli
+    // Se non abbiamo dati reali → fallback ai mock di esempio
+    let gzData;
+    if (hasDetail) {
+     if (sezDetail == null) { gzData = null; }  // sezione esclusa
+     else {
+      const raw = sezDetail.gz?.[gz.id];
+      gzData = raw === undefined ? {} : raw;  // undefined → inclusa senza dettagli (✓)
+     }
+    } else {
+     const mock = _MOCK_GARANZIE_CASA[mi]?.[sez.id];
+     if (!mock) { gzData = null; }
+     else {
+      const raw = mock.gz?.[gz.id];
+      gzData = raw === undefined ? {} : raw;
+     }
+    }
 
     html += `<td style="text-align:center;vertical-align:middle;padding:8px 10px;background:${rowBg};border-bottom:1px solid var(--gray-100)">`;
-    if (sezOff || gzData === null) {
+    if (gzData === null) {
      html += `<span style="color:var(--gray-300);font-size:14px">—</span>`;
     } else if (!gzData || (!gzData.sub && !gzData.scop && !gzData.fra)) {
      html += `<span style="color:var(--green-dark);font-size:14px;font-weight:700">✓</span>`;

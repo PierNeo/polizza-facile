@@ -551,7 +551,7 @@ Per le garanzie Furto, Incendio, RC, Assistenza cerca SPECIFICAMENTE:
    - Pattern "fino ad un massimo di € ZZZ per evento" → scrivi "max €ZZZ/evento"
    - Sublimiti specifici per: preziosi, gioielli, valori, oggetti pregiati, dipendenze, lavoratori domestici,
      alloggio sostitutivo, spese demolizione/sgombero, rifacimento documenti, furto all'esterno
-   - ASSISTENZA CASA (CRITICO): cerca nella sezione "Assistenza Casa", "Pronto Intervento" o nella tabella "SINTESI DEI LIMITI DI INDENNIZZO" i limiti per tipo di servizio. I valori variano da polizza a polizza — usa SEMPRE i valori ESATTI trovati nel testo. Scrivi nel campo note tutti i sublimiti trovati: "Sublimiti: Artigiani max €X/evento | Asciugatura max €Y/evento | Vigilanza max N ore | Deposito max €Z/evento | ...". Cerca pattern "massimo" o "fino a" seguiti da un importo in Euro vicino a "intervento", "artigiano", "idraulico", "asciugatura", "vigilanza", "pernottamento".
+   - ASSISTENZA CASA (CRITICO): cerca nell'articolo dedicato all'Assistenza (es: "Art. 2.X Assistenza", "Servizi ausiliari", "Pronto intervento") il limite per SINGOLO INVIO ARTIGIANO. Pattern da cercare: "fino a un massimo di €X per evento", "fino a €X per intervento/chiamata". Questo valore ESATTO va in garanzie_detail.assistenza.gz.ass_idraul.sub / ass_elett.sub / ass_fabbro.sub. NON usare valori da tabelle di riepilogo generali o da altre sezioni — solo il valore esplicito per tipo di artigiano. Scrivi anche nel campo note tutti i sublimiti: "Sublimiti: Idraulico/Elettricista/Fabbro max €X/evento | Asciugatura max €Y/evento | Vigilanza max N ore | Deposito max €Z | Alloggio max €W/notte".
    Metti tutti questi sublimiti nel campo "note" con formato: "Sublimiti: [voce] max [limite] | [voce] max [limite]"
 
 **AREA 3 — SCOPERTI CON MINIMO (casa E infortuni):**
@@ -2094,12 +2094,13 @@ Struttura richiesta:
   "furto":      {"mass": "€ X", "gz": {"furto_b": {...}, "scippo": {...}, "guasti_ladri": {...}, "preziosi": {...}, "denaro": {...}, "oggetti_arte": {...}}},
   "rc":         {"mass": "€ X", "gz": {"rc_figli": {"sub": null, "scop": null, "fra": null}, "rc_cani": {...}, "rc_inquin": {...}, "rc_incend": {...}}},
   "cristalli":  {"mass": "€ X", "gz": {"crist_b": {...}, "crist_spec": {...}, "crist_san": {...}}} oppure null se sezione assente,
-  "assistenza": {"mass": "€ X", "gz": {"ass_idraul": {...}, "ass_elett": {...}, "ass_fabbro": {...}, "ass_allogg": {...}, "ass_guard": {...}}}
+  "assistenza": {"mass": "€ 250/evento", "gz": {"ass_idraul": {"sub": "€ 250", "scop": null, "fra": null}, "ass_elett": {"sub": "€ 250", "scop": null, "fra": null}, "ass_fabbro": {"sub": "€ 250", "scop": null, "fra": null}, "ass_allogg": {"sub": "€ X", "scop": null, "fra": null}, "ass_guard": {"sub": "€ X", "scop": null, "fra": null}}}
 }
 Regole valore garanzia:
 — null: garanzia esclusa o non menzionata nel documento
 — {"sub": null, "scop": null, "fra": null}: garanzia inclusa ma senza limiti specifici indicati
 — valori: stringhe testuali come "€ 3.000", "10% min. €250", "5% del massimale"
+— ASSISTENZA — regola critica: per ass_idraul/ass_elett/ass_fabbro il "sub" è il limite rimborsato per SINGOLO invio artigiano ("fino a un massimo di €X per evento/intervento"). Cerca ESATTAMENTE nell'articolo Assistenza/Servizi ausiliari/Pronto intervento delle Condizioni di assicurazione. NON usare massimali generali di sezione o valori da tabelle di riepilogo che potrebbero riferirsi ad altro. Se non trovi il valore esplicito → {"sub": null, "scop": null, "fra": null}. NON inventare valori.
 IDs garanzie (usa esattamente questi):
   incendio:   incendio_b, eventi_atm, fenomeno_el, sparg_acqua, ricerca_guasto, atti_vandal, demolizione, fotovoltaico
   furto:      furto_b, scippo, guasti_ladri, preziosi, denaro, oggetti_arte
@@ -2170,7 +2171,8 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
   sub = sublimite monetario specifico (es: "€ 3.000", "10% del massimale"). Se la garanzia è coperta dal massimale generale senza sublimite → null.
   scop = scoperto percentuale a carico dell'assicurato (es: "20% min. €250"). null se assente.
   fra = franchigia fissa a carico dell'assicurato (es: "€ 500"). null se assente.
-  Per le garanzie RC (rc_figli, rc_cani, rc_inquin, rc_incend): se coperte dal massimale RC generale senza limiti specifici → {"sub": null, "scop": null, "fra": null}. null solo se escluse."""
+  Per le garanzie RC (rc_figli, rc_cani, rc_inquin, rc_incend): se coperte dal massimale RC generale senza limiti specifici → {"sub": null, "scop": null, "fra": null}. null solo se escluse.
+  ASSISTENZA — regola critica: per ass_idraul/ass_elett/ass_fabbro il "sub" è il limite rimborsato per SINGOLO invio artigiano. Cerca il pattern "fino a un massimo di €X per evento" o "fino a €X per intervento" NELL'ARTICOLO DEDICATO all'Assistenza (es: Art. 2.X.Y Fabbricato, Servizi ausiliari, Pronto intervento). NON prendere valori da tabelle di riepilogo generali o da altre sezioni. Se non trovi il valore esplicito → {"sub": null, "scop": null, "fra": null}. MAI inventare valori."""
 
     sinonimi_casa_txt = "\n".join(
         f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
