@@ -2075,7 +2075,12 @@ Per ASSISTENZA: artigiani, asciugatura, vigilanza, deposito_contenuto, pernottam
 """
     else:  # Infortuni
         sezioni_enum = [d["nome_standard"] for d in SINONIMI_SEZIONI_INFORTUNI.values()]
-        sotto_garanzie_desc = "Non applicabile per infortuni — lascia null."
+        sotto_garanzie_desc = """Oggetto con varianti della sezione, quando il documento le distingue esplicitamente.
+Per IP: {"base": true, "grave": true} se esistono due livelli (base e grave/≥soglia).
+Per Diaria inabilità: {"da_infortuni": true, "da_malattia": true} se entrambe presenti.
+Per Rimborso spese: {"da_infortuni": true, "da_malattia": true} se entrambe presenti.
+Per Rendita: {"da_infortuni": true, "da_malattia": true} se entrambe presenti.
+Lascia null se la sezione non ha varianti distinte."""
 
     return {
         "name": "extract_sezioni",
@@ -2123,7 +2128,7 @@ Per ASSISTENZA: artigiani, asciugatura, vigilanza, deposito_contenuto, pernottam
 # ── PROMPT PER ESTRAZIONE A SEZIONI ──────────────────────────────────────────
 
 def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
-    tipo_note = f"\nNOTA: questa polizza è probabilmente di tipo '{tipo_hint}'.\n" if tipo_hint else ""
+    tipo_note = f"\nNOTA: questa polizza è di tipo '{tipo_hint}'. Estrai SOLO le sezioni del tipo corrispondente.\n" if tipo_hint else ""
 
     sinonimi_casa_txt = "\n".join(
         f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
@@ -2134,16 +2139,22 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
         for sid, d in SINONIMI_SEZIONI_INFORTUNI.items()
     )
 
+    # Mostra solo il dizionario rilevante per il tipo noto, entrambi se sconosciuto
+    if tipo_hint == "Casa":
+        dizionario_txt = f"POLIZZE CASA:\n{sinonimi_casa_txt}"
+    elif tipo_hint == "Infortuni":
+        dizionario_txt = f"POLIZZE INFORTUNI:\n{sinonimi_infortuni_txt}"
+    elif tipo_hint == "Multirischio":
+        dizionario_txt = f"POLIZZE CASA:\n{sinonimi_casa_txt}\n\nPOLIZZE INFORTUNI:\n{sinonimi_infortuni_txt}"
+    else:
+        dizionario_txt = f"POLIZZE CASA:\n{sinonimi_casa_txt}\n\nPOLIZZE INFORTUNI:\n{sinonimi_infortuni_txt}"
+
     return f"""Sei un esperto di polizze assicurative italiane. Analizza questo documento (file: {filename}) e usa la funzione extract_sezioni.
 {tipo_note}
 
 DIZIONARIO SINONIMI — le compagnie usano nomi diversi per le stesse sezioni. Usa questo mapping per riconoscere le sezioni e normalizzare al nome standard:
 
-POLIZZE CASA:
-{sinonimi_casa_txt}
-
-POLIZZE INFORTUNI:
-{sinonimi_infortuni_txt}
+{dizionario_txt}
 
 REGOLE CRITICHE:
 — id e nome: usa SEMPRE i valori standard dal dizionario sopra. Es: "Morte da infortuni" di Tandem → id="morte", nome="Morte da infortuni"
@@ -2181,6 +2192,38 @@ class ExtractSezioniRequest(BaseModel):
 
 # ── CORE EXTRACTION FUNCTION ──────────────────────────────────────────────────
 
+async def _detect_tipo_pdf(first_chunk_bytes: bytes, filename: str) -> str:
+    """
+    Passaggio leggero (Haiku) per rilevare il tipo di polizza dal primo chunk PDF.
+    Ritorna: "Casa", "Infortuni", "RC Auto", "Vita", "Multirischio", "Salute", "altro".
+    """
+    chunk_b64 = base64.b64encode(first_chunk_bytes).decode()
+    try:
+        msg = await client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=50,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}},
+                    {"type": "text", "text": (
+                        "Che tipo di polizza assicurativa è questo documento? "
+                        "Rispondi con UNA SOLA parola tra: Casa, Infortuni, RC Auto, Vita, Multirischio, Salute, altro. "
+                        "Solo la parola, nient'altro."
+                    )}
+                ]
+            }]
+        )
+        tipo_raw = msg.content[0].text.strip().split()[0] if msg.content else ""
+        VALIDI = {"Casa", "Infortuni", "RC Auto", "Vita", "Multirischio", "Salute", "altro"}
+        tipo = tipo_raw if tipo_raw in VALIDI else "Casa"
+        logger.info(f"[sezioni] tipo rilevato per '{filename}': {tipo}")
+        return tipo
+    except Exception as e:
+        logger.warning(f"[sezioni] _detect_tipo_pdf fallito per '{filename}': {e} — default Casa")
+        return "Casa"
+
+
 async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: int,
                                   total_pages: int, filename: str, tipo_hint: str) -> dict:
     """Estrae sezioni da un chunk PDF usando Claude native PDF + tool use."""
@@ -2188,14 +2231,11 @@ async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: 
     chunk_info = f"pagine {page_start + 1}-{page_end} di {total_pages}"
     prompt = _build_sezioni_prompt(filename, tipo_hint) + f"\n\n(stai analizzando {chunk_info})"
 
-    # Prima chiamata senza tipo per rilevarlo, poi con schema corretto
-    tipo_per_schema = tipo_hint if tipo_hint else "Casa"  # default Casa, poi merge decide
-
     try:
         msg = await client.messages.create(
             model="claude-opus-4-6",
             max_tokens=8192,
-            tools=[_sezione_schema(tipo_per_schema)],
+            tools=[_sezione_schema(tipo_hint or "Casa")],
             tool_choice={"type": "tool", "name": "extract_sezioni"},
             messages=[{
                 "role": "user",
@@ -2245,7 +2285,7 @@ def _merge_sezioni(results: list[dict]) -> dict:
             else:
                 existing = sezioni_map[sid]
                 # Preferisce record più completo
-                def _score(x): return sum(1 for v in x.values() if v not in (None, 0, "", False))
+                def _score(x): return sum(1 for v in x.values() if v is not None and v != 0 and v != "")
                 if _score(s) > _score(existing):
                     # Mantieni i campi non-null del vecchio se il nuovo li ha null
                     for k, v in existing.items():
@@ -2291,22 +2331,126 @@ def _merge_sezioni(results: list[dict]) -> dict:
 def _normalize_sezioni(result: dict) -> dict:
     """
     Post-processing: normalizza gli id/nomi delle sezioni usando il dizionario sinonimi.
-    Se il modello ha usato un nome non standard, lo corregge.
+    Gestisce Casa, Infortuni e Multirischio (entrambi i dizionari).
     """
     tipo = result.get("tipo", "Casa")
-    syn_index = _SYN_INFORTUNI if tipo == "Infortuni" else _SYN_CASA
-    sezioni_map = SINONIMI_SEZIONI_INFORTUNI if tipo == "Infortuni" else SINONIMI_SEZIONI_CASA
+
+    # Per Multirischio o tipo sconosciuto, usa entrambi i dizionari
+    if tipo == "Infortuni":
+        indexes = [(_SYN_INFORTUNI, SINONIMI_SEZIONI_INFORTUNI)]
+    elif tipo in ("Casa", "RC Auto", "Vita", "Risparmio"):
+        indexes = [(_SYN_CASA, SINONIMI_SEZIONI_CASA)]
+    else:  # Multirischio, Salute, altro — prova entrambi
+        indexes = [(_SYN_CASA, SINONIMI_SEZIONI_CASA), (_SYN_INFORTUNI, SINONIMI_SEZIONI_INFORTUNI)]
 
     for s in result.get("sezioni", []):
         nome = (s.get("nome") or "").lower().strip()
-        # Cerca nel dizionario sinonimi
-        matched_id = syn_index.get(nome)
-        if matched_id and matched_id in sezioni_map:
-            s["id"] = matched_id
-            s["nome"] = sezioni_map[matched_id]["nome_standard"]
-        elif not s.get("id"):
-            # Genera un id snake_case dal nome
+        matched = False
+        for syn_index, sezioni_map in indexes:
+            matched_id = syn_index.get(nome)
+            if matched_id and matched_id in sezioni_map:
+                s["id"] = matched_id
+                s["nome"] = sezioni_map[matched_id]["nome_standard"]
+                matched = True
+                break
+        if not matched and not s.get("id"):
             s["id"] = re.sub(r'[^a-z0-9]+', '_', nome)[:30].strip('_')
+
+    return result
+
+
+async def _refine_sezioni(result: dict, first_chunk_bytes: bytes, filename: str) -> dict:
+    """
+    Secondo passaggio con Opus: recupera franchigie, scoperto e sublimiti mancanti
+    nelle sezioni già estratte, usando il PDF originale (primo chunk + più denso).
+    """
+    sezioni = result.get("sezioni", [])
+    tipo = result.get("tipo", "Casa")
+
+    # Individua sezioni con dati mancanti rilevanti
+    da_completare = []
+    for s in sezioni:
+        mancanti = []
+        if not s.get("franchigia") and s.get("id") in (
+            "ip_infortuni", "ip_infortuni_grave", "ip_malattia",
+            "rss_infortuni", "rss_malattia",
+            "diaria_ricovero", "diaria_post_ricovero",
+            "diaria_inabilita", "diaria_inabilita_malattia",
+            "rendita_vitalizia", "rendita_malattia",
+            "furto", "terremoto_alluvione",
+        ):
+            mancanti.append("franchigia")
+        if not s.get("scoperto") and s.get("id") in (
+            "rss_infortuni", "rss_malattia",
+            "furto", "terremoto_alluvione",
+        ):
+            mancanti.append("scoperto")
+        if not s.get("sublimiti") and s.get("id") in (
+            "furto", "assistenza", "assistenza_sanitaria", "tutela_legale",
+            "rc", "terremoto_alluvione",
+        ):
+            mancanti.append("sublimiti")
+        if mancanti:
+            da_completare.append({"id": s["id"], "nome": s.get("nome", ""), "mancanti": mancanti})
+
+    if not da_completare:
+        return result  # Nulla da completare
+
+    sezioni_json = json.dumps(sezioni, ensure_ascii=False, indent=2)
+    da_completare_json = json.dumps(da_completare, ensure_ascii=False, indent=2)
+    chunk_b64 = base64.b64encode(first_chunk_bytes).decode()
+
+    prompt = f"""Hai estratto le sezioni di questa polizza assicurativa italiana (file: {filename}, tipo: {tipo}).
+Alcune sezioni hanno valori mancanti. Cerca ESCLUSIVAMENTE nel documento i valori mancanti e aggiorna le sezioni.
+
+SEZIONI GIÀ ESTRATTE:
+{sezioni_json}
+
+VALORI DA TROVARE (cerca SOLO questi):
+{da_completare_json}
+
+ISTRUZIONI DI RICERCA:
+— franchigia: cerca nelle tabelle "Franchigie", "TABELLA RIASSUNTIVA", "Limitazioni". Per infortuni: può essere in giorni (es: "5 giorni") o in % (es: "franchigia 5%"). Per IP progressive: "3% (≤€250k) / 10% (€250k-€650k)".
+— scoperto: cerca "Scoperto X% con il minimo di €YYY" → scrivi "X% min. €YYY". Per rimborso spese infortuni: tipicamente "20% min. €75".
+— sublimiti: cerca limiti per sotto-voci. Per furto: gioielli, valori, scippo. Per assistenza: €/evento per tipo intervento. Per tutela legale: massimale per sinistro/anno, paesi extra-lista.
+
+REGOLE:
+— Aggiorna SOLO i campi "mancanti" elencati sopra — non toccare i valori già presenti
+— Se non trovi il valore nel documento, lascia il campo invariato (null)
+— NON inventare valori
+
+Restituisci SOLO un JSON con questa struttura:
+{{"sezioni": [ ...array completo aggiornato... ]}}"""
+
+    try:
+        msg = await client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=4096,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}},
+                    {"type": "text", "text": prompt}
+                ]
+            }]
+        )
+        raw = msg.content[0].text.strip()
+        match = re.search(r'\{"sezioni"[\s\S]*\}', raw)
+        if match:
+            updated = json.loads(match.group(0))
+            if "sezioni" in updated:
+                # Merge: aggiorna solo i campi che erano mancanti
+                updated_map = {s.get("id"): s for s in updated["sezioni"]}
+                for s in result["sezioni"]:
+                    sid = s.get("id")
+                    if sid in updated_map:
+                        for campo in ["franchigia", "scoperto", "sublimiti", "note"]:
+                            nuovo_val = updated_map[sid].get(campo)
+                            if nuovo_val and not s.get(campo):
+                                s[campo] = nuovo_val
+                logger.info(f"[sezioni] raffinamento completato per '{filename}'")
+    except Exception as e:
+        logger.warning(f"[sezioni] raffinamento fallito per '{filename}': {e} — usando dati originali")
 
     return result
 
@@ -2339,8 +2483,13 @@ async def extract_sezioni(req: ExtractSezioniRequest):
         total = len(chunks)
         logger.info(f"[sezioni] '{req.filename}' → {total} chunk(s), {len(pdf_bytes)//1024}KB")
 
+        # Rileva tipo se non specificato
+        tipo_effettivo = req.tipo_hint
+        if not tipo_effettivo and chunks:
+            tipo_effettivo = await _detect_tipo_pdf(chunks[0][0], req.filename)
+
         results = await asyncio.gather(*[
-            _extract_sezioni_chunk(cb, ps, pe, pt, req.filename, req.tipo_hint)
+            _extract_sezioni_chunk(cb, ps, pe, pt, req.filename, tipo_effettivo)
             for cb, ps, pe, pt in chunks
         ])
         results = [r for r in results if r]
@@ -2349,6 +2498,7 @@ async def extract_sezioni(req: ExtractSezioniRequest):
 
         result = _merge_sezioni(results) if len(results) > 1 else results[0]
         result = _normalize_sezioni(result)
+        result = await _refine_sezioni(result, chunks[0][0], req.filename)
         _extraction_cache[cache_key] = result
         return result
 
@@ -2390,8 +2540,15 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
                 total = len(chunks)
                 await queue.put({"type": "progress", "step": f"Lettura PDF ({total} sezioni, {len(pdf_bytes)//1024}KB)...", "pct": 5})
 
+                # Rileva tipo se non specificato
+                tipo_effettivo = req.tipo_hint
+                if not tipo_effettivo and chunks:
+                    await queue.put({"type": "progress", "step": "Rilevamento tipo polizza...", "pct": 10})
+                    tipo_effettivo = await _detect_tipo_pdf(chunks[0][0], req.filename)
+                    await queue.put({"type": "progress", "step": f"Tipo rilevato: {tipo_effettivo}. Estrazione in corso...", "pct": 15})
+
                 results = await asyncio.gather(*[
-                    _extract_sezioni_chunk(cb, ps, pe, pt, req.filename, req.tipo_hint)
+                    _extract_sezioni_chunk(cb, ps, pe, pt, req.filename, tipo_effettivo)
                     for cb, ps, pe, pt in chunks
                 ])
                 await queue.put({"type": "progress", "step": "Normalizzazione sezioni...", "pct": 80})
@@ -2402,8 +2559,10 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
                     return
 
                 result = _merge_sezioni(results) if len(results) > 1 else results[0]
-                await queue.put({"type": "progress", "step": "Applicazione dizionario sinonimi...", "pct": 92})
+                await queue.put({"type": "progress", "step": "Applicazione dizionario sinonimi...", "pct": 88})
                 result = _normalize_sezioni(result)
+                await queue.put({"type": "progress", "step": "Raffinamento valori mancanti...", "pct": 93})
+                result = await _refine_sezioni(result, chunks[0][0], req.filename)
                 _extraction_cache[cache_key] = result
                 await queue.put({"type": "result", "data": result})
 
