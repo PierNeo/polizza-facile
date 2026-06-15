@@ -476,23 +476,36 @@ def _build_refinement_prompt(merged: dict, dense_text: str, filename: str) -> st
         g["nome"] for g in merged.get("garanzie", [])
         if not g.get("massimale_num") or g.get("massimale_num") == 0
     ]
-    # Garanzie casa con sublimiti mancanti nelle note
+    # Garanzie con sublimiti mancanti nelle note
+    SEZIONI_SUBLIMITI = [
+        # Casa
+        "Furto e rapina in casa", "Incendio e danni alla proprietà",
+        "Responsabilità civile verso terzi", "Assistenza casa",
+        "Terremoto", "Alluvione e inondazione",
+        # Infortuni — assistenza e rimborsi
+        "Assistenza sanitaria", "Rimborso spese sanitarie da infortuni",
+        "Rimborso spese sanitarie da malattia", "Tutela legale",
+    ]
     garanzie_note_incomplete = [
         g["nome"] for g in merged.get("garanzie", [])
-        if not g.get("note") or ("Sublimiti" not in (g.get("note") or "") and g.get("nome") in [
-            "Furto e rapina in casa", "Incendio e danni alla proprietà",
-            "Responsabilità civile verso terzi", "Assistenza casa",
-            "Terremoto", "Alluvione e inondazione"
-        ])
+        if not g.get("note") and g.get("nome") in SEZIONI_SUBLIMITI
     ]
     # Garanzie infortuni con scoperto o franchigia in giorni mancante
+    SEZIONI_INFORTUNI_NOMI = [
+        "Rimborso spese mediche", "Rimborso spese mediche da infortuni",
+        "Rimborso spese sanitarie da infortuni", "Rimborso spese sanitarie da malattia",
+        "Diaria per inabilità temporanea al lavoro", "Diaria inabilità temporanea",
+        "Diaria inabilità temporanea da malattia",
+        "Diaria da ricovero", "Diaria ricovero", "Diaria post ricovero",
+        "Diaria post-ricovero", "Diaria da immobilizzazione", "Diaria gesso / immobilizzazione",
+        "Invalidità permanente da infortuni", "Invalidità permanente grave da infortuni",
+        "Invalidità permanente da malattia", "Rendita vitalizia",
+        "Rendita vitalizia da infortuni", "Rendita vitalizia da malattia",
+    ]
     garanzie_infortuni_da_completare = [
         g["nome"] for g in merged.get("garanzie", [])
-        if g.get("nome") in [
-            "Rimborso spese mediche", "Diaria per inabilità temporanea al lavoro",
-            "Diaria da ricovero", "Diaria post ricovero", "Diaria da immobilizzazione",
-            "Invalidità permanente da infortunio", "Rendita vitalizia"
-        ] and (not g.get("scoperto") or not g.get("franchigia"))
+        if g.get("nome") in SEZIONI_INFORTUNI_NOMI
+        and (not g.get("scoperto") or not g.get("franchigia"))
     ]
     garanzie_json = json.dumps(merged.get("garanzie", []), ensure_ascii=False, indent=2)
     return f"""Sei un esperto di polizze assicurative italiane con capacità di lettura precisa di tabelle e condizioni contrattuali.
@@ -1881,7 +1894,19 @@ SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
         "sinonimi": [
             "ip da infortuni", "invalidità permanente", "ip infortuni",
             "capitale ip", "invalidità permanente da infortunio",
-            "invalidità permanente grave da infortuni",
+            "ip base", "invalidità permanente base da infortuni",
+        ],
+        "sotto_garanzie": [],
+    },
+    "ip_infortuni_grave": {
+        "id": "ip_infortuni_grave",
+        "nome_standard": "Invalidità permanente grave da infortuni",
+        "sinonimi": [
+            "invalidità permanente grave da infortuni", "ip grave", "ip grave da infortuni",
+            "ip grave infortuni", "invalidità grave infortuni",
+            "invalidità permanente grave infortuni", "capitale ip grave",
+            "integrazione ip grave", "grande invalidità da infortuni",
+            "invalidità permanente totale da infortuni",
         ],
         "sotto_garanzie": [],
     },
@@ -1889,9 +1914,21 @@ SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
         "id": "rss_infortuni",
         "nome_standard": "Rimborso spese sanitarie da infortuni",
         "sinonimi": [
+            "rimborso spese mediche da infortuni", "rimborso spese di cura da infortuni",
+            "spese sanitarie da infortuni", "rss infortuni",
+            "rimborso spese infortuni", "spese di cura infortuni",
             "rimborso spese mediche", "rimborso spese di cura",
-            "spese sanitarie", "spese di cura", "rss",
-            "rimborso spese", "rimborso spese mediche da infortuni",
+        ],
+        "sotto_garanzie": [],
+    },
+    "rss_malattia": {
+        "id": "rss_malattia",
+        "nome_standard": "Rimborso spese sanitarie da malattia",
+        "sinonimi": [
+            "rimborso spese mediche da malattia", "rimborso spese di cura da malattia",
+            "spese sanitarie da malattia", "rss malattia",
+            "rimborso spese malattia", "spese di cura malattia",
+            "rimborso spese sanitarie malattia",
         ],
         "sotto_garanzie": [],
     },
@@ -1909,8 +1946,18 @@ SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
         "nome_standard": "Diaria ricovero",
         "sinonimi": [
             "diaria da ricovero", "indennità ricovero", "diaria ospedaliera",
-            "diaria post ricovero", "diaria per ricovero",
-            "diaria da ricovero completa",
+            "diaria per ricovero", "diaria da ricovero completa",
+            "diaria ricovero ospedaliero", "indennità di ricovero",
+        ],
+        "sotto_garanzie": [],
+    },
+    "diaria_post_ricovero": {
+        "id": "diaria_post_ricovero",
+        "nome_standard": "Diaria post ricovero",
+        "sinonimi": [
+            "diaria post ricovero", "diaria post-ricovero", "indennità post ricovero",
+            "diaria convalescenza", "indennità convalescenza",
+            "diaria post dimissione", "diaria post ospedalizzazione",
         ],
         "sotto_garanzie": [],
     },
@@ -1921,6 +1968,19 @@ SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
             "inabilità temporanea al lavoro", "diaria per inabilità",
             "indennità giornaliera", "ita", "diaria inabilità",
             "diaria per inabilità temporanea",
+            "diaria inabilità temporanea da infortuni",
+            "inabilità temporanea totale da infortuni",
+        ],
+        "sotto_garanzie": [],
+    },
+    "diaria_inabilita_malattia": {
+        "id": "diaria_inabilita_malattia",
+        "nome_standard": "Diaria inabilità temporanea da malattia",
+        "sinonimi": [
+            "diaria inabilità da malattia", "inabilità temporanea da malattia",
+            "diaria per malattia", "indennità giornaliera da malattia",
+            "diaria malattia", "ita malattia",
+            "diaria inabilità temporanea da malattia",
         ],
         "sotto_garanzie": [],
     },
@@ -1931,13 +1991,46 @@ SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
             "ip da malattia", "invalidità da malattia", "ip malattia",
             "ip ictus/infarto", "invalidità permanente da malattia",
             "invalidità permanente grave da malattia",
+            "invalidità permanente da ictus o infarto",
         ],
         "sotto_garanzie": [],
     },
     "rendita_vitalizia": {
         "id": "rendita_vitalizia",
-        "nome_standard": "Rendita vitalizia",
-        "sinonimi": ["rendita vitalizia", "rendita"],
+        "nome_standard": "Rendita vitalizia da infortuni",
+        "sinonimi": [
+            "rendita vitalizia", "rendita vitalizia da infortuni",
+            "rendita da infortuni", "rendita infortuni",
+        ],
+        "sotto_garanzie": [],
+    },
+    "rendita_malattia": {
+        "id": "rendita_malattia",
+        "nome_standard": "Rendita vitalizia da malattia",
+        "sinonimi": [
+            "rendita da malattia", "rendita vitalizia da malattia",
+            "rendita malattia", "rendita da ictus/infarto",
+        ],
+        "sotto_garanzie": [],
+    },
+    "stato_comatoso": {
+        "id": "stato_comatoso",
+        "nome_standard": "Stato comatoso irreversibile",
+        "sinonimi": [
+            "stato comatoso irreversibile", "stato comatoso", "coma irreversibile",
+            "stato vegetativo permanente", "coma persistente",
+            "stato comatoso permanente",
+        ],
+        "sotto_garanzie": [],
+    },
+    "tutela_legale": {
+        "id": "tutela_legale",
+        "nome_standard": "Tutela legale",
+        "sinonimi": [
+            "tutela legale", "sezione tutela legale", "tutela legale infortuni",
+            "tutela legale polizza infortuni", "tutela legale vita privata",
+            "difesa legale", "assistenza legale",
+        ],
         "sotto_garanzie": [],
     },
     "assistenza_sanitaria": {
@@ -1999,7 +2092,7 @@ Per ASSISTENZA: artigiani, asciugatura, vigilanza, deposito_contenuto, pernottam
                     "items": {
                         "type": "object",
                         "properties": {
-                            "id":           {"type": "string", "description": "ID normalizzato (snake_case): incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico, morte, ip_infortuni, rss_infortuni, diaria_gesso, diaria_ricovero, diaria_inabilita, ip_malattia, rendita_vitalizia"},
+                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, tutela_legale, assistenza_sanitaria"},
                             "nome":         {"type": "string", "description": f"Nome NORMALIZZATO. Usa ESATTAMENTE uno di: {', '.join(sezioni_enum)}. NON inventare nomi diversi — usa i sinonimi per riconoscere la sezione, poi metti il nome standard."},
                             "inclusa":      {"type": "boolean", "description": "true se presente nel pacchetto base"},
                             "opzionale":    {"type": "boolean", "description": "true se acquistabile come extra, false se assente"},
@@ -2057,12 +2150,23 @@ REGOLE CRITICHE:
 — POLIZZE INFORTUNI: distingui "assistenza_sanitaria" (id=assistenza_sanitaria, per infortuni/salute — infermiere, fisioterapista, rimpatrio) da "assistenza" (id=assistenza, solo per polizze Casa — idraulico, vetraio, fabbro). Per polizze Infortuni usa SEMPRE id="assistenza_sanitaria".
 — POLIZZE MODULARI (es. Tandem): anche se una garanzia richiede attivazione specifica nella scheda, se è descritta nel testo come garanzia della sezione Infortuni mettila come inclusa=false, opzionale=true. NON metterla assente se è chiaramente descritta nel documento.
 — TUTELA LEGALE nelle polizze CASA: se nel testo c'è una sezione "Tutela Legale" con le sue condizioni (massimale, articoli, carenza), mettila come inclusa=true anche se il massimale è variabile o "indicato in polizza". La presenza della sezione nel contratto = garanzia inclusa.
+— TUTELA LEGALE nelle polizze INFORTUNI: se presente (anche con massimale fisso), estraila come id="tutela_legale". Nel campo note includi: limite per paesi extra-lista se presente (es: "Paesi extra-lista: max €5.000"), distinzione Italia/EU vs extra-EU, massimale per sinistro e annuale.
 — MASSIMALE "Indicato in Polizza" o "Variabile": se il testo dice che il massimale è scelto dal contraente o indicato in polizza, usa massimale="Indicato in Polizza" e inclusa=true (non opzionale).
 — "Morte da infortuni" / "7.1 Morte da infortuno": se presente nel testo della polizza (anche come sezione 7.1), estraila sempre. Per Tandem è una garanzia della sezione Infortuni → id="morte", inclusa=true (o opzionale=true se modulare).
 — massimale: per Incendio/Furto/Infortuni usa "Somma assicurata". Per RC cerca il valore fisso (es: €5.000.000). Se il testo dice "massimale indicato in polizza" usa "Indicato in Polizza" e massimale_num=0.
 — franchigia e scoperto: estrai SEMPRE con il minimo in € quando presente (es: "10% min. €250"). Per infortuni cerca la tabella riassuntiva.
-— sublimiti: formato "Voce max €X | Voce max €Y". Per Furto: gioielli, valori, scippo fuori. Per Assistenza sanitaria: limiti per tipo prestazione (infermiere, fisioterapista, rimpatrio, ecc.).
+— FRANCHIGIE PROGRESSIVE: se la franchigia varia per scaglioni (es. in base al % di IP o all'importo), usa il formato: "X% (≤€Nk) / Y% (€Nk-€Mk) / Z% (>€Mk)". Es: "3% (≤€250k) / 10% (€250k-€650k) / 15% (>€650k)". Per IP con soglia fissa: "franchigia 25% sotto soglia / 0% oltre soglia" → "0% (IP ≥ soglia) / 25% (IP < soglia)".
+— PIÙ OPZIONI FRANCHIGIA: se esistono più alternative per la stessa garanzia (es. "franchigia 24% o 65%", oppure più livelli di franchigia opzionali), riportale TUTTE separate da " o ": franchigia="24% o 65%". NON scegliere una sola opzione — riporta tutte quelle indicate nel testo.
+— sublimiti: formato "Voce max €X | Voce max €Y". Per Furto: gioielli, valori, scippo fuori. Per Assistenza sanitaria: limiti per tipo prestazione: "Infermiere max €X/gg | Fisioterapista max €X/sett | Cure dentarie max €X | Protesi max €X | Riabilitazione max €X | Rimpatrio: incluso/max €X".
 — sotto_garanzie: per Casa indica quali sotto-garanzie sono incluse (true/false) o il loro valore (es: "max €15.000" per gioielli).
+— SEZIONI INFORTUNI DISTINTE: estraile come sezioni SEPARATE con id diversi quando il documento le distingue:
+    • IP base (id=ip_infortuni) vs IP Grave/≥65% (id=ip_infortuni_grave) — separa SOLO se il documento descrive due garanzie distinte
+    • Diaria ricovero (id=diaria_ricovero) vs Diaria post-ricovero/convalescenza (id=diaria_post_ricovero)
+    • Diaria inabilità da infortuni (id=diaria_inabilita) vs da malattia (id=diaria_inabilita_malattia)
+    • Rendita da infortuni (id=rendita_vitalizia) vs da malattia (id=rendita_malattia)
+    • Rimborso spese da infortuni (id=rss_infortuni) vs da malattia (id=rss_malattia)
+    NON accorpare garanzie "da infortuni" e "da malattia" in una sola sezione se il documento le presenta separatamente.
+— STATO COMATOSO IRREVERSIBILE: se presente come garanzia/sezione separata (non solo menzionata nelle CG generali), estraila come id="stato_comatoso". Nel campo note indica se è legata alla garanzia Morte o autonoma, e la condizione di attivazione (es: "coma > 6 mesi", "stato vegetativo permanente").
 — Se una sezione è ESCLUSA esplicitamente: inclusa=false, opzionale=false. Se è opzionale acquistabile: inclusa=false, opzionale=true.
 — Estrai TUTTE le sezioni presenti o esplicitamente escluse."""
 
