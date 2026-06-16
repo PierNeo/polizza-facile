@@ -198,9 +198,11 @@ client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 # NOTA: verifica che "claude-opus-4-6" sia ancora attivo/non deprecato. Per usare
 # un Opus più recente basta impostare la env var MODEL_VISION (es. claude-opus-4-8)
 # su Railway, senza modificare il codice.
-MODEL_VISION = os.getenv("MODEL_VISION", "claude-opus-4-6")            # estrazione PDF vision + sezioni
-MODEL_TEXT   = os.getenv("MODEL_TEXT",   "claude-sonnet-4-6")          # estrazione/raffinamento da testo + match
-MODEL_FAST   = os.getenv("MODEL_FAST",   "claude-haiku-4-5-20251001")  # raccomandazioni, summary, detect tipo
+# .strip() difensivo: un valore env con uno spazio di troppo (es. "claude-opus-4-8 ")
+# farebbe fallire TUTTE le chiamate con un 404 "model not found".
+MODEL_VISION = os.getenv("MODEL_VISION", "claude-opus-4-6").strip()            # estrazione PDF vision + sezioni
+MODEL_TEXT   = os.getenv("MODEL_TEXT",   "claude-sonnet-4-6").strip()          # estrazione/raffinamento da testo + match
+MODEL_FAST   = os.getenv("MODEL_FAST",   "claude-haiku-4-5-20251001").strip()  # raccomandazioni, summary, detect tipo
 
 # ── LIMITI PDF ────────────────────────────────────────────────────────────────
 # Tetti generosi: pensati SOLO per fermare upload abnormi/abusi, non per bloccare
@@ -2533,7 +2535,22 @@ async def _detect_tipo_pdf(first_chunk_bytes: bytes, filename: str) -> str:
     Passaggio leggero (Haiku) per rilevare il tipo di polizza dal primo chunk PDF.
     Ritorna: "Casa", "Infortuni", "RC Auto", "Vita", "Multirischio", "Salute", "altro".
     """
-    chunk_b64 = base64.b64encode(first_chunk_bytes).decode()
+    # Usa solo le prime pagine: il tipo si capisce dalla copertina/indice e così
+    # non si sfora il contesto di Haiku (200k) su documenti lunghi.
+    detect_bytes = first_chunk_bytes
+    try:
+        reader = PdfReader(io.BytesIO(first_chunk_bytes))
+        if len(reader.pages) > 6:
+            writer = PdfWriter()
+            for i in range(6):
+                writer.add_page(reader.pages[i])
+            buf = io.BytesIO()
+            writer.write(buf)
+            detect_bytes = buf.getvalue()
+    except Exception:
+        detect_bytes = first_chunk_bytes  # se non si riesce a tagliare, prova com'è
+
+    chunk_b64 = base64.b64encode(detect_bytes).decode()
     try:
         msg = await call_claude(
             model=MODEL_FAST,
