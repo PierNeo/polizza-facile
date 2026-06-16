@@ -5,4 +5,5 @@ python-dotenv==1.0.1
 pydantic==2.9.2
 httpx>=0.25.0
 pypdf>=4.0.0
+cryptography>=42.0.0   # richiesto da pypdf per leggere/dividere i PDF cifrati (AES) — molte CGA lo sono
 python-multipart>=0.0.9
