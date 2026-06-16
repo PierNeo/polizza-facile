@@ -1194,10 +1194,15 @@ def _check_pdf_limits(pdf_bytes: bytes) -> None:
             f"PDF troppo grande ({size_mb:.1f} MB). Limite massimo {MAX_PDF_BYTES // (1024*1024)} MB. "
             f"Se è una polizza valida molto pesante, comprimi il PDF o contatta l'assistenza."
         )
+    # Conteggio pagine "best-effort": molti PDF di polizza reali (protetti/criptati o
+    # con strutture che pypdf non digerisce) possono far fallire il conteggio, ma Claude
+    # li legge comunque a vista. NON blocchiamo l'estrazione in quel caso: il tetto sui
+    # MB sopra è già la vera protezione anti-abuso.
     try:
         n_pages = len(PdfReader(io.BytesIO(pdf_bytes)).pages)
     except Exception:
-        raise HTTPException(400, "PDF non leggibile o corrotto")
+        logger.warning("[pdf] conteggio pagine non riuscito — procedo comunque (cap MB già verificato)")
+        return
     if n_pages > MAX_PDF_PAGES:
         raise HTTPException(
             413,

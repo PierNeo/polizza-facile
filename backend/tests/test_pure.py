@@ -115,10 +115,17 @@ def test_check_pdf_limits_troppe_pagine(monkeypatch):
         main._check_pdf_limits(_pdf_di_pagine(5))
     assert e.value.status_code == 413
 
-def test_check_pdf_limits_corrotto():
+def test_check_pdf_limits_corrotto_non_blocca():
+    # Best-effort: un PDF illeggibile ma sotto il cap MB NON deve bloccare l'estrazione
+    # (Claude lo legge comunque a vista; il conteggio pagine è solo un guardrail).
+    main._check_pdf_limits(b"questo non e un pdf valido" * 10)  # non solleva
+
+def test_check_pdf_limits_corrotto_ma_enorme(monkeypatch):
+    # Se però supera il cap MB, deve bloccare anche se illeggibile
+    monkeypatch.setattr(main, "MAX_PDF_BYTES", 50)
     with pytest.raises(HTTPException) as e:
-        main._check_pdf_limits(b"questo non e un pdf valido" * 10)
-    assert e.value.status_code in (400, 413)
+        main._check_pdf_limits(b"spazzatura" * 100)
+    assert e.value.status_code == 413
 
 
 # ── INDICE SINONIMI SEZIONI ───────────────────────────────────────────────────
