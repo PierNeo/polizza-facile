@@ -39,7 +39,10 @@ window.AGENZIA_CONFIG = {
   // ── API ───────────────────────────────────────────────────────────────────
   // URL del backend. In produzione metti l'URL Railway/Render.
   backendUrl:  "https://polizza-facile-production.up.railway.app",
-  apiKey:      "zMf0NH5qm80VXa6UXi26NQAUh0E20V9v",
+  // NB: nessuna chiave API qui. L'accesso avviene con username+password (login)
+  // e un token di sessione — una chiave statica nel frontend sarebbe pubblica e
+  // aggirabile. Gli account si creano via /api/auth/create-user (protetto da
+  // ADMIN_KEY) o con il seed ADMIN_USERNAME/ADMIN_PASSWORD su Railway.
 
   // ── V2 EXTRACTION (solo branch v2-native-pdf) ────────────────────────────
   // true  = Claude legge il PDF visivamente (tabelle perfette, nessun garble)

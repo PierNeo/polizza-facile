@@ -1732,11 +1732,20 @@ const BACKEND = (
   'https://polizza-facile-production.up.railway.app'
 ).replace(/\/$/, '');
 
-const API_KEY = (
-  window.PF_API_KEY ||
-  (window.AGENZIA_CONFIG && window.AGENZIA_CONFIG.apiKey) ||
-  'zMf0NH5qm80VXa6UXi26NQAUh0E20V9v'
-);
+// ── AUTENTICAZIONE ──────────────────────────────────────────────────────────
+// Niente più chiave statica nel codice: si usa un token di sessione ottenuto
+// con username+password via /api/auth/login. Il token vive in localStorage.
+const PF_TOKEN_KEY = 'pf_token';
+function getToken() { try { return localStorage.getItem(PF_TOKEN_KEY) || ''; } catch { return ''; } }
+function setToken(t) { try { t ? localStorage.setItem(PF_TOKEN_KEY, t) : localStorage.removeItem(PF_TOKEN_KEY); } catch {} }
+function clearToken() { setToken(''); }
+// Header di autenticazione da unire a qualsiasi fetch verso il backend.
+function authHeaders(extra) {
+  const h = Object.assign({}, extra || {});
+  const t = getToken();
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return h;
+}
 
 const DEFAULT_QUESTIONNAIRE_CONFIG = {
  sezioni: [
@@ -1831,12 +1840,13 @@ let libSelected = new Set(); // IDs selected from library for comparison
 let _clients = null;  // null = non ancora caricati
 let _polizze = null;
 
-// Helper fetch verso il backend
+// Helper fetch verso il backend (inietta il token e gestisce il 401)
 async function apiFetch(path, options = {}) {
  const res = await fetch(`${BACKEND}${path}`, {
-  headers: { 'Content-Type': 'application/json' },
-  ...options
+  ...options,
+  headers: authHeaders({ 'Content-Type': 'application/json', ...(options.headers || {}) })
  });
+ if (res.status === 401) { handleAuthExpired(); throw new Error('API 401'); }
  if (!res.ok) throw new Error(`API ${res.status}`);
  return res.json();
 }
@@ -2623,7 +2633,7 @@ async function cgaLoad() {
   // Prova a integrare i dati estratti dal backend (opzionale — se il backend è disponibile)
   let extractedMap = {};
   try {
-   const r2 = await fetch(`${BACKEND}/api/library`, { signal: AbortSignal.timeout(4000) });
+   const r2 = await fetch(`${BACKEND}/api/library`, { headers: authHeaders(), signal: AbortSignal.timeout(4000) });
    if (r2.ok) {
     const live = await r2.json();
     live.forEach(e => { if (e.extracted) extractedMap[e.id] = e; });
@@ -2799,7 +2809,7 @@ function cgaUploadPdf(id) {
       try {
         res = await fetch(`${BACKEND}/api/library/upload-pdf`, {
           method: 'POST',
-          headers: API_KEY ? { 'X-API-Key': API_KEY } : {},
+          headers: authHeaders(),
           body: formData,
           signal: ctrl.signal
         });
@@ -2877,7 +2887,7 @@ function cgaUploadPdf(id) {
       try {
         res = await fetch(`${BACKEND}/api/library/upload-pdf`, {
           method: 'POST',
-          headers: API_KEY ? { 'X-API-Key': API_KEY } : {},
+          headers: authHeaders(),
           body: formData, signal: ctrl.signal
         });
       } finally { clearTimeout(timer); }
@@ -2927,7 +2937,7 @@ async function cgaSyncOne(id, { silent = false, onStatus = null } = {}) {
     try {
      res = await fetch(`${BACKEND}/api/library/sync`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(API_KEY ? {'X-API-Key': API_KEY} : {}) },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ id }),
       signal: ctrl.signal
      });
@@ -3219,7 +3229,7 @@ async function cgaSyncAll() {
  if(btn) { btn.disabled=true; btn.textContent='Sincronizzazione...'; }
 
  try {
-  const headers = API_KEY ? {'Content-Type':'application/json','X-API-Key':API_KEY} : {'Content-Type':'application/json'};
+  const headers = authHeaders({'Content-Type':'application/json'});
   const res = await fetch(`${BACKEND}/api/library/sync-stream`, { method:'POST', headers, body:'{}' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -3276,7 +3286,7 @@ async function cgaSync(targetId) {
  try {
   const body = targetId ? JSON.stringify({id: targetId}) : '{}';
   const res = await fetch(`${BACKEND}/api/library/sync-stream`, {
-   method:'POST', headers:{'Content-Type':'application/json'}, body
+   method:'POST', headers:authHeaders({'Content-Type':'application/json'}), body
   });
   const reader = res.body.getReader(); const dec = new TextDecoder();
   let buf = '';
@@ -3579,9 +3589,10 @@ async function generateRecsForClient(clientId) {
  if (btn) { btn.disabled = true; btn.textContent = 'Generazione in corso...'; }
  try {
   const res = await fetch(`${BACKEND}/api/raccomanda`, {
-   method:'POST', headers:{'Content-Type':'application/json'},
+   method:'POST', headers:authHeaders({'Content-Type':'application/json'}),
    body: JSON.stringify({risposte, agenzia:'polo-bassano'})
   });
+  if (res.status === 401) { handleAuthExpired(); throw new Error('Sessione scaduta'); }
   if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.detail||`Errore (${res.status})`); }
   const recs = await res.json();
   // Salva le raccomandazioni nel cliente
@@ -3892,7 +3903,7 @@ async function callExtract(text, filename, onProgress, pdfBase64) {
  }
  const res = await fetch(`${BACKEND}${endpoint}`, {
   method: 'POST',
-  headers: {'Content-Type': 'application/json', ...(API_KEY ? {'X-API-Key': API_KEY} : {})},
+  headers: authHeaders({'Content-Type': 'application/json'}),
   body
  });
  if (!res.ok) {
@@ -3934,7 +3945,8 @@ async function callSummary(policies) {
   if (clientAnswers['note']) client_profile.note = clientAnswers['note'];
  }
  const body = client_profile ? { policies, client_profile } : { policies };
- const res=await fetch(`${BACKEND}/api/summary`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const res=await fetch(`${BACKEND}/api/summary`,{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify(body)});
+ if(res.status===401){handleAuthExpired();return;}
  if(!res.ok) return; const d=await res.json();
  if(d.summary){document.getElementById('aiSummaryText').textContent=d.summary;document.getElementById('aiSummary').style.display='block';}
 }
@@ -4760,9 +4772,10 @@ async function runMatch() {
 
  try {
  const res = await fetch(`${BACKEND}/api/match`, {
- method:'POST', headers:{'Content-Type':'application/json'},
+ method:'POST', headers:authHeaders({'Content-Type':'application/json'}),
  body: JSON.stringify({ client: matchSelectedClient, policies: selectedPols, feedback_history: [] })
  });
+ if (res.status === 401) { handleAuthExpired(); throw new Error('Sessione scaduta'); }
  if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
  const data = await res.json();
  renderMatchResults(data, selectedPols);
@@ -4971,13 +4984,152 @@ function toast(msg,dur=3000) {
 }
 
 //
+// AUTENTICAZIONE — UI E BOOT
+//
+function _brandColors() {
+  const c = (window.AGENZIA_CONFIG && window.AGENZIA_CONFIG.colori) || {};
+  return {
+    primario: c.primario || '#0F2741',
+    primarioMid: c.primarioMid || '#1A3D60',
+    accento: c.accento || '#C8971C',
+  };
+}
+
+function _ensureLoginOverlay() {
+  if (document.getElementById('pfLoginOverlay')) return;
+  const C = _brandColors();
+  const cfg = window.AGENZIA_CONFIG || {};
+  const nome = cfg.nome || 'Polizza Facile';
+  const logo = cfg.logoUrl
+    ? `<img src="${cfg.logoUrl}" alt="${nome}" style="max-height:54px;max-width:220px;margin:0 auto 18px;display:block;">`
+    : `<div style="font-size:22px;font-weight:700;color:#fff;margin-bottom:18px;">${nome}</div>`;
+  const html = `
+  <div id="pfLoginOverlay" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,${C.primario},${C.primarioMid});display:flex;align-items:center;justify-content:center;font-family:inherit;">
+    <form id="pfLoginForm" style="background:#fff;border-radius:16px;padding:34px 30px;width:min(380px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;">
+      <div style="background:${C.primario};margin:-34px -30px 22px;padding:26px 0 18px;border-radius:16px 16px 0 0;">${logo}<div style="color:rgba(255,255,255,.75);font-size:13px;">Accesso riservato</div></div>
+      <input id="pfLoginUser" type="text" autocomplete="username" placeholder="Username" style="width:100%;box-sizing:border-box;padding:12px 14px;margin-bottom:12px;border:1px solid #d6dbe2;border-radius:9px;font-size:15px;">
+      <input id="pfLoginPass" type="password" autocomplete="current-password" placeholder="Password" style="width:100%;box-sizing:border-box;padding:12px 14px;margin-bottom:8px;border:1px solid #d6dbe2;border-radius:9px;font-size:15px;">
+      <div id="pfLoginErr" style="color:#c0392b;font-size:13px;min-height:18px;margin-bottom:8px;text-align:left;"></div>
+      <button id="pfLoginBtn" type="submit" style="width:100%;padding:12px;background:${C.accento};color:${C.primario};font-weight:700;border:none;border-radius:9px;font-size:15px;cursor:pointer;">Accedi</button>
+    </form>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.getElementById('pfLoginForm').addEventListener('submit', doLogin);
+}
+
+function showLogin() {
+  _ensureLoginOverlay();
+  document.getElementById('pfLoginOverlay').style.display = 'flex';
+  const u = document.getElementById('pfLoginUser'); if (u) u.focus();
+}
+function hideLogin() {
+  const o = document.getElementById('pfLoginOverlay');
+  if (o) o.style.display = 'none';
+}
+
+async function doLogin(e) {
+  if (e) e.preventDefault();
+  const user = (document.getElementById('pfLoginUser').value || '').trim();
+  const pass = document.getElementById('pfLoginPass').value || '';
+  const errEl = document.getElementById('pfLoginErr');
+  const btn = document.getElementById('pfLoginBtn');
+  errEl.textContent = '';
+  if (!user || !pass) { errEl.textContent = 'Inserisci username e password.'; return; }
+  btn.disabled = true; btn.textContent = 'Accesso…';
+  try {
+    const res = await fetch(`${BACKEND}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass })
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      errEl.textContent = d.detail || 'Accesso non riuscito.';
+      btn.disabled = false; btn.textContent = 'Accedi';
+      return;
+    }
+    const data = await res.json();
+    setToken(data.token);
+    // Isolamento per account: se cambia l'utente su questo browser, svuota le
+    // cache locali (clienti/polizze/config) per non mescolare dati fra account.
+    try {
+      const prev = localStorage.getItem('pf_user');
+      if (prev && prev !== data.username) {
+        ['pf_clients','pf_polizze','pf_qconfig'].forEach(k => localStorage.removeItem(k));
+        _clients = null; _polizze = null;
+      }
+      localStorage.setItem('pf_user', data.username);
+    } catch {}
+    document.getElementById('pfLoginPass').value = '';
+    hideLogin();
+    startApp();
+  } catch (err) {
+    errEl.textContent = 'Errore di connessione al server.';
+    btn.disabled = false; btn.textContent = 'Accedi';
+  }
+}
+
+function pfLogout() {
+  clearToken();
+  // Pulisci le cache locali dei dati privati così non restano visibili al
+  // prossimo account che accede da questo browser.
+  try { ['pf_clients','pf_polizze','pf_qconfig','pf_user'].forEach(k => localStorage.removeItem(k)); } catch {}
+  location.reload();
+}
+window.pfLogout = pfLogout;
+
+// Chiamata quando un endpoint risponde 401: la sessione è scaduta o assente.
+let _authExpiredHandled = false;
+function handleAuthExpired() {
+  if (_authExpiredHandled) return;
+  _authExpiredHandled = true;
+  clearToken();
+  showLogin();
+}
+
+function _ensureLogoutButton() {
+  if (document.getElementById('pfLogoutBtn')) return;
+  const C = _brandColors();
+  const btn = document.createElement('button');
+  btn.id = 'pfLogoutBtn';
+  btn.textContent = 'Esci';
+  btn.title = 'Disconnetti';
+  btn.onclick = pfLogout;
+  btn.style.cssText = `position:fixed;bottom:14px;left:14px;z-index:9000;padding:7px 12px;font-size:12px;border:1px solid rgba(255,255,255,.25);background:${C.primario};color:#fff;border-radius:8px;cursor:pointer;opacity:.85;`;
+  document.body.appendChild(btn);
+}
+
+async function _verifySession() {
+  if (!getToken()) return false;
+  try {
+    const r = await fetch(`${BACKEND}/api/auth/me`, { headers: authHeaders() });
+    return r.ok;
+  } catch { return false; }
+}
+
+function startApp() {
+  _authExpiredHandled = false;
+  _ensureLogoutButton();
+  // Carica i dati dal server (Qdrant), poi mostra la dashboard.
+  loadServerData().finally(() => renderDashboard());
+}
+
+async function bootApp() {
+  if (await _verifySession()) {
+    hideLogin();
+    startApp();
+  } else {
+    clearToken();
+    showLogin();
+  }
+}
+
+//
 // INIT
 //
-// Carica i dati dal server (Qdrant) al primo avvio, poi mostra la dashboard.
-// Se il server non è raggiungibile, usa la cache localStorage come fallback.
-// Warmup ping per Railway (evita cold start)
+// Warmup ping per Railway (evita cold start), poi gate dietro login.
 fetch(`${BACKEND}/health`, { method:'GET' }).catch(()=>{});
-loadServerData().finally(() => renderDashboard());
+bootApp();
 </script>
 </body>
 </html>

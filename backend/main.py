@@ -8,6 +8,10 @@ import base64
 import io
 import time
 import threading
+import hashlib
+import hmac
+import secrets
+import uuid
 from collections import defaultdict
 import anthropic
 import httpx
@@ -61,51 +65,69 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response as StarletteResponse
 
+def _cors_allow_origin(request: StarletteRequest) -> str:
+    """Ritorna l'Origin da autorizzare: '*' solo se l'allowlist è aperta,
+    altrimenti l'Origin della richiesta se è in allowlist (echo), altrimenti il primo."""
+    if _origins == ["*"]:
+        return "*"
+    origin = request.headers.get("origin", "")
+    if origin and origin in _origins:
+        return origin
+    return _origins[0] if _origins else ""
+
+
 class ForceCORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: StarletteRequest, call_next):
         if request.method == "OPTIONS":
             response = StarletteResponse(status_code=200)
         else:
             response = await call_next(request)
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        allow_origin = _cors_allow_origin(request)
+        if allow_origin:
+            response.headers["Access-Control-Allow-Origin"] = allow_origin
+            if allow_origin != "*":
+                # Necessario quando si fa echo dell'Origin per cache/proxy corretti
+                response.headers["Vary"] = "Origin"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-API-Key"
         return response
 
 app.add_middleware(ForceCORSMiddleware)
 
-# ── API KEY AUTH ──────────────────────────────────────────────────────────────
-# Protegge tutti gli endpoint /api/* quando la env var API_KEY è configurata.
-# Se API_KEY non è impostata, l'autenticazione è disabilitata (retrocompatibile).
+# ── AUTENTICAZIONE A SESSIONE ───────────────────────────────────────────────────
+# Tutti gli endpoint /api/* richiedono un token di sessione valido (Authorization:
+# Bearer <token>), emesso da /api/auth/login dopo verifica username+password.
+# Le funzioni _verify_token / _bearer_token / _cors_allow_origin sono definite più
+# avanti nel modulo: vengono risolte a runtime (il modulo è già caricato quando una
+# richiesta arriva), quindi l'ordine non è un problema.
 
-def _require_api_key(request: Request):
-    """Verifica l'API key nella richiesta. Lancia 401 se non valida."""
-    expected = os.getenv("APP_API_KEY", "")
-    if not expected:
-        return  # auth disabilitata se API_KEY non configurata su Railway
-    key = request.headers.get("X-API-Key", "") or request.query_params.get("api_key", "")
-    if key != expected:
-        raise HTTPException(status_code=401, detail="API key non valida")
+# Path /api/* che NON richiedono una sessione utente (hanno auth propria o sono pubblici)
+_AUTH_EXEMPT_PATHS = {
+    "/api/auth/login",        # pubblico: serve a ottenere il token
+    "/api/auth/create-user",  # protetto separatamente da ADMIN_KEY
+    "/api/cron-sync",         # protetto separatamente da CRON_API_KEY (Bearer dedicato)
+    "/api/library/check-urls",# diagnostico: ha un proprio controllo a chiave
+}
 
 
-class APIKeyMiddleware(BaseHTTPMiddleware):
-    """Applica _require_api_key a tutti gli endpoint /api/* (esclusi OPTIONS)."""
+class AuthMiddleware(BaseHTTPMiddleware):
+    """Richiede un token di sessione valido su tutti gli /api/* non esentati."""
     async def dispatch(self, request: StarletteRequest, call_next):
-        if request.method != "OPTIONS" and request.url.path.startswith("/api/"):
-            expected = os.getenv("APP_API_KEY", "")
-            if expected:
-                key = request.headers.get("X-API-Key", "") or request.query_params.get("api_key", "")
-                if key != expected:
-                    resp = StarletteResponse(
-                        content='{"detail":"API key non valida"}',
-                        status_code=401,
-                        media_type="application/json"
-                    )
-                    resp.headers["Access-Control-Allow-Origin"] = "*"
-                    return resp
+        path = request.url.path
+        if (request.method != "OPTIONS"
+                and path.startswith("/api/")
+                and path not in _AUTH_EXEMPT_PATHS):
+            if not _verify_token(_bearer_token(request)):
+                resp = StarletteResponse(
+                    content='{"detail":"Non autenticato"}',
+                    status_code=401,
+                    media_type="application/json"
+                )
+                resp.headers["Access-Control-Allow-Origin"] = _cors_allow_origin(request) or "*"
+                return resp
         return await call_next(request)
 
-app.add_middleware(APIKeyMiddleware)
+app.add_middleware(AuthMiddleware)
 
 # ── RATE LIMITING ──────────────────────────────────────────────────────────────
 # Rate limiting in-memory sugli endpoint AI costosi.
@@ -117,6 +139,7 @@ _rl_mutex = threading.Lock()
 
 # (path_prefix, max_requests, window_seconds)
 _RATE_LIMITS: list = [
+    ("/api/auth/login",    20,  900),  # anti-brute-force login (per IP) — 20/15min
     ("/api/library/sync",  10, 3600),  # sync catalogo — molto costoso
     ("/api/cron-sync",      5, 3600),  # cron sync — estremamente costoso
     ("/api/extract",       20, 3600),  # estrazione singola CGA
@@ -146,7 +169,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     """Applica rate limiting agli endpoint AI costosi."""
     async def dispatch(self, request: StarletteRequest, call_next):
         if request.method != "OPTIONS":
-            api_key = request.headers.get("X-API-Key", "anon")
+            # Identità del bucket: token/chiave se presente, altrimenti IP client
+            # (così il login senza credenziali è limitato per IP, anti-brute-force).
+            api_key = (request.headers.get("X-API-Key", "")
+                       or _bearer_token(request)
+                       or (request.client.host if request.client else "")
+                       or "anon")
             allowed, limit = _rl_check(request.url.path, api_key)
             if not allowed:
                 resp = StarletteResponse(
@@ -164,6 +192,23 @@ app.add_middleware(RateLimitMiddleware)
 # ── CLIENT ANTHROPIC (ASYNC) ──────────────────────────────────────────────────
 client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
+# ── MODELLI ───────────────────────────────────────────────────────────────────
+# Centralizzati qui e sovrascrivibili da env, così cambiare/aggiornare un modello
+# NON richiede di toccare il codice in più punti.
+# NOTA: verifica che "claude-opus-4-6" sia ancora attivo/non deprecato. Per usare
+# un Opus più recente basta impostare la env var MODEL_VISION (es. claude-opus-4-8)
+# su Railway, senza modificare il codice.
+MODEL_VISION = os.getenv("MODEL_VISION", "claude-opus-4-6")            # estrazione PDF vision + sezioni
+MODEL_TEXT   = os.getenv("MODEL_TEXT",   "claude-sonnet-4-6")          # estrazione/raffinamento da testo + match
+MODEL_FAST   = os.getenv("MODEL_FAST",   "claude-haiku-4-5-20251001")  # raccomandazioni, summary, detect tipo
+
+# ── LIMITI PDF ────────────────────────────────────────────────────────────────
+# Tetti generosi: pensati SOLO per fermare upload abnormi/abusi, non per bloccare
+# le polizze lunghe. Una CGA lunga reale rientra ampiamente in questi limiti.
+# Sovrascrivibili da env su Railway.
+MAX_PDF_BYTES = int(os.getenv("MAX_PDF_BYTES", str(40 * 1024 * 1024)))  # 40 MB
+MAX_PDF_PAGES = int(os.getenv("MAX_PDF_PAGES", "400"))                  # ~400 pagine
+
 # ── QDRANT — PERSISTENZA DATI (via REST API dirette) ──────────────────────────
 # Usiamo httpx invece del client qdrant-client per maggiore affidabilità e
 # visibilità degli errori. Nessuna dipendenza da librerie esterne aggiuntive.
@@ -172,10 +217,20 @@ QDRANT_URL        = os.getenv("QDRANT_URL", "").rstrip("/")
 QDRANT_API_KEY    = os.getenv("QDRANT_API_KEY", "")
 QDRANT_COLLECTION = "polizza_facile_data"
 
-# ID fissi UUID per i tre "documenti" nella collezione
+# ID fissi UUID per i documenti GLOBALI (legacy) nella collezione.
+# I dati personali (clienti/polizze/config) sono ora PER-UTENTE: vedi _user_pid().
+# Questi ID legacy restano solo per la migrazione una-tantum dei dati esistenti.
 _CLIENTS_PID = "00000000-0000-0000-0000-000000000001"
 _POLIZZE_PID = "00000000-0000-0000-0000-000000000002"
 _CONFIG_PID  = "00000000-0000-0000-0000-000000000003"
+_USERS_PID   = "00000000-0000-0000-0000-000000000010"  # store account assicuratori (globale)
+
+# Namespace per generare ID punto deterministici per-utente
+_PID_NAMESPACE = uuid.UUID("00000000-0000-0000-0000-0000000000ff")
+
+def _user_pid(kind: str, username: str) -> str:
+    """ID Qdrant deterministico per i dati privati di un utente (kind: clients|polizze|config)."""
+    return str(uuid.uuid5(_PID_NAMESPACE, f"{kind}:{username}"))
 
 _qdrant_ok = False  # True se la connessione è stata verificata con successo
 
@@ -219,6 +274,32 @@ async def _startup():
         logger.error(f"Qdrant startup FALLITO ({type(e).__name__}): {e}")
         _qdrant_ok = False
 
+    # Seed account iniziale (solo se ADMIN_USERNAME/ADMIN_PASSWORD impostati e non esiste già)
+    if _qdrant_ok and ADMIN_USERNAME and ADMIN_PASSWORD:
+        try:
+            users = await _load_users()
+            if ADMIN_USERNAME not in users:
+                users[ADMIN_USERNAME] = {"pwd": _hash_password(ADMIN_PASSWORD), "created": int(time.time())}
+                await _save_users(users)
+                logger.info(f"Auth: account seed '{ADMIN_USERNAME}' creato")
+        except Exception as e:
+            logger.error(f"Auth: seed account fallito: {e}")
+
+    # Migrazione una-tantum: copia i dati legacy GLOBALI (clienti/polizze/config)
+    # nello spazio privato dell'account proprietario indicato da DATA_OWNER_USERNAME.
+    # Copia solo se lo spazio dell'utente è vuoto e i dati legacy esistono.
+    if _qdrant_ok and DATA_OWNER_USERNAME:
+        try:
+            for kind, legacy_pid in (("clients", _CLIENTS_PID), ("polizze", _POLIZZE_PID), ("config", _CONFIG_PID)):
+                target_pid = _user_pid(kind, DATA_OWNER_USERNAME)
+                existing = await _q_get(target_pid)
+                legacy = await _q_get(legacy_pid)
+                if (existing is None or existing == [] or existing == {}) and legacy not in (None, [], {}):
+                    await _q_set(target_pid, legacy)
+                    logger.info(f"Migrazione: dati legacy '{kind}' → account '{DATA_OWNER_USERNAME}'")
+        except Exception as e:
+            logger.error(f"Migrazione dati legacy fallita: {e}")
+
 
 async def _q_get(point_id: str):
     """Legge il payload di un punto Qdrant via REST."""
@@ -239,56 +320,226 @@ async def _q_get(point_id: str):
         return None
 
 
-async def _q_set(point_id: str, data):
-    """Salva (upsert) un punto Qdrant via REST."""
+# Lock per-point per serializzare le scritture sullo stesso documento
+# (evita race read-modify-write su un singolo blob).
+_q_locks: dict = defaultdict(asyncio.Lock)
+
+
+async def _q_set(point_id: str, data) -> bool:
+    """
+    Salva (upsert) un punto Qdrant via REST.
+    Ritorna True se persistito, False se la persistenza non è configurata.
+    Lancia RuntimeError se il salvataggio fallisce davvero (così il chiamante
+    può rispondere con un errore onesto invece di un falso 'ok').
+    """
     if not QDRANT_URL or not _qdrant_ok:
-        return
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as http:
-            r = await http.put(
-                f"{QDRANT_URL}/collections/{QDRANT_COLLECTION}/points",
-                headers=_qh(),
-                json={"points": [{"id": point_id, "vector": [0.0], "payload": {"data": data}}]}
-            )
-            r.raise_for_status()
-    except Exception as e:
-        logger.error(f"Qdrant set {point_id}: {e}")
+        return False  # persistenza non disponibile (es. dev senza Qdrant)
+    async with _q_locks[point_id]:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as http:
+                r = await http.put(
+                    f"{QDRANT_URL}/collections/{QDRANT_COLLECTION}/points",
+                    headers=_qh(),
+                    json={"points": [{"id": point_id, "vector": [0.0], "payload": {"data": data}}]}
+                )
+                r.raise_for_status()
+            return True
+        except Exception as e:
+            logger.error(f"Qdrant set {point_id}: {e}")
+            raise RuntimeError(f"Salvataggio Qdrant fallito: {e}")
 
 
-# ── ENDPOINTS DATI PERSISTENTI ────────────────────────────────────────────────
+# ── ENDPOINTS DATI PERSISTENTI (PER-UTENTE) ───────────────────────────────────
+# Clienti, polizze e configurazione sono privati di ciascun account assicuratore.
+# La libreria CGA (più in basso) resta invece condivisa fra tutti gli account.
+
+def _current_user(request: Request) -> str:
+    """Username dal token di sessione (l'AuthMiddleware ha già garantito che sia valido)."""
+    u = _verify_token(_bearer_token(request))
+    if not u:
+        raise HTTPException(401, "Non autenticato")
+    return u
 
 @app.get("/api/clients")
-async def api_get_clients():
-    data = await _q_get(_CLIENTS_PID)
+async def api_get_clients(request: Request):
+    data = await _q_get(_user_pid("clients", _current_user(request)))
     return data if data is not None else []
 
 @app.post("/api/clients")
 async def api_save_clients(req: Request):
+    user = _current_user(req)
     body = await req.json()
-    await _q_set(_CLIENTS_PID, body.get("data", []))
-    return {"ok": True}
+    try:
+        persisted = await _q_set(_user_pid("clients", user), body.get("data", []))
+    except RuntimeError:
+        raise HTTPException(503, "Salvataggio clienti non riuscito — riprova tra poco")
+    return {"ok": True, "persisted": persisted}
 
 @app.get("/api/polizze")
-async def api_get_polizze():
-    data = await _q_get(_POLIZZE_PID)
+async def api_get_polizze(request: Request):
+    data = await _q_get(_user_pid("polizze", _current_user(request)))
     return data if data is not None else []
 
 @app.post("/api/polizze")
 async def api_save_polizze(req: Request):
+    user = _current_user(req)
     body = await req.json()
-    await _q_set(_POLIZZE_PID, body.get("data", []))
-    return {"ok": True}
+    try:
+        persisted = await _q_set(_user_pid("polizze", user), body.get("data", []))
+    except RuntimeError:
+        raise HTTPException(503, "Salvataggio polizze non riuscito — riprova tra poco")
+    return {"ok": True, "persisted": persisted}
 
 @app.get("/api/config")
-async def api_get_config():
-    data = await _q_get(_CONFIG_PID)
+async def api_get_config(request: Request):
+    data = await _q_get(_user_pid("config", _current_user(request)))
     return data if data is not None else {}
 
 @app.post("/api/config")
 async def api_save_config(req: Request):
+    user = _current_user(req)
     body = await req.json()
-    await _q_set(_CONFIG_PID, body.get("data", {}))
-    return {"ok": True}
+    try:
+        persisted = await _q_set(_user_pid("config", user), body.get("data", {}))
+    except RuntimeError:
+        raise HTTPException(503, "Salvataggio configurazione non riuscito — riprova tra poco")
+    return {"ok": True, "persisted": persisted}
+
+# ── AUTENTICAZIONE: HELPER + ENDPOINTS ──────────────────────────────────────────
+# Account per assicuratore. Password salvate con hash PBKDF2-SHA256 (mai in chiaro).
+# Token di sessione stateless firmati HMAC-SHA256 con scadenza — nessuna dipendenza
+# esterna, nessuno stato server-side da gestire.
+
+SESSION_SECRET = os.getenv("SESSION_SECRET", "")
+if not SESSION_SECRET:
+    SESSION_SECRET = secrets.token_hex(32)
+    logger.warning(
+        "SESSION_SECRET non impostato — uso un segreto effimero: i login si "
+        "invalideranno a ogni restart. Imposta SESSION_SECRET su Railway."
+    )
+ADMIN_KEY = os.getenv("ADMIN_KEY", "")  # protegge la creazione account
+SESSION_TTL_SECONDS = int(os.getenv("SESSION_TTL_HOURS", "168")) * 3600  # default 7 giorni
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "").strip().lower()
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+# Account a cui assegnare i dati legacy globali esistenti (migrazione una-tantum)
+DATA_OWNER_USERNAME = os.getenv("DATA_OWNER_USERNAME", "").strip().lower()
+
+
+def _b64url(b: bytes) -> str:
+    return base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+
+def _b64url_dec(s: str) -> bytes:
+    return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+
+
+def _hash_password(password: str, iterations: int = 200_000, salt: bytes = None) -> str:
+    salt = salt or secrets.token_bytes(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+    return f"pbkdf2_sha256${iterations}${salt.hex()}${dk.hex()}"
+
+def _verify_password(password: str, stored: str) -> bool:
+    try:
+        _algo, iters, salt_hex, hash_hex = stored.split("$")
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), int(iters))
+        return hmac.compare_digest(dk.hex(), hash_hex)
+    except Exception:
+        return False
+
+
+def _make_token(username: str, ttl: int = None) -> str:
+    exp = int(time.time()) + (ttl or SESSION_TTL_SECONDS)
+    body = _b64url(json.dumps({"u": username, "exp": exp}).encode())
+    sig = _b64url(hmac.new(SESSION_SECRET.encode(), body.encode(), hashlib.sha256).digest())
+    return f"{body}.{sig}"
+
+def _verify_token(token: str):
+    """Ritorna lo username se il token è valido e non scaduto, altrimenti None."""
+    if not token:
+        return None
+    try:
+        body, sig = token.split(".")
+        expected = _b64url(hmac.new(SESSION_SECRET.encode(), body.encode(), hashlib.sha256).digest())
+        if not hmac.compare_digest(sig, expected):
+            return None
+        payload = json.loads(_b64url_dec(body))
+        if int(payload.get("exp", 0)) < int(time.time()):
+            return None
+        return payload.get("u")
+    except Exception:
+        return None
+
+
+def _bearer_token(request) -> str:
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        return auth[7:].strip()
+    return request.headers.get("X-Auth-Token", "") or request.query_params.get("token", "")
+
+
+async def _load_users() -> dict:
+    data = await _q_get(_USERS_PID)
+    return data if isinstance(data, dict) else {}
+
+async def _save_users(users: dict) -> bool:
+    return await _q_set(_USERS_PID, users)
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class CreateUserRequest(BaseModel):
+    username: str
+    password: str
+    admin_key: str = ""
+
+
+@app.post("/api/auth/login")
+async def auth_login(req: LoginRequest):
+    uname = req.username.strip().lower()
+    users = await _load_users()
+    rec = users.get(uname)
+    # Verifica anche in caso di utente inesistente per non rivelare quali username esistono
+    stored = rec.get("pwd", "") if rec else ""
+    if not rec or not _verify_password(req.password, stored):
+        raise HTTPException(401, "Username o password non validi")
+    return {
+        "token": _make_token(uname),
+        "username": uname,
+        "expires_in": SESSION_TTL_SECONDS,
+    }
+
+
+@app.get("/api/auth/me")
+async def auth_me(request: Request):
+    u = _verify_token(_bearer_token(request))
+    if not u:
+        raise HTTPException(401, "Non autenticato")
+    return {"username": u}
+
+
+@app.post("/api/auth/create-user")
+async def auth_create_user(req: CreateUserRequest, request: Request):
+    if not ADMIN_KEY:
+        raise HTTPException(403, "Creazione account disabilitata: imposta ADMIN_KEY su Railway")
+    key = req.admin_key or request.headers.get("X-Admin-Key", "")
+    if not hmac.compare_digest(key, ADMIN_KEY):
+        raise HTTPException(401, "Admin key non valida")
+    uname = req.username.strip().lower()
+    if not uname or len(req.password) < 8:
+        raise HTTPException(400, "Username obbligatorio e password di almeno 8 caratteri")
+    users = await _load_users()
+    is_new = uname not in users
+    users[uname] = {
+        "pwd": _hash_password(req.password),
+        "created": users.get(uname, {}).get("created", int(time.time())),
+        "updated": int(time.time()),
+    }
+    try:
+        await _save_users(users)
+    except RuntimeError:
+        raise HTTPException(503, "Persistenza non disponibile: impossibile salvare l'account")
+    return {"ok": True, "username": uname, "created": is_new, "total_users": len(users)}
 
 # ── RETRY HELPER ──────────────────────────────────────────────────────────────
 async def call_claude(max_retries: int = 3, **kwargs):
@@ -639,7 +890,7 @@ async def _extract_single_chunk(text_chunk: str, filename: str, chunk_info: str 
     """Estrae dati strutturati da un singolo chunk di testo polizza."""
     prompt = _build_extraction_prompt(text_chunk, filename, chunk_info)
     msg = await call_claude(
-        model="claude-sonnet-4-6",
+        model=MODEL_TEXT,
         max_tokens=5000,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -930,6 +1181,31 @@ EXTRACTION_TOOL_V2 = {
 }
 
 
+def _check_pdf_limits(pdf_bytes: bytes) -> None:
+    """
+    Verifica che il PDF rientri nei limiti generosi (anti-abuso).
+    Lancia HTTPException 413 con messaggio chiaro se troppo grande.
+    Le polizze lunghe reali rientrano sempre in questi limiti.
+    """
+    size_mb = len(pdf_bytes) / (1024 * 1024)
+    if len(pdf_bytes) > MAX_PDF_BYTES:
+        raise HTTPException(
+            413,
+            f"PDF troppo grande ({size_mb:.1f} MB). Limite massimo {MAX_PDF_BYTES // (1024*1024)} MB. "
+            f"Se è una polizza valida molto pesante, comprimi il PDF o contatta l'assistenza."
+        )
+    try:
+        n_pages = len(PdfReader(io.BytesIO(pdf_bytes)).pages)
+    except Exception:
+        raise HTTPException(400, "PDF non leggibile o corrotto")
+    if n_pages > MAX_PDF_PAGES:
+        raise HTTPException(
+            413,
+            f"PDF con troppe pagine ({n_pages}). Limite massimo {MAX_PDF_PAGES}. "
+            f"Carica solo il documento di polizza (CGA/DIP), non allegati estranei."
+        )
+
+
 def _split_pdf_bytes(pdf_bytes: bytes, pages_per_chunk: int = 60) -> list[tuple[bytes, int, int, int]]:
     """
     Divide un PDF in chunk di N pagine per rispettare i limiti dell'API Claude.
@@ -978,8 +1254,8 @@ REGOLE CRITICHE:
 — NON inventare valori: se non trovi una cifra specifica, usa null/0"""
 
     try:
-        msg = await client.messages.create(
-            model="claude-opus-4-6",
+        msg = await call_claude(
+            model=MODEL_VISION,
             max_tokens=8192,
             tools=[EXTRACTION_TOOL_V2],
             tool_choice={"type": "tool", "name": "extract_policy_data"},
@@ -1026,6 +1302,7 @@ async def extract_policy_stream_v2(req: ExtractRequestV2):
 
     if len(pdf_bytes) < 100:
         raise HTTPException(400, "PDF troppo piccolo o vuoto")
+    _check_pdf_limits(pdf_bytes)
 
     async def generate():
         queue: asyncio.Queue = asyncio.Queue()
@@ -1149,22 +1426,17 @@ async def debug():
     return info
 
 @app.get("/", response_class=HTMLResponse)
-async def serve_app():
-    """Serve il frontend direttamente dal backend."""
-    html_path = os.path.join(os.path.dirname(__file__), "index.html")
-    with open(html_path, "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read(), headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate"
-        })
-
-@app.get("/nicolo", response_class=HTMLResponse)
-async def serve_nicolo():
-    """Serve il comparatore personalizzato per Nicolò Prior (Allianz Rosa)."""
-    html_path = os.path.join(os.path.dirname(__file__), "nicolo.html")
-    with open(html_path, "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read(), headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate"
-        })
+async def serve_root():
+    """Backend API. Il frontend è servito separatamente (Vercel)."""
+    return HTMLResponse(
+        content="<!doctype html><meta charset='utf-8'>"
+                "<title>Polizza Facile API</title>"
+                "<body style='font-family:system-ui;padding:40px;color:#0F2741'>"
+                "<h1>Polizza Facile — API</h1>"
+                "<p>Servizio attivo. L'applicazione si usa dal sito ufficiale.</p>"
+                "</body>",
+        status_code=200,
+    )
 
 
 def _build_sequential_chunks(text: str, chunk_size: int, overlap: int) -> list[tuple[str, str]]:
@@ -1371,8 +1643,8 @@ async def _refine_with_opus(merged: dict, text: str, filename: str) -> dict:
 
     prompt = _build_refinement_prompt(merged, dense_text, filename)
     try:
-        msg = await client.messages.create(
-            model="claude-sonnet-4-6",
+        msg = await call_claude(
+            model=MODEL_TEXT,
             max_tokens=5000,
             tools=[REFINEMENT_TOOL],
             tool_choice={"type": "tool", "name": "update_policy_data"},
@@ -1627,7 +1899,7 @@ Regole:
 
     try:
         msg = await call_claude(
-            model="claude-haiku-4-5-20251001",
+            model=MODEL_FAST,
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -1726,7 +1998,7 @@ Regole:
 
     try:
         msg = await call_claude(
-            model="claude-sonnet-4-6",
+            model=MODEL_TEXT,
             max_tokens=3000,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -1772,7 +2044,7 @@ Rispondi solo con il testo del paragrafo, nessun titolo o prefazione."""
 
     try:
         msg = await call_claude(
-            model="claude-haiku-4-5-20251001",
+            model=MODEL_FAST,
             max_tokens=400,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -2258,8 +2530,8 @@ async def _detect_tipo_pdf(first_chunk_bytes: bytes, filename: str) -> str:
     """
     chunk_b64 = base64.b64encode(first_chunk_bytes).decode()
     try:
-        msg = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        msg = await call_claude(
+            model=MODEL_FAST,
             max_tokens=50,
             messages=[{
                 "role": "user",
@@ -2291,8 +2563,8 @@ async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: 
     prompt = _build_sezioni_prompt(filename, tipo_hint) + f"\n\n(stai analizzando {chunk_info})"
 
     try:
-        msg = await client.messages.create(
-            model="claude-opus-4-6",
+        msg = await call_claude(
+            model=MODEL_VISION,
             max_tokens=8192,
             tools=[_sezione_schema(tipo_hint or "Casa")],
             tool_choice={"type": "tool", "name": "extract_sezioni"},
@@ -2496,8 +2768,8 @@ Restituisci SOLO un JSON con questa struttura:
 
     try:
         # Stessi tools e cache_control usati in _extract_sezioni_chunk → prompt cache hit sul PDF
-        msg = await client.messages.create(
-            model="claude-opus-4-6",
+        msg = await call_claude(
+            model=MODEL_VISION,
             max_tokens=4096,
             tools=[_sezione_schema(tipo_hint)],
             tool_choice={"type": "tool", "name": "extract_sezioni"},
@@ -2552,6 +2824,7 @@ async def extract_sezioni(req: ExtractSezioniRequest):
 
     if len(pdf_bytes) < 100:
         raise HTTPException(400, "PDF troppo piccolo o vuoto")
+    _check_pdf_limits(pdf_bytes)
 
     # Cache
     cache_key = _cache_key(req.pdf_base64[:2000] + str(len(pdf_bytes)) + "v3sezioni")
@@ -2605,6 +2878,7 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
 
     if len(pdf_bytes) < 100:
         raise HTTPException(400, "PDF troppo piccolo o vuoto")
+    _check_pdf_limits(pdf_bytes)
 
     async def generate():
         queue: asyncio.Queue = asyncio.Queue()
