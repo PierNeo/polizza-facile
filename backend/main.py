@@ -2381,9 +2381,10 @@ Struttura richiesta:
   "assistenza": {"mass": "€ 250/evento", "gz": {"ass_idraul": {"sub": "€ 250", "scop": null, "fra": null}, "ass_elett": {"sub": "€ 250", "scop": null, "fra": null}, "ass_fabbro": {"sub": "€ 250", "scop": null, "fra": null}, "ass_allogg": {"sub": "€ X", "scop": null, "fra": null}, "ass_guard": {"sub": "€ X", "scop": null, "fra": null}}}
 }
 Regole valore garanzia:
-— null: garanzia esclusa o non menzionata nel documento
-— {"sub": null, "scop": null, "fra": null}: garanzia inclusa ma senza limiti specifici indicati
+— null: garanzia INCLUSA ma coperta fino alla Somma Assicurata senza sublimite specifico (verrà mostrata "S.A."); usa null anche per una garanzia esplicitamente esclusa.
+— {"sub": null, "scop": null, "fra": null}: garanzia inclusa senza limiti specifici (equivalente a S.A.).
 — valori: stringhe testuali come "€ 3.000", "10% min. €250", "5% del massimale"
+— SEZIONE NON PRESENTE NEL DOCUMENTO: se un'intera sezione (es. Responsabilità Civile, Tutela Legale) NON è descritta in questo documento perché è un modulo separato, OMETTI del tutto la chiave di sezione in garanzie_detail (non metterla, non usare null). null si usa solo a livello di singola sotto-garanzia.
 — ASSISTENZA — regola critica: per ass_idraul/ass_elett/ass_fabbro il "sub" è il limite rimborsato per SINGOLO invio artigiano ("fino a un massimo di €X per evento/intervento"). Cerca ESATTAMENTE nell'articolo dedicato (es: "Art. X Invio idraulico", "Art. X Invio elettricista"). NON usare massimali di sezione generali o valori da tabelle riassuntive che potrebbero riferirsi ad altri servizi. Se non trovi il valore esplicito → {"sub": null, "scop": null, "fra": null}. NON inventare valori.
 — ASSISTENZA — pattern "massimo complessivo + massimo per artigiano": se il testo dice "massimo complessivo di €X per evento, con un massimo di €Y per artigiano" → mass.assistenza="€Y/artigiano" (o "€X/evento complessivo"), ass_idraul.sub=ass_elett.sub=ass_fabbro.sub="€ Y". Il campo "mass" può riportare la struttura completa es: "€ 400/evento (max € 200/artigiano)".
 — ASSISTENZA — alloggio vs artigiani: ass_allogg.sub È DIVERSO dai limiti artigiani. Il limite per albergo/pernottamento (tipicamente €300/evento) è SEPARATO e MAGGIORE del limite per artigiani (tipicamente €250/evento). NON usare il valore alloggio (€300) per gli artigiani.
@@ -2457,7 +2458,12 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
         garanzie_casa_note = """
 — GARANZIE_DETAIL (obbligatorio per polizze Casa/Multirischio): compila il campo garanzie_detail con i dettagli di sublimite/scoperto/franchigia per ogni sotto-garanzia.
   Cerca in: tabella riassuntiva, intestazioni di paragrafo, elenchi condizioni, note a fondo sezione.
-  sub = sublimite monetario specifico (es: "€ 3.000", "10% del massimale"). Se la garanzia è coperta dal massimale generale senza sublimite → null.
+
+  ⚠ REGOLE FONDAMENTALI (errori da evitare assolutamente):
+  1) LIMITE ≠ SOTTO-CAP SU VOCI SPECIFICHE. Il "sub" è il limite che si applica alla garanzia NEL SUO COMPLESSO. Se la garanzia è coperta fino alla Somma Assicurata e c'è solo un tetto su VOCI PARTICOLARI (es. "eventi atmosferici fino a S.A., ma lastre/coperture/cappotto termico max €20.000"), allora sub=null (è coperta a S.A.); NON mettere il tetto delle voci particolari come limite della garanzia. Quel tetto di nicchia va ignorato o, se rilevante, citato altrove — MAI come limite principale.
+  2) NON usare valori di sotto-voci di nicchia come limite della garanzia. Es: il cap delle "stazioni di ricarica/colonnine" (es. €1.000) NON è il limite del Fenomeno elettrico. Se il limite vero della garanzia non è un importo unico, sub=null (S.A.).
+  3) GARANZIA OPERANTE SOLO SE ACQUISTATA UN'ALTRA GARANZIA: se il testo dice che una garanzia è coperta "salvo/solo quanto previsto dalla garanzia supplementare X, se acquistata" oppure "se acquistata la garanzia", allora NON è inclusa nella base → mettila a null (non in base). NON inventare un limite per essa.
+  sub = sublimite monetario specifico (es: "€ 3.000", "10% del massimale"). Se la garanzia è coperta dal massimale generale senza sublimite → null (verrà mostrata come "S.A.").
   scop = scoperto percentuale a carico dell'assicurato (es: "20% min. €250"). null se assente.
   fra = franchigia fissa a carico dell'assicurato (es: "€ 500"). null se assente.
   Per le garanzie RC (rc_figli, rc_cani, rc_inquin, rc_incend): se coperte dal massimale RC generale senza limiti specifici → {"sub": null, "scop": null, "fra": null}. null solo se escluse.
@@ -2503,6 +2509,9 @@ REGOLE CRITICHE:
 — MASSIMALE "Indicato in Polizza" o "Variabile": se il testo dice che il massimale è scelto dal contraente o indicato in polizza, usa massimale="Indicato in Polizza" e inclusa=true (non opzionale).
 — "Morte da infortuni" / "7.1 Morte da infortuno": se presente nel testo della polizza (anche come sezione 7.1), estraila sempre. Per Tandem è una garanzia della sezione Infortuni → id="morte", inclusa=true (o opzionale=true se modulare).
 — massimale: per Incendio/Furto/Infortuni usa "Somma assicurata". Per RC cerca il valore fisso (es: €5.000.000). Se il testo dice "massimale indicato in polizza" usa "Indicato in Polizza" e massimale_num=0.
+— ⚠ MASSIMALE ≠ SOTTO-CAP: il massimale di una sezione è il limite complessivo. Se la sezione copre fino alla Somma Assicurata e c'è solo un tetto su voci particolari (es. lastre/coperture/cappotto max €20.000), il massimale resta "Somma assicurata"; il tetto di nicchia NON è il massimale. Non usare valori di sotto-voci di nicchia (es. cap colonnine di ricarica) come massimale della sezione.
+— ⚠ GARANZIA OPERANTE SOLO SE ACQUISTATA: se una garanzia/sezione è coperta "solo/salvo se acquistata la garanzia supplementare X" → inclusa=false, opzionale=true (NON è nella base). Non inventare un massimale.
+— ⚠ SEZIONE NON PRESENTE NEL DOCUMENTO: estrai una sezione SOLO se è descritta nel documento o esplicitamente esclusa. Se una sezione (es. Responsabilità Civile, Tutela Legale) NON compare perché è un modulo separato, NON emetterla affatto e NON marcarla come esclusa: ometterla. Usa inclusa=false+opzionale=false SOLO quando il documento la esclude esplicitamente.
 — franchigia e scoperto: estrai SEMPRE con il minimo in € quando presente (es: "10% min. €250"). Per infortuni cerca la tabella riassuntiva.
 — FRANCHIGIE PROGRESSIVE: se la franchigia varia per scaglioni (es. in base al % di IP o all'importo), usa il formato: "X% (≤€Nk) / Y% (€Nk-€Mk) / Z% (>€Mk)". Es: "3% (≤€250k) / 10% (€250k-€650k) / 15% (>€650k)". Per IP con soglia fissa: "franchigia 25% sotto soglia / 0% oltre soglia" → "0% (IP ≥ soglia) / 25% (IP < soglia)".
 — PIÙ OPZIONI FRANCHIGIA: se esistono più alternative per la stessa garanzia (es. "franchigia 24% o 65%", oppure più livelli di franchigia opzionali), riportale TUTTE separate da " o ": franchigia="24% o 65%". NON scegliere una sola opzione — riporta tutte quelle indicate nel testo.

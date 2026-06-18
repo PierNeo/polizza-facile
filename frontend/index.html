@@ -4186,11 +4186,13 @@ function renderComparisonTable() {
  if (!policies || !policies.length) return;
  const hasSezioni = policies.some(p => p.sezioni && p.sezioni.length > 0);
  if (!hasSezioni) { buildTable(policies, cols); return; }
- if (_tableViewMode === 'summary' && _chipDisponibile(policies)) {
-  buildTableGaranzieCasa(policies, cols);   // vista sintetica a chip
+ if (_tableViewMode === 'summary') {
+  // Vista sintetica: sempre griglia a 3 colonne (Limite/Scoperto/Franchigia)
+  if (_chipDisponibile(policies)) buildTableGaranzieCasa(policies, cols); // Casa: griglia dettagliata
+  else buildTableSezioni3col(policies, cols);                            // Infortuni/misti: griglia generica
  } else {
-  buildTableSezioni(policies, cols);        // vista estesa
-  _applyDetailRows();                        // mostra/nascondi note secondo il modo
+  buildTableSezioni(policies, cols);        // vista dettaglio (note complete)
+  _applyDetailRows();
  }
 }
 
@@ -4492,14 +4494,16 @@ function _casaCells(st) {
  const dash = `<span style="color:var(--gray-400)">—</span>`;
  const cell = (inner, bg) => `<td style="text-align:center;vertical-align:middle;padding:7px 8px;background:${bg};border-bottom:1px solid #fff;border-right:1px solid #fff;font-size:12px">${inner}</td>`;
  let lim, scop, fra;
- if (st.state === 'off') { lim = `<span style="color:var(--gray-400);font-style:italic;font-size:11px">non incl.</span>`; scop = dash; fra = dash; }
- else if (st.state === 'nd') { lim = `<span style="color:var(--gray-300);font-size:11px">n.d.</span>`; scop = dash; fra = dash; }
+ if (st.state === 'off') { lim = `<span style="color:#C62828;font-style:italic;font-size:11px">Esclusa</span>`; scop = dash; fra = dash; }
+ else if (st.state === 'nd') { lim = `<span style="color:var(--gray-300);font-size:10px;font-style:italic" title="Sezione non presente in questo documento (può essere in un modulo separato)">non in doc.</span>`; scop = dash; fra = dash; }
  else if (st.state === 'sa' || st.state === 'opt-sa') {
   const opt = st.state==='opt-sa' ? ` <span style="color:#7C3AED;font-size:9px">◆ opz.</span>` : '';
   lim = `<strong style="color:#0D47A1">S.A.</strong>${opt}`; scop = dash; fra = dash;
  } else {
   const opt = st.state==='opt' ? ` <span style="color:#7C3AED;font-size:9px">◆ opz.</span>` : '';
-  lim = `<strong style="color:#0D47A1">${esc(st.lim||'S.A.')}</strong>${opt}`;
+  // "Somma assicurata" (in qualsiasi forma) → "S.A."
+  const limTxt = (st.lim && /somma\s+assicurat/i.test(st.lim)) ? 'S.A.' : (st.lim || 'S.A.');
+  lim = `<strong style="color:#0D47A1">${esc(limTxt)}</strong>${opt}`;
   scop = st.scop ? `<span style="color:#E65100;font-weight:600">${esc(st.scop)}</span>` : dash;
   fra  = st.fra  ? `<span style="color:#C62828;font-weight:600">${esc(st.fra)}</span>`  : dash;
  }
@@ -4674,6 +4678,44 @@ function buildTableGaranzieCasa(policies, cols) {
   html += `<td colspan="3" style="padding:9px 12px;font-size:11px;color:var(--gray-600);line-height:1.6;background:var(--white);border-bottom:1px solid var(--gray-100)">${inc.length ? inc.join(' · ') : '<span style="color:var(--gray-300)">nessuna rilevata</span>'}</td>`;
  });
  html += '</tr>';
+
+ html += '</tbody>';
+ document.getElementById('compTable').innerHTML = html;
+ _tableRefCol = -1;
+}
+
+// Vista sintetica GENERICA a 3 colonne (Infortuni e tipi misti): una riga per
+// sezione, dati da p.sezioni — Limite/Scoperto/Franchigia, "S.A." dove non c'è limite.
+function buildTableSezioni3col(policies, cols) {
+ const NP = policies.length;
+ const subHdr = (lbl, color, bg) => `<th style="font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:${color};background:${bg};padding:5px 6px;border-bottom:2px solid ${color}">${lbl}</th>`;
+
+ // Unione delle sezioni in ordine di prima occorrenza
+ const order = []; const nomeById = {};
+ policies.forEach(p => (p.sezioni||[]).forEach(s => {
+  if (!s.id) return;
+  if (!(s.id in nomeById)) { nomeById[s.id] = s.nome || s.id; order.push(s.id); }
+ }));
+
+ let html = '<thead><tr><th rowspan="2" style="text-align:left;min-width:190px;vertical-align:bottom;padding:10px 14px;font-size:11px;color:var(--gray-500)">Garanzia</th>';
+ policies.forEach((p, i) => {
+  html += `<th colspan="3" style="border-top:3px solid ${cols[i]};text-align:center;padding:8px 10px">
+   <span class="th-company">${esc(p.compagnia||'')}</span>
+   <span class="th-product">${esc(p.prodotto||'')}</span></th>`;
+ });
+ html += '</tr><tr>';
+ policies.forEach(() => { html += subHdr('Limite','#0D47A1',_BG_LIM)+subHdr('Scoperto','#E65100',_BG_SCOP)+subHdr('Franchigia','#C62828',_BG_FRA); });
+ html += '</tr></thead><tbody>';
+
+ if (!order.length) {
+  html += `<tr><td colspan="${NP*3+1}" style="padding:20px;text-align:center;color:var(--gray-400);font-size:12px">Nessuna garanzia estratta</td></tr>`;
+ }
+ order.forEach((sid, gi) => {
+  const bg = gi % 2 === 0 ? 'var(--white)' : 'var(--gray-50)';
+  html += `<tr><td style="padding:9px 14px;font-size:12px;color:var(--gray-700);font-weight:500;background:${bg};border-left:3px solid var(--polo);border-bottom:1px solid var(--gray-100)">${esc(nomeById[sid])}</td>`;
+  policies.forEach(p => { html += _casaCells(_casaSez(p, sid)); });
+  html += '</tr>';
+ });
 
  html += '</tbody>';
  document.getElementById('compTable').innerHTML = html;
