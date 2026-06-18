@@ -2804,7 +2804,7 @@ function cgaUploadPdf(id) {
 
       setMsg('Invio al server…', 40);
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 120000);
+      const timer = setTimeout(() => ctrl.abort(), 300000);
       let res;
       try {
         res = await fetch(`${BACKEND}/api/library/upload-pdf`, {
@@ -2882,7 +2882,7 @@ function cgaUploadPdf(id) {
       formData.append('file', file);
       formData.append('id', id);
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 120000);
+      const timer = setTimeout(() => ctrl.abort(), 300000);
       let res;
       try {
         res = await fetch(`${BACKEND}/api/library/upload-pdf`, {
@@ -2932,7 +2932,7 @@ async function cgaSyncOne(id, { silent = false, onStatus = null } = {}) {
    }
    try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 90000);
+    const timer = setTimeout(() => ctrl.abort(), 300000);
     let res;
     try {
      res = await fetch(`${BACKEND}/api/library/sync`, {
