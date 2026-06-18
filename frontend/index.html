@@ -1602,8 +1602,8 @@ tr.tbl-detail.tbl-hidden { display:none; }
  <!-- Pannello tabella -->
  <div id="resPanel-table" class="res-panel" style="padding:0 32px 24px">
   <div class="table-toolbar">
-   <button class="tbl-view-btn active" data-mode="detail" onclick="tableSetView('detail')">Vista dettaglio</button>
-   <button class="tbl-view-btn" data-mode="summary" onclick="tableSetView('summary')">Vista sintetica</button>
+   <button class="tbl-view-btn" data-mode="detail" onclick="tableSetView('detail')">Vista dettaglio</button>
+   <button class="tbl-view-btn active" data-mode="summary" onclick="tableSetView('summary')">Vista sintetica</button>
    <span class="tbl-ref-hint">★ clicca su colonna per marcare come riferimento</span>
   </div>
   <div class="table-outer"><div class="table-scroll"><table id="compTable"></table></div></div>
@@ -4030,12 +4030,11 @@ function renderResults(policies) {
  </div>`;
  }).join('');
 
- // Scegli renderer in base al tipo di polizza e formato dati
- const hasSezioni = policies.some(p => p.sezioni && p.sezioni.length > 0);
- const isCasa = policies.length > 0 && policies.every(p => !p.tipo || p.tipo === 'Casa');
- if (hasSezioni && isCasa) buildTableGaranzieCasa(policies, cols);
- else if (hasSezioni) buildTableSezioni(policies, cols);
- else buildTable(policies, cols);
+ // Memorizza il confronto e disegna la tabella secondo la vista scelta dal toggle
+ // (sintetica = chip · dettaglio = note complete). tableSetView allinea anche i bottoni.
+ _cmpPolicies = policies;
+ _cmpCols = cols;
+ tableSetView(_tableViewMode);
 
  const hasExcl=policies.some(p=>p.esclusioni?.length);
  const exclHtml=hasExcl?policies.map(p=>p.esclusioni?.length?`<div class="excl-card"><div class="excl-header"><span class="excl-company">${esc(p.compagnia||'')}</span><span class="excl-product"> ${esc(p.prodotto||'')}</span></div><div class="excl-list">${p.esclusioni.map(e=>`<div class="excl-item">${esc(e)}</div>`).join('')}</div></div>`:'').join(''):'';
@@ -4147,28 +4146,55 @@ function buildTable(policies,cols) {
 }
 
 // ── P3: CONTROLLI TABELLA CONFRONTO ──────────────────────────────────────────
-let _tableViewMode = 'detail';
+// Vista sintetica = layout a CHIP (confronto 2.0) · Vista dettaglio = note complete (prova A)
+let _tableViewMode = 'summary';
 let _tableRefCol   = -1;
 const _cellExpandStore = {}; // id → testo completo
 let _cellExpandSeq = 0;
+let _cmpPolicies = null;     // polizze del confronto corrente (per ri-disegno al cambio vista)
+let _cmpCols = null;
+
+// La vista a chip richiede i dati strutturati (garanzie_detail), disponibili per
+// polizze Casa/Multirischio. Per gli altri tipi (es. Infortuni) si usa la vista estesa.
+function _chipDisponibile(policies) {
+ const hasSezioni = policies.some(p => p.sezioni && p.sezioni.length > 0);
+ if (!hasSezioni) return false;
+ const houseLike = policies.every(p => !p.tipo || p.tipo === 'Casa' || p.tipo === 'Multirischio');
+ const hasDetail = policies.some(p => p.garanzie_detail);
+ return houseLike && hasDetail;
+}
+
+// Disegna la tabella confronto secondo la vista scelta dal toggle.
+function renderComparisonTable() {
+ const policies = _cmpPolicies, cols = _cmpCols;
+ if (!policies || !policies.length) return;
+ const hasSezioni = policies.some(p => p.sezioni && p.sezioni.length > 0);
+ if (!hasSezioni) { buildTable(policies, cols); return; }
+ if (_tableViewMode === 'summary' && _chipDisponibile(policies)) {
+  buildTableGaranzieCasa(policies, cols);   // vista sintetica a chip
+ } else {
+  buildTableSezioni(policies, cols);        // vista estesa
+  _applyDetailRows();                        // mostra/nascondi note secondo il modo
+ }
+}
+
+// Mostra (dettaglio) o nasconde (sintetica) le righe Sublimiti/Note nella tabella estesa.
+function _applyDetailRows() {
+ const tbl = document.getElementById('compTable');
+ if (!tbl) return;
+ const show = (_tableViewMode === 'detail');
+ tbl.querySelectorAll('tr.det-toggle-row').forEach(tr => tr.classList.toggle('tbl-hidden', !show));
+ tbl.querySelectorAll('tr.tbl-detail').forEach(tr => tr.classList.toggle('tbl-hidden', !show));
+ tbl.querySelectorAll('.det-btn').forEach(btn => {
+  btn.classList.toggle('open', show);
+  const arr = btn.querySelector('.det-arr'); if (arr) arr.style.transform = show ? 'rotate(90deg)' : '';
+ });
+}
 
 function tableSetView(mode) {
  _tableViewMode = mode;
  document.querySelectorAll('.tbl-view-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
- const tbl = document.getElementById('compTable');
- if (!tbl) return;
- if (mode === 'summary') {
-  // Nascondi righe toggle e dettagli
-  tbl.querySelectorAll('tr.det-toggle-row').forEach(tr => tr.classList.add('tbl-hidden'));
-  tbl.querySelectorAll('tr.tbl-detail').forEach(tr => tr.classList.add('tbl-hidden'));
-  tbl.querySelectorAll('.det-btn.open').forEach(btn => {
-   btn.classList.remove('open');
-   const arr = btn.querySelector('.det-arr'); if (arr) arr.style.transform = '';
-  });
- } else {
-  // Mostra righe toggle; i dettagli restano chiusi finché non clicchi
-  tbl.querySelectorAll('tr.det-toggle-row').forEach(tr => tr.classList.remove('tbl-hidden'));
- }
+ renderComparisonTable();
 }
 
 function toggleDet(sid) {
@@ -4357,7 +4383,6 @@ function buildTableSezioni(policies, cols) {
  document.getElementById('compTable').innerHTML = html;
 
  // Reset stato controlli al nuovo render
- _tableViewMode = 'detail';
  _tableRefCol = -1;
  document.querySelectorAll('.tbl-view-btn').forEach(b => b.classList.toggle('active', b.dataset.mode==='detail'));
 }
@@ -4615,7 +4640,6 @@ function buildTableGaranzieCasa(policies, cols) {
 
  html += '</tbody>';
  document.getElementById('compTable').innerHTML = html;
- _tableViewMode = 'detail';
  _tableRefCol = -1;
  document.querySelectorAll('.tbl-view-btn').forEach(b => b.classList.toggle('active', b.dataset.mode==='detail'));
 }

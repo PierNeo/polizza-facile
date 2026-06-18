@@ -2348,7 +2348,7 @@ _SYN_INFORTUNI = _build_synonym_index(SINONIMI_SEZIONI_INFORTUNI)
 def _sezione_schema(tipo_polizza: str) -> dict:
     """Tool use schema per estrazione a sezioni. Cambia in base al tipo polizza."""
 
-    if tipo_polizza == "Casa":
+    if tipo_polizza in ("Casa", "Multirischio"):
         sezioni_enum = [d["nome_standard"] for d in SINONIMI_SEZIONI_CASA.values()]
         sotto_garanzie_desc = """
 Oggetto con le sotto-garanzie della sezione. Per INCENDIO: incendio_fulmine_scoppio, eventi_atmosferici,
@@ -2368,10 +2368,10 @@ Lascia null se la sezione non ha varianti distinte."""
 
     # Campo garanzie_detail: solo per polizze Casa
     garanzie_detail_schema = None
-    if tipo_polizza == "Casa":
+    if tipo_polizza in ("Casa", "Multirischio"):
         garanzie_detail_schema = {
             "type": ["object", "null"],
-            "description": """SOLO per polizze Casa. Estrai sublimite (sub), scoperto (scop), franchigia (fra) per ogni sotto-garanzia.
+            "description": """Per polizze Casa/Multirischio. Estrai sublimite (sub), scoperto (scop), franchigia (fra) per ogni sotto-garanzia.
 Struttura richiesta:
 {
   "incendio":   {"mass": "€ X", "gz": {"incendio_b": {"sub": null, "scop": null, "fra": "€ 250"}, "eventi_atm": {"sub": "€ 200.000", "scop": "10% min. €500", "fra": null}, ...}},
@@ -2453,9 +2453,9 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
     tipo_note = f"\nNOTA: questa polizza è di tipo '{tipo_hint}'. Estrai SOLO le sezioni del tipo corrispondente.\n" if tipo_hint else ""
 
     garanzie_casa_note = ""
-    if tipo_hint == "Casa":
+    if tipo_hint in ("Casa", "Multirischio"):
         garanzie_casa_note = """
-— GARANZIE_DETAIL (obbligatorio per polizze Casa): compila il campo garanzie_detail con i dettagli di sublimite/scoperto/franchigia per ogni sotto-garanzia.
+— GARANZIE_DETAIL (obbligatorio per polizze Casa/Multirischio): compila il campo garanzie_detail con i dettagli di sublimite/scoperto/franchigia per ogni sotto-garanzia.
   Cerca in: tabella riassuntiva, intestazioni di paragrafo, elenchi condizioni, note a fondo sezione.
   sub = sublimite monetario specifico (es: "€ 3.000", "10% del massimale"). Se la garanzia è coperta dal massimale generale senza sublimite → null.
   scop = scoperto percentuale a carico dell'assicurato (es: "20% min. €250"). null se assente.
