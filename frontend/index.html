@@ -4426,6 +4426,7 @@ const CASA_SEZIONI_SCHEMA = [
    { id:'oggetti_arte', nome:'Quadri, tappeti, sculture' },
  ]},
  { id:'rc',         nome:'Responsabilità Civile',  color:'#1B5E20', src:'detail', garanzie:[
+   { id:'__mass__',  nome:'Massimale RC verso terzi' },
    { id:'rc_figli',  nome:'Danni da figli minori' },
  ]},
  { id:'cristalli',  nome:'Cristalli',              color:'#6A1B9A', src:'detail', garanzie:[
@@ -4459,6 +4460,11 @@ function _casaGz(p, sezId, gzId) {
  const det = p.garanzie_detail && p.garanzie_detail[sezId];
  if (det === undefined) return { state:'nd' };
  if (det === null)      return { state:'off' };
+ // Riga speciale "massimale di sezione" (es. massimale RC): legge det.mass / p.sezioni
+ if (gzId === '__mass__') {
+  const mass = det.mass || ((p.sezioni||[]).find(s => s.id === sezId)||{}).massimale || null;
+  return mass ? { state:'val', lim: mass } : { state:'sa' };
+ }
  const raw = det.gz ? det.gz[gzId] : undefined;
  if (raw === null)      return { state:'off' };
  if (raw === undefined) return { state:'sa' };
@@ -4478,21 +4484,26 @@ function _casaSez(p, sezId) {
  return { state: opt?'opt':'val', lim: lim || 'S.A.', scop, fra };
 }
 
+// Sfondi colonna (per distinguere visivamente Limite / Scoperto / Franchigia)
+const _BG_LIM = '#EAF2FF', _BG_SCOP = '#FFF4E8', _BG_FRA = '#FDEDE9';
+
 // Rende 3 celle <td> (Limite, Scoperto, Franchigia) per uno stato.
-function _casaCells(st, bg) {
- const dash = `<span style="color:var(--gray-300)">—</span>`;
- const td = (inner) => `<td style="text-align:center;vertical-align:middle;padding:7px 8px;background:${bg};border-bottom:1px solid var(--gray-100);font-size:12px">${inner}</td>`;
- if (st.state === 'off') return td(`<span style="color:var(--gray-400);font-style:italic;font-size:11px">non incl.</span>`) + td(dash) + td(dash);
- if (st.state === 'nd')  return td(`<span style="color:var(--gray-300);font-size:11px">n.d.</span>`) + td(dash) + td(dash);
- if (st.state === 'sa' || st.state === 'opt-sa') {
+function _casaCells(st) {
+ const dash = `<span style="color:var(--gray-400)">—</span>`;
+ const cell = (inner, bg) => `<td style="text-align:center;vertical-align:middle;padding:7px 8px;background:${bg};border-bottom:1px solid #fff;border-right:1px solid #fff;font-size:12px">${inner}</td>`;
+ let lim, scop, fra;
+ if (st.state === 'off') { lim = `<span style="color:var(--gray-400);font-style:italic;font-size:11px">non incl.</span>`; scop = dash; fra = dash; }
+ else if (st.state === 'nd') { lim = `<span style="color:var(--gray-300);font-size:11px">n.d.</span>`; scop = dash; fra = dash; }
+ else if (st.state === 'sa' || st.state === 'opt-sa') {
   const opt = st.state==='opt-sa' ? ` <span style="color:#7C3AED;font-size:9px">◆ opz.</span>` : '';
-  return td(`<strong style="color:#0D47A1">S.A.</strong>${opt}`) + td(dash) + td(dash);
+  lim = `<strong style="color:#0D47A1">S.A.</strong>${opt}`; scop = dash; fra = dash;
+ } else {
+  const opt = st.state==='opt' ? ` <span style="color:#7C3AED;font-size:9px">◆ opz.</span>` : '';
+  lim = `<strong style="color:#0D47A1">${esc(st.lim||'S.A.')}</strong>${opt}`;
+  scop = st.scop ? `<span style="color:#E65100;font-weight:600">${esc(st.scop)}</span>` : dash;
+  fra  = st.fra  ? `<span style="color:#C62828;font-weight:600">${esc(st.fra)}</span>`  : dash;
  }
- // val / opt
- const opt = st.state==='opt' ? ` <span style="color:#7C3AED;font-size:9px">◆ opz.</span>` : '';
- return td(`<strong style="color:#0D47A1">${esc(st.lim||'S.A.')}</strong>${opt}`)
-      + td(st.scop ? `<span style="color:#E65100">${esc(st.scop)}</span>` : dash)
-      + td(st.fra  ? `<span style="color:#BF360C">${esc(st.fra)}</span>`  : dash);
+ return cell(lim, _BG_LIM) + cell(scop, _BG_SCOP) + cell(fra, _BG_FRA);
 }
 
 // Dati placeholder per 3 profili di polizza. null = garanzia esclusa, {} = inclusa senza limiti specifici.
@@ -4608,7 +4619,7 @@ const _MOCK_GARANZIE_CASA = [
 
 function buildTableGaranzieCasa(policies, cols) {
  const NP = policies.length;
- const subHdr = (lbl, color) => `<th style="font-size:9px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:${color};padding:4px 6px;border-bottom:1px solid var(--gray-200)">${lbl}</th>`;
+ const subHdr = (lbl, color, bg) => `<th style="font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:${color};background:${bg};padding:5px 6px;border-bottom:2px solid ${color}">${lbl}</th>`;
 
  // ── Thead: riga 1 (compagnia/prodotto su 3 colonne), riga 2 (Limite/Scoperto/Franchigia) ──
  let html = '<thead>';
@@ -4621,7 +4632,7 @@ function buildTableGaranzieCasa(policies, cols) {
  });
  html += '</tr><tr>';
  policies.forEach(() => {
-  html += subHdr('Limite', '#0D47A1') + subHdr('Scoperto', '#E65100') + subHdr('Franchigia', '#BF360C');
+  html += subHdr('Limite', '#0D47A1', _BG_LIM) + subHdr('Scoperto', '#E65100', _BG_SCOP) + subHdr('Franchigia', '#C62828', _BG_FRA);
  });
  html += '</tr></thead><tbody>';
 
@@ -4637,20 +4648,8 @@ function buildTableGaranzieCasa(policies, cols) {
    return;
   }
 
-  // Sezione "detail": banda intestazione con il massimale di sezione + sotto-righe
-  html += `<tr><td style="padding:9px 14px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:${c}">${esc(sez.nome)}</td>`;
-  policies.forEach(p => {
-   const det = p.garanzie_detail && p.garanzie_detail[sez.id];
-   let inner;
-   if (det === undefined)      inner = `<span style="color:rgba(255,255,255,.55);font-size:11px">n.d.</span>`;
-   else if (det === null)      inner = `<span style="color:rgba(255,255,255,.5);font-style:italic;font-size:11px">non inclusa</span>`;
-   else {
-    const mass = det.mass || ((p.sezioni||[]).find(s=>s.id===sez.id)||{}).massimale || 'S.A.';
-    inner = `<span style="font-size:12px;font-weight:700;color:#fff">${esc(mass)}</span>`;
-   }
-   html += `<td colspan="3" style="text-align:center;padding:7px 10px;background:${c}">${inner}</td>`;
-  });
-  html += '</tr>';
+  // Sezione "detail": riga-titolo SOLO con il nome (niente valori) + sotto-righe
+  html += `<tr><td colspan="${NP*3+1}" style="padding:9px 14px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:${c}">${esc(sez.nome)}</td></tr>`;
 
   sez.garanzie.forEach((gz, gi) => {
    const rowBg = gi % 2 === 0 ? 'var(--white)' : 'var(--gray-50)';
