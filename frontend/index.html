@@ -2625,15 +2625,23 @@ async function cgaLoad() {
  if (!grid) return;
  grid.innerHTML = '<div style="color:var(--gray-400);font-size:13px;padding:20px 0">Caricamento catalogo...</div>';
  try {
-  // Carica il catalogo dal file statico (Vercel) — nessuna dipendenza dal backend
-  const res = await fetch('./cga_catalog.json');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const catalog = await res.json();
+  // Catalogo dal BACKEND (fonte unica, sempre aggiornata). Ripiego sul file statico
+  // solo se il backend non è raggiungibile, così le due copie non si disallineano più.
+  let catalog;
+  try {
+   const rc = await fetch(`${BACKEND}/api/library/catalog`, { headers: authHeaders(), signal: AbortSignal.timeout(6000) });
+   if (!rc.ok) throw new Error(`HTTP ${rc.status}`);
+   catalog = await rc.json();
+  } catch (errBackend) {
+   const res = await fetch('./cga_catalog.json');
+   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+   catalog = await res.json();
+  }
 
-  // Prova a integrare i dati estratti dal backend (opzionale — se il backend è disponibile)
+  // Integra i dati estratti dal backend (extracted live)
   let extractedMap = {};
   try {
-   const r2 = await fetch(`${BACKEND}/api/library`, { headers: authHeaders(), signal: AbortSignal.timeout(4000) });
+   const r2 = await fetch(`${BACKEND}/api/library`, { headers: authHeaders(), signal: AbortSignal.timeout(6000) });
    if (r2.ok) {
     const live = await r2.json();
     live.forEach(e => { if (e.extracted) extractedMap[e.id] = e; });
