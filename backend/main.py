@@ -3558,8 +3558,17 @@ _CRON_KEY = os.getenv("CRON_API_KEY", "")  # imposta CRON_API_KEY su Railway
 async def cron_sync(request: Request):
     """
     Endpoint per il cron notturno: sincronizza tutto il catalogo CGA.
-    Richiede header Authorization: Bearer <CRON_API_KEY>
+    Richiede header Authorization: Bearer <CRON_API_KEY>.
+
+    DISATTIVATO DI DEFAULT: non fa nulla (e non consuma API/crediti) a meno che
+    la env var ENABLE_CRON_SYNC sia impostata a 1/true. Il catalogo si aggiorna
+    a mano col pulsante "Carica PDF", quindi il sync automatico non serve.
     """
+    if os.getenv("ENABLE_CRON_SYNC", "").strip().lower() not in ("1", "true", "yes"):
+        logger.info("[cron-sync] disattivato (ENABLE_CRON_SYNC non impostato) — nessuna azione")
+        return {"ok": False, "disabled": True,
+                "msg": "Sync automatico disattivato. Le polizze si aggiornano manualmente."}
+
     if _CRON_KEY:
         auth = request.headers.get("Authorization", "")
         if auth != f"Bearer {_CRON_KEY}":

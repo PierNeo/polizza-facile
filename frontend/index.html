@@ -3136,9 +3136,9 @@ function cgaCardHtml(d) {
        style="font-size:11px;padding:4px 10px;border-radius:7px;border:none;background:${inBasket?'var(--green-soft)':'var(--polo)'};color:${inBasket?'var(--green-dark)':'#fff'};cursor:pointer;font-weight:600">
        ${inBasket?'✓ Nel confronto':'+ Confronta'}
       </button>
-      ${(d.url_type==='upload' || !d.url) ? `<button onclick="event.stopPropagation();cgaUploadPdf('${d.id}')"
+      <button onclick="event.stopPropagation();cgaUploadPdf('${d.id}')"
        style="font-size:11px;padding:4px 10px;border-radius:7px;border:1px solid var(--polo);background:white;color:var(--polo);cursor:pointer;font-weight:600">
-       ${hasData?'↻ Ricarica PDF':'⤓ Carica PDF'}</button>` : ''}
+       ${hasData?'↻ Ricarica PDF':'⤓ Carica PDF'}</button>
      </div>
      ${hasData&&updated?`<div class="lib-date" style="margin-top:8px">Analizzata ${updated}</div>`
       :!hasData&&d.sync_status==='error'?`
