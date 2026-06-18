@@ -4470,9 +4470,10 @@ function _casaGz(p, sezId, gzId) {
  const raw = det.gz ? det.gz[gzId] : undefined;
  if (raw === null)      return { state:'off' };
  if (raw === undefined) return { state:'sa' };
+ const opt = !!raw.opt;
  const lim = raw.sub || null, scop = raw.scop || null, fra = raw.fra || null;
- if (!lim && !scop && !fra) return { state:'sa' };
- return { state:'val', lim: lim || 'S.A.', scop, fra };
+ if (!lim && !scop && !fra) return { state: opt?'opt-sa':'sa' };
+ return { state: opt?'opt':'val', lim: lim || 'S.A.', scop, fra };
 }
 
 // Stato di una sezione "src:sezione" (cat. naturali, tutela legale) da p.sezioni.
