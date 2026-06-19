@@ -1,0 +1,13 @@
+{
+  "_nota": "Italiana Assicurazioni — Tutto Casa. Valori verificati dalla CGA Ed.07/2020.",
+  "tipo": ["Casa", "Multirischio"],
+  "checks": [
+    {"desc": "RC verso terzi massimale 5.000.000", "path": "garanzie_detail.rc.mass", "contains": "5.000.000"},
+    {"desc": "Furto preziosi sublimite 15.000", "path": "garanzie_detail.furto.gz.preziosi.sub", "contains": "15.000"},
+    {"desc": "Furto denaro contante 2.500", "path": "garanzie_detail.furto.gz.denaro.sub", "contains": "2.500"},
+    {"desc": "Furto oggetti d'arte 25.000", "path": "garanzie_detail.furto.gz.oggetti_arte.sub", "contains": "25.000"},
+    {"desc": "Eventi atmosferici con scoperto 10%", "path": "garanzie_detail.incendio.gz.eventi_atm.scop", "contains": "10%"},
+    {"desc": "RC inquinamento esclusa", "path": "garanzie_detail.rc.gz.rc_inquin", "state": "excluded"},
+    {"desc": "Tutela Legale presente nel documento", "path": "sezione:tutela_legale", "present": true}
+  ]
+}
