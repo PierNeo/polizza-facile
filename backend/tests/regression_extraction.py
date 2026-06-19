@@ -40,8 +40,7 @@ FORMATO <caso>.expected.json
         excluded = null;  sa = inclusa senza limiti (oggetto vuoto/sub null)
 """
 import os, sys, json, base64, glob
-
-import httpx
+import urllib.request, urllib.error  # solo libreria standard: nessuna dipendenza da installare
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000").rstrip("/")
 PF_USER = os.getenv("PF_USER", "")
@@ -51,23 +50,33 @@ CASES_DIR = os.path.join(os.path.dirname(__file__), "regression")
 _MISSING = object()
 
 
+def _post_json(url: str, payload: dict, headers: dict = None, timeout: int = 600) -> dict:
+    data = json.dumps(payload).encode("utf-8")
+    h = {"Content-Type": "application/json"}
+    if headers:
+        h.update(headers)
+    req = urllib.request.Request(url, data=data, headers=h, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "ignore")
+        raise RuntimeError(f"HTTP {e.code}: {body[:200]}")
+
+
 def _login() -> str:
-    r = httpx.post(f"{BACKEND_URL}/api/auth/login",
-                   json={"username": PF_USER, "password": PF_PASS}, timeout=30)
-    r.raise_for_status()
-    return r.json()["token"]
+    return _post_json(f"{BACKEND_URL}/api/auth/login",
+                      {"username": PF_USER, "password": PF_PASS}, timeout=30)["token"]
 
 
 def _extract(token: str, pdf_path: str) -> dict:
     pdf_b64 = base64.b64encode(open(pdf_path, "rb").read()).decode()
-    r = httpx.post(
+    return _post_json(
         f"{BACKEND_URL}/api/extract-sezioni",
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-        json={"pdf_base64": pdf_b64, "filename": os.path.basename(pdf_path)},
+        {"pdf_base64": pdf_b64, "filename": os.path.basename(pdf_path)},
+        headers={"Authorization": f"Bearer {token}"},
         timeout=600,
     )
-    r.raise_for_status()
-    return r.json()
 
 
 def _resolve(result: dict, path: str):
