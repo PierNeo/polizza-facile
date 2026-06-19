@@ -1,0 +1,12 @@
+{
+  "_nota": "Unipol UNICA Infortuni. Base: Morte + Invalidità Permanente (franchigia 5%, 0% se IP >=20%). Supplementari a pagamento: Rimborso spese mediche (scoperto 10% min €200), Diarie, Tutela Legale.",
+  "tipo": ["Infortuni"],
+  "checks": [
+    {"desc": "Morte da infortuni presente", "path": "sezione:morte", "present": true},
+    {"desc": "Invalidità permanente presente", "path": "sezione:ip_infortuni", "present": true},
+    {"desc": "IP con franchigia 5%", "path": "sezione:ip_infortuni.franchigia", "contains": "5%"},
+    {"desc": "Rimborso spese mediche OPZIONALE (supplemento a pagamento)", "path": "sezione:rss_infortuni.opzionale", "equals": true},
+    {"desc": "Rimborso spese con scoperto 10%", "path": "sezione:rss_infortuni.scoperto", "contains": "10%"},
+    {"desc": "Tutela Legale presente (acquistabile)", "path": "sezione:tutela_legale", "present": true}
+  ]
+}
