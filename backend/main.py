@@ -2667,13 +2667,39 @@ def _merge_sezioni(results: list[dict]) -> dict:
 
     merged["sezioni"] = list(sezioni_map.values())
 
-    # garanzie_detail: prende il più completo tra i chunk (conta chiavi gz non-null)
-    def _gd_score(gd):
-        if not gd: return 0
-        return sum(1 for sez in gd.values() if sez for gz in (sez.get("gz") or {}).values() if gz is not None)
-    best_gd = max((r.get("garanzie_detail") for r in results), key=lambda x: _gd_score(x) if x else 0, default=None)
-    if best_gd:
-        merged["garanzie_detail"] = best_gd
+    # garanzie_detail: DEEP MERGE fra tutti i chunk. Un PDF multi-pagina è diviso in
+    # più blocchi e ogni sezione (es. Cristalli, Assistenza) può trovarsi in un blocco
+    # diverso: vanno unite TUTTE, non si tiene solo il blocco "migliore" (altrimenti le
+    # sezioni dell'altro blocco sparirebbero come "non in doc.").
+    gd_merged: dict = {}
+    for r in results:
+        gd = r.get("garanzie_detail")
+        if not isinstance(gd, dict):
+            continue
+        for sez, data in gd.items():
+            if data is None:
+                gd_merged.setdefault(sez, None)  # esclusa: tieni solo se non già presente con dati
+                continue
+            if not isinstance(data, dict):
+                continue
+            tgt = gd_merged.get(sez)
+            if not isinstance(tgt, dict):
+                tgt = gd_merged[sez] = {"mass": None, "gz": {}}
+            if data.get("mass") and not tgt.get("mass"):
+                tgt["mass"] = data["mass"]
+            for gzid, gzval in (data.get("gz") or {}).items():
+                if gzid not in tgt["gz"]:
+                    tgt["gz"][gzid] = gzval
+                else:
+                    cur = tgt["gz"][gzid]
+                    if cur is None and gzval is not None:
+                        tgt["gz"][gzid] = gzval
+                    elif isinstance(cur, dict) and isinstance(gzval, dict):
+                        for k, v in gzval.items():
+                            if v and not cur.get(k):
+                                cur[k] = v
+    if gd_merged:
+        merged["garanzie_detail"] = gd_merged
 
     # Metadati testuali dal primo non-null
     for field in ["compagnia", "prodotto", "premio", "consigliata_per"]:

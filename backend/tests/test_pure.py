@@ -142,6 +142,28 @@ def test_build_synonym_index():
 
 # ── SCORING CHUNK ─────────────────────────────────────────────────────────────
 
+def test_merge_sezioni_garanzie_detail_deep_merge():
+    # Un PDF su 2 chunk: incendio nel chunk 1, cristalli+assistenza nel chunk 2.
+    # Il merge deve tenerle TUTTE (bug storico: ne teneva solo uno).
+    c1 = {"tipo": "Casa", "sezioni": [],
+          "garanzie_detail": {"incendio": {"mass": "S.A.", "gz": {"incendio_b": {}}}}}
+    c2 = {"tipo": "Casa", "sezioni": [],
+          "garanzie_detail": {"cristalli": {"mass": "€ 5.000", "gz": {"crist_b": {"sub": "€ 100"}}},
+                               "assistenza": {"gz": {"ass_idraul": {"sub": "€ 250"}}}}}
+    merged = main._merge_sezioni([c1, c2])
+    gd = merged["garanzie_detail"]
+    assert set(gd.keys()) >= {"incendio", "cristalli", "assistenza"}
+    assert gd["cristalli"]["gz"]["crist_b"]["sub"] == "€ 100"
+    assert gd["assistenza"]["gz"]["ass_idraul"]["sub"] == "€ 250"
+
+def test_merge_sezioni_gd_dati_battono_esclusa():
+    # Se un chunk ha la sezione con dati e un altro la dà esclusa (null), vincono i dati.
+    c1 = {"sezioni": [], "garanzie_detail": {"furto": None}}
+    c2 = {"sezioni": [], "garanzie_detail": {"furto": {"gz": {"furto_b": {"scop": "20%"}}}}}
+    merged = main._merge_sezioni([c1, c2])
+    assert isinstance(merged["garanzie_detail"]["furto"], dict)
+    assert merged["garanzie_detail"]["furto"]["gz"]["furto_b"]["scop"] == "20%"
+
 def test_score_chunk_vuoto_e_zero():
     assert main._score_chunk("") == 0
 
