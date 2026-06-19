@@ -1,0 +1,9 @@
+{
+  "_nota": "Helvetia LaMiaCasa Full (ed. 04/2026). Furto preziosi 30% SA, denaro 5% SA; Terremoto/Alluvione come condizione aggiuntiva (opzionale).",
+  "tipo": ["Casa", "Multirischio"],
+  "checks": [
+    {"desc": "Furto preziosi 30% della somma assicurata", "path": "garanzie_detail.furto.gz.preziosi.sub", "contains": "30%"},
+    {"desc": "Furto denaro 5% della somma assicurata", "path": "garanzie_detail.furto.gz.denaro.sub", "contains": "5%"},
+    {"desc": "Catastrofi naturali OPZIONALI (condizione aggiuntiva)", "path": "sezione:terremoto_alluvione.opzionale", "equals": true}
+  ]
+}

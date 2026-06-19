@@ -1,0 +1,9 @@
+{
+  "_nota": "Generali Immagina Adesso — Modulo Casa. Ha RC e Assistenza; la Tutela Legale NON è in questo modulo.",
+  "tipo": ["Casa", "Multirischio"],
+  "checks": [
+    {"desc": "Responsabilità Civile presente", "path": "sezione:rc", "present": true},
+    {"desc": "Tutela Legale assente in questo modulo", "path": "sezione:tutela_legale", "absent": true},
+    {"desc": "Catastrofi naturali presenti (terremoto trattato)", "path": "sezione:terremoto_alluvione", "present": true}
+  ]
+}

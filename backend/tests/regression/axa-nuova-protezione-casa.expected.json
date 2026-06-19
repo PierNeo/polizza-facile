@@ -1,0 +1,9 @@
+{
+  "_nota": "AXA Nuova Protezione Casa (ed. maggio 2026). CGA completa con RC, Tutela Legale e Assistenza nel documento.",
+  "tipo": ["Casa", "Multirischio"],
+  "checks": [
+    {"desc": "Responsabilità Civile presente", "path": "sezione:rc", "present": true},
+    {"desc": "Tutela Legale presente", "path": "sezione:tutela_legale", "present": true},
+    {"desc": "Assistenza presente (garanzie_detail)", "path": "garanzie_detail.assistenza", "present": true}
+  ]
+}
