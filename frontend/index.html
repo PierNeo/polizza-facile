@@ -2409,6 +2409,7 @@ function basketRender() {
    </div>`).join('');
   btn.disabled = _basket.length < 1;
   btn.style.opacity = _basket.length >= 1 ? '1' : '.5';
+  btn.textContent = _basket.length === 1 ? 'Analizza →' : 'Confronta →';
  }
  renderLibreria();
  cgaRender();
@@ -3503,8 +3504,10 @@ function updateUploadButton() {
  const fileTotal = files.length;
  const total = libReady + fileReady;
  const allFilesDone = fileTotal === 0 || fileReady === fileTotal;
- document.getElementById('btnGo').disabled = total < 2 || !allFilesDone;
- document.getElementById('uploadHint').textContent = total> 0 ? `${total} polizze pronte` : '';
+ const _goBtn = document.getElementById('btnGo');
+ _goBtn.disabled = total < 1 || !allFilesDone;
+ _goBtn.textContent = total === 1 ? 'Analizza polizza →' : 'Confronta polizze →';
+ document.getElementById('uploadHint').textContent = total> 0 ? (total===1 ? '1 polizza pronta' : `${total} polizze pronte`) : '';
  const saveLabel = document.getElementById('saveToLibLabel');
  saveLabel.style.display = fileTotal> 0 ? 'flex' : 'none';
 }
