@@ -715,6 +715,7 @@ body { font-family:'Inter',sans-serif; background:var(--gray-50); color:var(--gr
 .score-product { font-size:15px; font-weight:700; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .score-tipo { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; background:var(--blue-soft); color:var(--blue); }
 .score-premio { font-size:11px; color:var(--gray-500); margin-top:5px; }
+.score-gaps { font-size:10px; color:#8a5a00; background:#fff7e6; border:1px solid #ffe0a3; border-radius:6px; padding:3px 7px; margin-top:6px; cursor:help; display:inline-block; }
 .score-premio strong { color:var(--gray-700); }
 .score-badges { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
 .score-badge { font-size:10px; font-weight:500; padding:2px 8px; border-radius:20px; background:var(--gray-100); color:var(--gray-600); }
@@ -756,7 +757,6 @@ td.cell { padding:9px 12px; text-align:center; vertical-align:middle; }
 .dip-badge:hover::after { content:attr(data-tip); position:absolute; z-index:50; background:var(--gray-800); color:#fff; font-size:11px; font-weight:400; padding:6px 10px; border-radius:6px; max-width:220px; white-space:normal; line-height:1.4; margin-top:4px; transform:translateX(-30%); }
 .note-text { font-size:10px; color:var(--gray-400); font-style:italic; margin-top:1px; }
 /* ── Tabella Garanzie Casa (v4) ─────────────────────────────────────────── */
-.gz-mock-badge { display:inline-block; font-size:10px; font-weight:600; color:#856404; background:#fff3cd; border:1px solid #ffc107; padding:2px 8px; border-radius:4px; }
 .gz-chips { display:flex; flex-direction:column; align-items:center; gap:3px; }
 .gz-chip { font-size:10px; font-weight:600; padding:2px 8px; border-radius:4px; display:inline-block; white-space:nowrap; }
 .gz-chip-lbl { font-weight:400; opacity:.65; }
@@ -2826,7 +2826,7 @@ function cgaUploadPdf(id) {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        throw new Error(err.detail || err.error || `HTTP ${res.status}`);
       }
 
       setMsg('Estrazione AI…', 70);
@@ -2902,7 +2902,7 @@ function cgaUploadPdf(id) {
       } finally { clearTimeout(timer); }
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        throw new Error(err.detail || err.error || `HTTP ${res.status}`);
       }
       setMsg('Estrazione AI…', 70);
       const result = await res.json();
@@ -4033,18 +4033,39 @@ function printResults() {
  if (hideProfile) profileEl.style.display = '';
 }
 
+// Sezioni core (Casa/Multirischio) non presenti in QUESTO documento (es. moduli separati).
+// Per altri tipi (Infortuni) non si applica → ritorna [].
+function _sezioniNonInDoc(p) {
+ const tipo = (p.tipo || 'Casa');
+ if (!(tipo === 'Casa' || tipo === 'Multirischio')) return [];
+ if (!p.garanzie_detail) return [];
+ const gaps = [];
+ CASA_SEZIONI_SCHEMA.forEach(sez => {
+  const nd = (sez.src === 'sezione')
+   ? !((p.sezioni||[]).some(s => s.id === sez.id))
+   : (p.garanzie_detail[sez.id] === undefined);
+  if (nd) gaps.push(sez.nome);
+ });
+ return gaps;
+}
+
 function renderResults(policies) {
  const cols=['#0F2741','#7C3AED','#C8971C','#DC2626'];
  document.getElementById('scoreCards').style.gridTemplateColumns=`repeat(${policies.length},1fr)`;
  const premiums=policies.map(p=>p.premio_num||0);
  const minPremium=Math.min(...premiums.filter(x=>x>0));
  document.getElementById('scoreCards').innerHTML=policies.map((p,i)=>{
+ const gaps = _sezioniNonInDoc(p);
+ const gapsLine = gaps.length
+  ? `<div class="score-gaps" title="Sezioni non presenti in questo documento: ${esc(gaps.join(', '))}. Potrebbero essere in un modulo separato — verifica.">⚠ ${gaps.length} ${gaps.length===1?'sezione non documentata':'sezioni non documentate'}</div>`
+  : '';
  return `<div class="score-card" style="border-top:3px solid ${cols[i]}">
  <div class="score-body">
   <div class="score-company">${esc(p.compagnia||'—')}</div>
   <div class="score-product">${esc(p.prodotto||'—')}</div>
   <span class="score-tipo">${esc(p.tipo||'—')}</span>
   ${p.premio?`<div class="score-premio">Premio: <strong>${esc(p.premio)}</strong></div>`:''}
+  ${gapsLine}
  </div>
  </div>`;
  }).join('');
@@ -4514,116 +4535,6 @@ function _casaCells(st) {
  return cell(lim, _BG_LIM) + cell(scop, _BG_SCOP) + cell(fra, _BG_FRA);
 }
 
-// Dati placeholder per 3 profili di polizza. null = garanzia esclusa, {} = inclusa senza limiti specifici.
-const _MOCK_GARANZIE_CASA = [
- // Profilo 0 — Prima (premium)
- { incendio:{ mass:'€ 500.000', gz:{
-     incendio_b:     { fra:'€ 250' },
-     eventi_atm:     { sub:'€ 200.000', scop:'10% min. €500' },
-     fenomeno_el:    { sub:'€ 5.000' },
-     sparg_acqua:    { fra:'€ 250' },
-     ricerca_guasto: { sub:'€ 1.500' },
-     atti_vandal:    { sub:'€ 50.000' },
-     demolizione:    { sub:'10% del massimale' },
-     fotovoltaico:   { sub:'€ 10.000' },
-   }},
-   furto:{ mass:'€ 30.000', gz:{
-     furto_b:      { scop:'20% min. €250' },
-     scippo:       { sub:'€ 3.000' },
-     guasti_ladri: { sub:'€ 10.000' },
-     preziosi:     { sub:'€ 5.000', fra:'€ 250' },
-     denaro:       { sub:'€ 1.000' },
-     oggetti_arte: { sub:'€ 15.000' },
-   }},
-   rc:{ mass:'€ 1.000.000', gz:{
-     rc_figli:{}, rc_cani:{},
-     rc_inquin:{ sub:'€ 100.000' },
-     rc_incend:{},
-   }},
-   cristalli:{ mass:'€ 5.000', gz:{
-     crist_b:    { fra:'€ 100' },
-     crist_spec: { sub:'€ 1.000' },
-     crist_san:  { sub:'€ 500' },
-   }},
-   assistenza:{ mass:'€ 500/evento', gz:{
-     ass_idraul:{ sub:'€ 500' },
-     ass_elett: { sub:'€ 500' },
-     ass_fabbro:{ sub:'€ 500' },
-     ass_allogg:{ sub:'€ 2.000' },
-     ass_guard: null,
-   }},
- },
- // Profilo 1 — Classica (standard)
- { incendio:{ mass:'€ 350.000', gz:{
-     incendio_b:     { fra:'€ 500' },
-     eventi_atm:     { sub:'€ 150.000', scop:'10% min. €750' },
-     fenomeno_el:    { sub:'€ 3.000' },
-     sparg_acqua:    { fra:'€ 500' },
-     ricerca_guasto: { sub:'€ 1.000' },
-     atti_vandal:    null,
-     demolizione:    { sub:'5% del massimale' },
-     fotovoltaico:   null,
-   }},
-   furto:{ mass:'€ 20.000', gz:{
-     furto_b:      { scop:'20% min. €300' },
-     scippo:       { sub:'€ 1.500' },
-     guasti_ladri: { sub:'€ 5.000' },
-     preziosi:     { sub:'€ 3.000', fra:'€ 500' },
-     denaro:       { sub:'€ 500' },
-     oggetti_arte: null,
-   }},
-   rc:{ mass:'€ 750.000', gz:{
-     rc_figli:{}, rc_cani:{},
-     rc_inquin: null,
-     rc_incend:{},
-   }},
-   cristalli:{ mass:'€ 3.000', gz:{
-     crist_b:    { fra:'€ 150' },
-     crist_spec: {},
-     crist_san:  null,
-   }},
-   assistenza:{ mass:'€ 300/evento', gz:{
-     ass_idraul:{ sub:'€ 300' },
-     ass_elett: { sub:'€ 300' },
-     ass_fabbro:{ sub:'€ 300' },
-     ass_allogg: null,
-     ass_guard:  null,
-   }},
- },
- // Profilo 2 — Base (entry level)
- { incendio:{ mass:'€ 250.000', gz:{
-     incendio_b:     { fra:'€ 1.000' },
-     eventi_atm:     { sub:'€ 100.000', scop:'15% min. €1.000' },
-     fenomeno_el:    { sub:'€ 1.500' },
-     sparg_acqua:    { fra:'€ 1.000' },
-     ricerca_guasto: null,
-     atti_vandal:    null,
-     demolizione:    { sub:'5% del massimale' },
-     fotovoltaico:   null,
-   }},
-   furto:{ mass:'€ 10.000', gz:{
-     furto_b:      { scop:'20% min. €500' },
-     scippo:       null,
-     guasti_ladri: { sub:'€ 2.000' },
-     preziosi:     null,
-     denaro:       { sub:'€ 300' },
-     oggetti_arte: null,
-   }},
-   rc:{ mass:'€ 500.000', gz:{
-     rc_figli:{}, rc_cani:{},
-     rc_inquin: null,
-     rc_incend: null,
-   }},
-   cristalli: null,  // sezione esclusa
-   assistenza:{ mass:'€ 200/evento', gz:{
-     ass_idraul:{ sub:'€ 200' },
-     ass_elett:  null,
-     ass_fabbro:{ sub:'€ 200' },
-     ass_allogg: null,
-     ass_guard:  null,
-   }},
- },
-];
 
 function buildTableGaranzieCasa(policies, cols) {
  const NP = policies.length;

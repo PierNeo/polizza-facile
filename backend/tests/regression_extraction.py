@@ -39,8 +39,15 @@ FORMATO <caso>.expected.json
         included = inclusa (oggetto senza opt); optional = {"opt":true};
         excluded = null;  sa = inclusa senza limiti (oggetto vuoto/sub null)
 """
-import os, sys, json, base64, glob
+import os, sys, json, base64, glob, ssl
 import urllib.request, urllib.error  # solo libreria standard: nessuna dipendenza da installare
+
+# Alcune installazioni Python su macOS (python.org) non hanno i certificati di sistema
+# e danno "CERTIFICATE_VERIFY_FAILED". Questo è uno script di diagnostica verso il TUO
+# backend noto, quindi disabilitiamo la verifica SSL solo qui (non in produzione).
+_SSL_CTX = ssl.create_default_context()
+_SSL_CTX.check_hostname = False
+_SSL_CTX.verify_mode = ssl.CERT_NONE
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000").rstrip("/")
 PF_USER = os.getenv("PF_USER", "")
@@ -57,7 +64,7 @@ def _post_json(url: str, payload: dict, headers: dict = None, timeout: int = 600
         h.update(headers)
     req = urllib.request.Request(url, data=data, headers=h, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout, context=_SSL_CTX) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", "ignore")

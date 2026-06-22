@@ -543,6 +543,31 @@ async def auth_create_user(req: CreateUserRequest, request: Request):
         raise HTTPException(503, "Persistenza non disponibile: impossibile salvare l'account")
     return {"ok": True, "username": uname, "created": is_new, "total_users": len(users)}
 
+# ── GESTIONE ERRORI API AI ──────────────────────────────────────────────────
+def _ai_error_message(exc) -> str | None:
+    """
+    Se l'eccezione è un errore del servizio AI (non un problema di contenuto),
+    ritorna un messaggio chiaro per l'utente; altrimenti None.
+    Serve a mostrare es. "Crediti AI esauriti" invece di "Nessun dato estratto".
+    """
+    try:
+        if isinstance(exc, anthropic.AuthenticationError):
+            return "Configurazione AI non valida (chiave API). Contatta l'assistenza."
+        if isinstance(exc, anthropic.RateLimitError):
+            return "Servizio AI sovraccarico in questo momento — riprova tra qualche minuto."
+        if isinstance(exc, anthropic.APIStatusError):
+            msg = str(getattr(exc, "message", "") or exc).lower()
+            code = getattr(exc, "status_code", 0)
+            if code == 402 or "credit" in msg or "billing" in msg or "quota" in msg:
+                return "Crediti AI esauriti: ricarica il credito Anthropic per continuare l'estrazione."
+            return "Servizio AI temporaneamente non disponibile — riprova più tardi."
+        if isinstance(exc, (anthropic.APIConnectionError, anthropic.APITimeoutError)):
+            return "Impossibile contattare il servizio AI (connessione) — riprova."
+    except Exception:
+        pass
+    return None
+
+
 # ── RETRY HELPER ──────────────────────────────────────────────────────────────
 async def call_claude(max_retries: int = 3, **kwargs):
     """Chiama Claude con retry automatico su errori 529 (overloaded)."""
@@ -2624,6 +2649,10 @@ async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: 
                 return block.input
         return {}
     except Exception as e:
+        # Errori di SERVIZIO (credito esaurito, chiave, rate limit): falli emergere
+        # così l'endpoint mostra un messaggio chiaro invece di "nessun dato".
+        if _ai_error_message(e):
+            raise
         logger.error(f"[sezioni] errore chunk {chunk_info} di '{filename}': {e}")
         return {}
 
@@ -2922,6 +2951,9 @@ async def extract_sezioni(req: ExtractSezioniRequest):
     except HTTPException:
         raise
     except Exception as e:
+        friendly = _ai_error_message(e)
+        if friendly:
+            raise HTTPException(503, friendly)
         logger.error(f"[sezioni] errore '{req.filename}': {e}")
         raise HTTPException(500, "Errore durante l'analisi per sezioni")
 
@@ -2985,8 +3017,10 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
                 await queue.put({"type": "result", "data": result})
 
             except Exception as e:
-                logger.error(f"[sezioni stream] errore '{req.filename}': {e}")
-                await queue.put({"type": "error", "message": str(e) or "Errore durante l'analisi"})
+                friendly = _ai_error_message(e)
+                if not friendly:
+                    logger.error(f"[sezioni stream] errore '{req.filename}': {e}")
+                await queue.put({"type": "error", "message": friendly or "Errore durante l'analisi"})
 
         task = asyncio.create_task(do_extract())
         try:
@@ -3492,6 +3526,9 @@ async def library_upload_pdf(
     except HTTPException:
         raise
     except Exception as e:
+        friendly = _ai_error_message(e)
+        if friendly:
+            raise HTTPException(503, friendly)
         logger.error(f"[upload-pdf] '{id}' — errore: {e}")
         raise HTTPException(status_code=500, detail=str(e)[:300])
 
