@@ -163,6 +163,19 @@ def main() -> int:
         print("Imposta PF_USER e PF_PASS (e BACKEND_URL).")
         return 2
     cases = sorted(glob.glob(os.path.join(CASES_DIR, "*.expected.json")))
+    # Sottoinsieme: passa uno o più nomi di caso come argomenti per testare solo quelli
+    # (così spendi meno mentre iteri; lancia senza argomenti per il set completo).
+    # Es: python3 tests/regression_extraction.py tuttocasa unipol-unica-casa
+    wanted = [a.strip().replace(".expected.json", "").replace(".pdf", "") for a in sys.argv[1:]]
+    if wanted:
+        cases = [c for c in cases
+                 if os.path.basename(c).replace(".expected.json", "") in wanted]
+        if not cases:
+            print(f"Nessun caso corrisponde a {wanted}. Disponibili: "
+                  + ", ".join(os.path.basename(c).replace('.expected.json','')
+                              for c in sorted(glob.glob(os.path.join(CASES_DIR, '*.expected.json')))))
+            return 2
+        print(f"Eseguo solo: {', '.join(os.path.basename(c).replace('.expected.json','') for c in cases)}\n")
     if not cases:
         print(f"Nessun caso in {CASES_DIR}.")
         return 0
