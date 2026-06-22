@@ -1,5 +1,5 @@
 {
-  "_nota": "Unipol UNICA Casa — modulo Casa/proprietà. RC e Tutela Legale sono in moduli separati (non in questo PDF).",
+  "_nota": "Unipol UNICA Casa — modulo Casa/proprietà. RC e Tutela Legale sono in moduli separati (non in questo PDF). NB scoperti/franchigie: la garanzia incendio BASE non ha franchigia ordinaria (i €250 sono solo su Incendio Extra opzionale e voci di nicchia); il furto BASE non ha scoperto ordinario (il 20% è CONDIZIONATO ai mezzi di chiusura non conformi). I due check 'GUARDIA' verificano che NON vengano forzati sulle garanzie base.",
   "tipo": ["Casa", "Multirischio"],
   "checks": [
     {"desc": "Eventi atmosferici OPZIONALI (solo con supplemento)", "path": "garanzie_detail.incendio.gz.eventi_atm", "state": "optional"},
@@ -7,7 +7,16 @@
     {"desc": "RC assente in questo documento (modulo separato)", "path": "garanzie_detail.rc", "absent": true},
     {"desc": "Sezione RC assente", "path": "sezione:rc", "absent": true},
     {"desc": "Tutela Legale assente in questo documento", "path": "sezione:tutela_legale", "absent": true},
+
     {"desc": "Furto preziosi sublimite 10.000 (dimora abituale)", "path": "garanzie_detail.furto.gz.preziosi.sub", "contains": "10.000"},
-    {"desc": "Furto denaro contante 2.500", "path": "garanzie_detail.furto.gz.denaro.sub", "contains": "2.500"}
+    {"desc": "Furto denaro/valori 2.500", "path": "garanzie_detail.furto.gz.denaro.sub", "contains": "2.500"},
+    {"desc": "Guasti da ladri 5.000", "path": "garanzie_detail.furto.gz.guasti_ladri.sub", "contains": "5.000"},
+    {"desc": "Oggetti speciali/arte 35.000 per singolo oggetto", "path": "garanzie_detail.furto.gz.oggetti_arte.sub", "contains": "35.000"},
+
+    {"desc": "Assistenza idraulico 200 per artigiano", "path": "garanzie_detail.assistenza.gz.ass_idraul.sub", "contains": "200"},
+    {"desc": "Assistenza alloggio/pernottamento 500", "path": "garanzie_detail.assistenza.gz.ass_allogg.sub", "contains": "500"},
+
+    {"desc": "GUARDIA: furto base SENZA scoperto ordinario (il 20% e' condizionato, non va forzato)", "path": "garanzie_detail.furto.gz.furto_b.scop", "absent": true},
+    {"desc": "GUARDIA: incendio base SENZA franchigia ordinaria (i 250 sono di nicchia/opzionali)", "path": "garanzie_detail.incendio.gz.incendio_b.fra", "absent": true}
   ]
 }
