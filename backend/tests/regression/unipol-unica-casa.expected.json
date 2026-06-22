@@ -16,6 +16,10 @@
     {"desc": "Assistenza idraulico 200 per artigiano", "path": "garanzie_detail.assistenza.gz.ass_idraul.sub", "contains": "200"},
     {"desc": "Assistenza alloggio/pernottamento 500", "path": "garanzie_detail.assistenza.gz.ass_allogg.sub", "contains": "500"},
 
+    {"desc": "Spargimento d'acqua (Danni da acqua) franchigia 250 (supplemento opzionale)", "path": "garanzie_detail.incendio.gz.sparg_acqua.fra", "contains": "250"},
+    {"desc": "Fenomeno elettrico (Danni elettrici) franchigia 250 (supplemento opzionale)", "path": "garanzie_detail.incendio.gz.fenomeno_el.fra", "contains": "250"},
+    {"desc": "Ricerca del guasto (condutture gas) franchigia 250 (supplemento opzionale)", "path": "garanzie_detail.incendio.gz.ricerca_guasto.fra", "contains": "250"},
+
     {"desc": "GUARDIA: furto base SENZA scoperto ordinario (il 20% e' condizionato, non va forzato)", "path": "garanzie_detail.furto.gz.furto_b.scop", "absent": true},
     {"desc": "GUARDIA: incendio base SENZA franchigia ordinaria (i 250 sono di nicchia/opzionali)", "path": "garanzie_detail.incendio.gz.incendio_b.fra", "absent": true}
   ]
