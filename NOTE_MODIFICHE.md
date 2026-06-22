@@ -1,93 +1,143 @@
-# Polizza Facile — Modifiche sessione (sicurezza, robustezza, account)
+# Polizza Facile — Note di progetto
 
-> Regole rispettate: nessun `git commit` eseguito (li fai tu dal Terminal); nessuna
-> riduzione di qualità (i prompt e i modelli non sono stati cambiati — solo resi
-> configurabili).
+Riepilogo di tutto il lavoro fatto (sicurezza, account, qualità estrazione, output,
+regressione) e di come si usa. Regole rispettate: i `git commit` li fai tu; nessuna
+riduzione di qualità voluta.
 
-## Cosa è cambiato (in breve)
+---
 
-1. **Login con account per assicuratore.** Niente più chiave statica nel frontend
-   (era pubblica e aggirabile). Ora si entra con username+password e un token di
-   sessione. Account previsti: tu, Leonardo, Nicolò.
-2. **Dati privati per account, libreria CGA condivisa.** Clienti, polizze e
-   configurazione sono separati per utente; il catalogo CGA resta in comune.
-3. **CORS chiuso** al dominio del frontend (prima era aperto a tutti con `*`).
-4. **Cap PDF generoso** (40 MB / 400 pagine, configurabili) — le polizze lunghe
-   passano comunque; serve solo a fermare upload abnormi.
-5. **Retry su 529** ora su *tutte* le chiamate Claude (prima solo metà).
-6. **Modelli centralizzati** in costanti/env (vedi nota su `claude-opus-4-6`).
-7. **Salvataggi onesti**: se Qdrant non salva, l'API risponde errore (prima diceva
-   sempre "ok").
-8. **Anti-brute-force** sul login (20 tentativi / 15 min per IP).
-9. **Test** automatici (`backend/tests/`) + script di regression estrazione.
+## 1. Sicurezza e account
 
-## Variabili d'ambiente da impostare su Railway
+- **Login con account per assicuratore.** Niente più chiave statica nel frontend
+  (era pubblica). Si entra con username+password → token di sessione firmato (HMAC),
+  password con hash PBKDF2. Account attuali: `carlo`, `leonardo`, `nicolo`.
+- **Dati privati per account, libreria CGA condivisa.** Clienti / polizze /
+  configurazione sono separati per utente; il catalogo CGA è in comune.
+- **CORS** chiuso al dominio Vercel. **Anti-brute-force** sul login (20 tentativi/15 min).
+- Rimosse le vecchie interfacce `backend/index.html` e `backend/nicolo.html` (si usa
+  solo l'app su Vercel; la root del backend mostra solo "API attiva").
 
-Obbligatorie/consigliate:
-
+### Variabili d'ambiente su Railway
 | Variabile | A cosa serve |
 |---|---|
-| `SESSION_SECRET` | Firma i token di login. Valore lungo e casuale: `openssl rand -hex 32`. **Non cambiarlo** dopo (invaliderebbe i login). |
-| `ADMIN_KEY` | Permette di creare account via API. Valore segreto a tua scelta. |
-| `ADMIN_USERNAME` + `ADMIN_PASSWORD` | Crea il tuo account al primo avvio (così puoi entrare subito). |
-| `DATA_OWNER_USERNAME` | Una-tantum: assegna i dati già esistenti al tuo account (metti il tuo username, es. `carlo`). |
-| `ALLOWED_ORIGINS` | Dominio del frontend Vercel (es. `https://...vercel.app`). |
+| `SESSION_SECRET` | Firma i token. Lungo e casuale (`openssl rand -hex 32`). **Non cambiarlo** dopo. |
+| `ADMIN_KEY` | Crea/aggiorna account via API. |
+| `ADMIN_USERNAME` + `ADMIN_PASSWORD` | Account creato al primo avvio. |
+| `DATA_OWNER_USERNAME` | Una-tantum: assegna i dati esistenti al tuo account. |
+| `ALLOWED_ORIGINS` | Dominio Vercel **senza `/` finale**. |
+| `ANTHROPIC_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY` | già impostate. |
+| `MODEL_VISION` | modello estrazione (attuale: `claude-opus-4-8`). |
+| Opzionali | `SESSION_TTL_HOURS`, `MODEL_TEXT`, `MODEL_FAST`, `MAX_PDF_BYTES`, `MAX_PDF_PAGES`, `ENABLE_CRON_SYNC`. |
 
-Già esistenti (lasciale come sono): `ANTHROPIC_API_KEY`, `QDRANT_URL`,
-`QDRANT_API_KEY`, `CRON_API_KEY`.
-
-Opzionali: `SESSION_TTL_HOURS` (default 168 = 7 giorni), `MODEL_VISION/MODEL_TEXT/
-MODEL_FAST`, `MAX_PDF_BYTES`, `MAX_PDF_PAGES`.
-
-## Come creare gli account (dopo il deploy)
-
-1. Imposta `ADMIN_USERNAME`/`ADMIN_PASSWORD` (il tuo) e `ADMIN_KEY` su Railway → riavvia.
-   Ora puoi fare login con il tuo account.
-2. Crea Leonardo e Nicolò con una chiamata (dal tuo Terminal):
-
+### Creare / cambiare un account
 ```bash
-curl -X POST https://<tuo-backend>.railway.app/api/auth/create-user \
+curl -X POST https://polizza-facile-production.up.railway.app/api/auth/create-user \
   -H "Content-Type: application/json" \
-  -d '{"username":"leonardo","password":"unaPasswordLunga","admin_key":"<ADMIN_KEY>"}'
+  -d '{"username":"nome","password":"passwordLunga","admin_key":"<ADMIN_KEY>"}'
+```
+(Stesso comando con lo stesso username = cambia la password. Min 8 caratteri.)
 
-curl -X POST https://<tuo-backend>.railway.app/api/auth/create-user \
-  -H "Content-Type: application/json" \
-  -d '{"username":"nicolo","password":"unaPasswordLunga","admin_key":"<ADMIN_KEY>"}'
+---
+
+## 2. Robustezza backend
+
+- **Retry automatico** su tutte le chiamate AI (errore 529).
+- **Modelli configurabili** da env (nessuna stringa nel codice); lo `.strip()` evita
+  errori da spazi.
+- **`cryptography`** aggiunta alle dipendenze: i PDF di polizza **cifrati (AES)** ora
+  si leggono (prima fallivano).
+- **Cap PDF** generoso e "best-effort" (40 MB / 400 pagine): non blocca le polizze
+  lunghe, solo gli upload abnormi.
+- **Salvataggi Qdrant** atomici e con errori onesti (niente più falso "ok").
+- **Sync notturno DISATTIVATO di default** (`/api/cron-sync` non fa nulla senza
+  `ENABLE_CRON_SYNC=1`) → nessun costo automatico. Le polizze si aggiornano a mano.
+- **Messaggi di errore chiari**: se l'AI non risponde l'app dice *"Crediti AI
+  esauriti"* / *"Servizio AI sovraccarico"* invece del generico "nessun dato".
+
+---
+
+## 3. Libreria CGA (catalogo condiviso)
+
+- Il frontend legge il catalogo **dal backend** (fonte unica): le due copie non si
+  disallineano più. Si modifica solo `backend/cga_catalog.json`.
+- Ogni voce ha il pulsante **"Carica PDF / Ricarica PDF"**: carichi a mano il PDF e
+  l'estrazione gira sul backend, salvando nella libreria condivisa.
+- Per i **prodotti modulari** (es. Allianz, Unipol) i moduli vanno **uniti in un solo
+  PDF** prima di caricarli, altrimenti le sezioni in moduli separati risultano
+  "non in doc.".
+
+---
+
+## 4. Output dell'analisi / confronto
+
+- **Strumento di analisi**, non solo confronto: funziona anche su **una sola polizza**
+  (il pulsante diventa "Analizza polizza").
+- **Vista sintetica** = griglia a **3 colonne per polizza: Limite · Scoperto ·
+  Franchigia** (colori distinti). **Vista dettaglio** = stesse sezioni con le note
+  complete.
+- **"S.A."** dove non c'è un limite specifico (coperto fino alla somma assicurata);
+  niente più spunte verdi; niente più valori d'esempio (mock rimossi).
+- Distinzione chiara: **"Esclusa"** (esclusa dal contratto) vs **"non in doc."**
+  (sezione assente, es. modulo separato) vs **"◆ opz."** (opzionale a pagamento).
+- Le coperture **marginali/di nicchia** vanno in fondo; le **esclusioni** in fondo.
+- Indicatore per polizza: **"⚠ N sezioni non documentate"** (con elenco al passaggio
+  del mouse), utile a capire quando manca un modulo.
+
+---
+
+## 5. Qualità estrazione (prompt)
+
+Regole generali (valgono per tutte le compagnie, non patch):
+- **Limite ≠ sotto-cap**: un tetto su voci particolari (es. lastre, colonnine) NON è
+  il limite della garanzia → se la base copre fino alla S.A., Limite = "S.A.".
+- **Opzionale solo con frase esplicita** ("supplementare / a pagamento / se
+  acquistata"); altrimenti la garanzia è inclusa.
+- **Esclusa vs assente**: si omette ciò che non è nel documento; "esclusa" solo se il
+  testo lo esclude esplicitamente.
+- **Deep-merge** dei dettagli tra i blocchi di un PDF lungo (prima si perdevano
+  sezioni su documenti multi-pagina).
+
+---
+
+## 6. Test e regressione
+
+### Test automatici (gratis, locali)
+```bash
+cd backend
+pytest -q     # ~22 test sulle funzioni pure (auth, merge, limiti PDF, ...)
 ```
 
-Password minimo 8 caratteri. Per cambiare una password, richiama lo stesso endpoint
-con lo stesso username.
-
-## Push (quando hai verificato)
-
-Sono stati anche **rimossi** `backend/index.html` e `backend/nicolo.html` (vecchie
-interfacce non più usate): si usa solo l'app su Vercel. La rotta `/` del backend ora
-mostra solo una paginetta "API attiva", e `/nicolo` non esiste più. Per includere
-anche le cancellazioni nel commit, usa `git add -A`:
-
-```bash
-cd ~/Desktop/Claude\ Workspace/polizza-facile
-git add -A
-git commit -m "feat: auth account per assicuratore + hardening sicurezza/robustezza + test; rimosse interfacce backend legacy"
-git push
-```
-
-## Punti che restano aperti (tua decisione)
-
-- ~~`backend/index.html` e `backend/nicolo.html`~~ → **rimossi** (usi solo Vercel).
-- **`claude-opus-4-6`**: verifica che sia ancora un modello attivo. Se vuoi un Opus
-  più recente, basta impostare `MODEL_VISION=claude-opus-4-8` su Railway — nessuna
-  modifica al codice.
-- **`/api/library/check-urls`**: ha un controllo a chiave debole e separato (env
-  `API_KEY`, probabilmente non impostata). È solo diagnostico/sola-lettura; se vuoi
-  lo lego ad `ADMIN_KEY`.
-- **Estrazione Infortuni / `garanzie_detail`**: invariata. Quando ci lavori, usa lo
-  script `backend/tests/regression_extraction.py` per non regredire su Casa.
-
-## Test
+### Regressione qualità estrazione (a pagamento — chiama l'AI)
+"Compito con le risposte corrette" su 6 polizze note (Tuttocasa, Unipol Casa, AXA,
+Generali, Helvetia, Unipol Infortuni), per validare che una modifica ai prompt
+migliori senza rompere. I valori attesi sono in `backend/tests/regression/*.expected.json`
+(i PDF restano locali, esclusi dal repo).
 
 ```bash
 cd backend
-pip install pytest --break-system-packages
-pytest -q            # 19 test, gratis, ~1s
+export BACKEND_URL=https://polizza-facile-production.up.railway.app
+export PF_USER=carlo
+export PF_PASS=<password>
+# Sottoinsieme (spendi meno mentre iteri ~ pochi $):
+python3 tests/regression_extraction.py unipol-unica-casa
+# Tutte e 6 (prima di un rilascio ~ $10-15):
+python3 tests/regression_extraction.py
 ```
+Stampa ✅/❌ per ogni controllo. Da rilanciare **dopo ogni modifica ai prompt**
+(e dopo il deploy, così la cache è fresca).
+
+Cosa dà: alta confidenza sui ~29 controlli delle 6 polizze e che le modifiche non
+regrediscano. Cosa NON dà: copertura totale di ogni voce/ogni compagnia → resta la
+regola d'oro *"verificare prima di fare una proposta"*.
+
+---
+
+## 7. Punti aperti / prossimi passi
+
+- **Batch API per la regressione** (−50% di costo): da fare quando serve, va testata
+  sul vivo (con crediti).
+- **Documenti modulari completi** (es. Unipol RC + Tutela Legale uniti) per eliminare
+  i "non in doc.".
+- Allargare i golden (più ancore per polizza) e curare il dizionario sinonimi
+  Infortuni man mano che si testano nuove polizze.
+- Cambiare `ADMIN_KEY` / password rese visibili durante i test.
