@@ -2267,6 +2267,8 @@ SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
             "diaria post ricovero", "diaria post-ricovero", "indennità post ricovero",
             "diaria convalescenza", "indennità convalescenza",
             "diaria post dimissione", "diaria post ospedalizzazione",
+            "diaria da ricovero prolungato", "diaria ricovero prolungato",
+            "ricovero prolungato", "diaria da convalescenza",
         ],
         "sotto_garanzie": [],
     },
@@ -2329,6 +2331,17 @@ SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
             "stato comatoso irreversibile", "stato comatoso", "coma irreversibile",
             "stato vegetativo permanente", "coma persistente",
             "stato comatoso permanente",
+        ],
+        "sotto_garanzie": [],
+    },
+    "sostegno_protezione": {
+        "id": "sostegno_protezione",
+        "nome_standard": "Sostegno e protezione",
+        "sinonimi": [
+            "sostegno e protezione", "sostegno e sicurezza", "sostegno protezione",
+            "indennizzo sostegno", "garanzia sostegno e protezione",
+            "sostegno alla famiglia", "protezione famiglia", "pacchetto sostegno",
+            "indennità sostegno e protezione",
         ],
         "sotto_garanzie": [],
     },
@@ -2447,7 +2460,7 @@ IDs garanzie (usa esattamente questi):
                     "items": {
                         "type": "object",
                         "properties": {
-                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, tutela_legale, assistenza_sanitaria"},
+                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, sostegno_protezione, tutela_legale, assistenza_sanitaria"},
                             "nome":         {"type": "string", "description": f"Nome NORMALIZZATO. Usa ESATTAMENTE uno di: {', '.join(sezioni_enum)}. NON inventare nomi diversi — usa i sinonimi per riconoscere la sezione, poi metti il nome standard."},
                             "inclusa":      {"type": "boolean", "description": "true se presente nel pacchetto base"},
                             "opzionale":    {"type": "boolean", "description": "true se acquistabile come extra, false se assente"},
