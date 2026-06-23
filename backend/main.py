@@ -2380,6 +2380,164 @@ def _build_synonym_index(mapping: dict) -> dict[str, str]:
 _SYN_CASA = _build_synonym_index(SINONIMI_SEZIONI_CASA)
 _SYN_INFORTUNI = _build_synonym_index(SINONIMI_SEZIONI_INFORTUNI)
 
+# Ramo SALUTE — modello "per canale": ricovero/alta diagnostica/visite hanno valori
+# diversi per struttura convenzionata, non convenzionata e SSN. Il canale è codificato
+# nel nome standard della sezione, così la tabella confronto mostra una riga per canale.
+SINONIMI_SEZIONI_SALUTE: dict[str, dict] = {
+    "ricovero_conv": {
+        "id": "ricovero_conv",
+        "nome_standard": "Ricovero — strutture convenzionate",
+        "sinonimi": [
+            "ricovero in strutture convenzionate", "ricovero rete convenzionata",
+            "ricovero convenzionato", "ricovero in équipe convenzionata",
+            "ricovero con intervento convenzionato",
+        ],
+        "sotto_garanzie": [],
+    },
+    "ricovero_nonconv": {
+        "id": "ricovero_nonconv",
+        "nome_standard": "Ricovero — strutture non convenzionate",
+        "sinonimi": [
+            "ricovero in strutture non convenzionate", "ricovero fuori rete",
+            "ricovero non convenzionato", "ricovero a rimborso", "ricovero regime rimborsuale",
+        ],
+        "sotto_garanzie": [],
+    },
+    "ricovero_ssn": {
+        "id": "ricovero_ssn",
+        "nome_standard": "Ricovero — SSN (indennità sostitutiva)",
+        "sinonimi": [
+            "ricovero a totale carico ssn", "ricovero servizio sanitario nazionale",
+            "indennità sostitutiva", "diaria sostitutiva ricovero ssn", "ricovero ssn",
+        ],
+        "sotto_garanzie": [],
+    },
+    "pre_ricovero": {
+        "id": "pre_ricovero",
+        "nome_standard": "Spese pre-ricovero",
+        "sinonimi": [
+            "spese pre ricovero", "spese precedenti il ricovero", "pre ricovero",
+            "accertamenti pre ricovero", "spese prima del ricovero",
+        ],
+        "sotto_garanzie": [],
+    },
+    "post_ricovero": {
+        "id": "post_ricovero",
+        "nome_standard": "Spese post-ricovero",
+        "sinonimi": [
+            "spese post ricovero", "spese successive al ricovero", "post ricovero",
+            "spese dopo il ricovero", "cure post ricovero",
+        ],
+        "sotto_garanzie": [],
+    },
+    "parto": {
+        "id": "parto",
+        "nome_standard": "Parto",
+        "sinonimi": [
+            "parto", "parto cesareo", "parto naturale", "maternità", "gravidanza e parto",
+        ],
+        "sotto_garanzie": [],
+    },
+    "alta_diagnostica_conv": {
+        "id": "alta_diagnostica_conv",
+        "nome_standard": "Alta diagnostica — convenzionate",
+        "sinonimi": [
+            "alta diagnostica strutture convenzionate", "alta specializzazione convenzionata",
+            "accertamenti diagnostici convenzionati", "alta diagnostica convenzionata",
+        ],
+        "sotto_garanzie": [],
+    },
+    "alta_diagnostica_nonconv": {
+        "id": "alta_diagnostica_nonconv",
+        "nome_standard": "Alta diagnostica — non convenzionate",
+        "sinonimi": [
+            "alta diagnostica strutture non convenzionate", "alta specializzazione non convenzionata",
+            "alta diagnostica fuori rete", "alta diagnostica a rimborso",
+        ],
+        "sotto_garanzie": [],
+    },
+    "alta_diagnostica_ssn": {
+        "id": "alta_diagnostica_ssn",
+        "nome_standard": "Alta diagnostica — SSN",
+        "sinonimi": [
+            "alta diagnostica ssn", "alta diagnostica servizio sanitario nazionale",
+            "alta diagnostica ticket ssn",
+        ],
+        "sotto_garanzie": [],
+    },
+    "visite_conv": {
+        "id": "visite_conv",
+        "nome_standard": "Visite specialistiche — convenzionate",
+        "sinonimi": [
+            "visite specialistiche convenzionate", "visite mediche specialistiche convenzionate",
+            "visite in strutture convenzionate", "visite specialistiche in rete",
+        ],
+        "sotto_garanzie": [],
+    },
+    "visite_nonconv": {
+        "id": "visite_nonconv",
+        "nome_standard": "Visite specialistiche — non convenzionate",
+        "sinonimi": [
+            "visite specialistiche non convenzionate", "visite mediche non convenzionate",
+            "visite fuori rete", "visite specialistiche a rimborso",
+        ],
+        "sotto_garanzie": [],
+    },
+    "visite_ssn": {
+        "id": "visite_ssn",
+        "nome_standard": "Visite specialistiche — SSN",
+        "sinonimi": [
+            "visite specialistiche ssn", "visite ticket ssn", "visite servizio sanitario nazionale",
+        ],
+        "sotto_garanzie": [],
+    },
+    "checkup": {
+        "id": "checkup",
+        "nome_standard": "Check-up / prevenzione",
+        "sinonimi": [
+            "check up", "check-up", "prevenzione", "pacchetto prevenzione",
+            "visite di prevenzione", "controlli preventivi",
+        ],
+        "sotto_garanzie": [],
+    },
+    "prest_post_ricovero": {
+        "id": "prest_post_ricovero",
+        "nome_standard": "Prestazioni post ricovero (fisioterapia)",
+        "sinonimi": [
+            "prestazioni specifiche post ricovero", "trattamenti fisioterapici",
+            "fisioterapia", "riabilitazione post ricovero", "cure riabilitative",
+        ],
+        "sotto_garanzie": [],
+    },
+    "massimale_annuo": {
+        "id": "massimale_annuo",
+        "nome_standard": "Massimale annuo",
+        "sinonimi": [
+            "massimale annuo", "massimale per annualità", "massimale complessivo annuo",
+            "somma assicurata annua", "plafond annuo",
+        ],
+        "sotto_garanzie": [],
+    },
+    "assistenza_sanitaria": {
+        "id": "assistenza_sanitaria",
+        "nome_standard": "Assistenza sanitaria",
+        "sinonimi": [
+            "assistenza sanitaria", "assistenza medica", "consulenza medica h24",
+            "assistenza in viaggio", "second opinion", "centrale operativa",
+        ],
+        "sotto_garanzie": [],
+    },
+    "tutela_legale": {
+        "id": "tutela_legale",
+        "nome_standard": "Tutela legale",
+        "sinonimi": [
+            "tutela legale", "difesa legale", "assistenza legale",
+        ],
+        "sotto_garanzie": [],
+    },
+}
+_SYN_SALUTE = _build_synonym_index(SINONIMI_SEZIONI_SALUTE)
+
 
 # ── TOOL USE SCHEMA PER SEZIONI ───────────────────────────────────────────────
 
@@ -2395,6 +2553,12 @@ Per FURTO: furto, rapina, scippo, gioielli_preziosi, denaro_valori, furto_fuori_
 Per RC: vita_privata, proprieta_fabbricato, conduzione_alloggi, figli_minori, animali_domestici.
 Per ASSISTENZA: artigiani, asciugatura, vigilanza, deposito_contenuto, pernottamento.
 """
+    elif tipo_polizza == "Salute":
+        sezioni_enum = [d["nome_standard"] for d in SINONIMI_SEZIONI_SALUTE.values()]
+        sotto_garanzie_desc = """Oggetto con dettagli per canale, quando il documento li distingue.
+Per le garanzie con più canali (ricovero, alta diagnostica, visite) NON usare questo campo: crea invece
+una SEZIONE separata per canale (convenzionato / non convenzionato / SSN) usando gli id dedicati.
+Lascia null se la garanzia non ha canali distinti."""
     else:  # Infortuni
         sezioni_enum = [d["nome_standard"] for d in SINONIMI_SEZIONI_INFORTUNI.values()]
         sotto_garanzie_desc = """Oggetto con varianti della sezione, quando il documento le distingue esplicitamente.
@@ -2465,7 +2629,7 @@ IDs garanzie (usa esattamente questi):
                     "items": {
                         "type": "object",
                         "properties": {
-                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, sostegno_protezione, tutela_legale, assistenza_sanitaria"},
+                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, sostegno_protezione, tutela_legale, assistenza_sanitaria. SALUTE: ricovero_conv, ricovero_nonconv, ricovero_ssn, pre_ricovero, post_ricovero, parto, alta_diagnostica_conv, alta_diagnostica_nonconv, alta_diagnostica_ssn, visite_conv, visite_nonconv, visite_ssn, checkup, prest_post_ricovero, massimale_annuo, assistenza_sanitaria, tutela_legale"},
                             "nome":         {"type": "string", "description": f"Nome NORMALIZZATO. Usa ESATTAMENTE uno di: {', '.join(sezioni_enum)}. NON inventare nomi diversi — usa i sinonimi per riconoscere la sezione, poi metti il nome standard."},
                             "inclusa":      {"type": "boolean", "description": "true se presente nel pacchetto base"},
                             "opzionale":    {"type": "boolean", "description": "true se acquistabile come extra, false se assente"},
@@ -2533,16 +2697,41 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
         f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
         for sid, d in SINONIMI_SEZIONI_INFORTUNI.items()
     )
+    sinonimi_salute_txt = "\n".join(
+        f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
+        for sid, d in SINONIMI_SEZIONI_SALUTE.items()
+    )
+
+    # Guida specifica per ramo Salute (modello per canale)
+    salute_note = ""
+    if tipo_hint == "Salute":
+        salute_note = """
+— POLIZZE SALUTE — UNA RIGA PER CANALE: ricovero, alta diagnostica e visite specialistiche hanno
+  quasi sempre valori DIVERSI a seconda della struttura usata. Crea una SEZIONE separata per ciascun
+  canale presente nel documento, usando gli id dedicati:
+    ricovero  → ricovero_conv (convenzionate), ricovero_nonconv (non convenzionate), ricovero_ssn (SSN);
+    alta diagnostica → alta_diagnostica_conv / alta_diagnostica_nonconv / alta_diagnostica_ssn;
+    visite specialistiche → visite_conv / visite_nonconv / visite_ssn.
+  Per ogni riga compila massimale, scoperto e franchigia SPECIFICI di quel canale (es. convenzionato:
+  nessuno scoperto; non convenzionato: scoperto 25% min €250; SSN: indennità sostitutiva).
+— SALUTE — limiti temporali: per pre/post ricovero riporta la finestra nel campo "note" o "sublimiti"
+  (es. "60 gg prima / 100 gg dopo"). Per il ricovero SSN usa massimale = indennità sostitutiva (es. "150 €/giorno").
+— SALUTE — valori personalizzati: se massimale/scoperto/franchigia sono rimandati al contratto, scrivi
+  "indicato in Polizza" invece di lasciare vuoto (la garanzia esiste, il valore è personalizzato).
+— SALUTE — canale assente: se un canale non è previsto dal prodotto, NON creare quella riga (verrà mostrato "—").
+"""
 
     # Mostra solo il dizionario rilevante per il tipo noto, entrambi se sconosciuto
     if tipo_hint == "Casa":
         dizionario_txt = f"POLIZZE CASA:\n{sinonimi_casa_txt}"
     elif tipo_hint == "Infortuni":
         dizionario_txt = f"POLIZZE INFORTUNI:\n{sinonimi_infortuni_txt}"
+    elif tipo_hint == "Salute":
+        dizionario_txt = f"POLIZZE SALUTE:\n{sinonimi_salute_txt}"
     elif tipo_hint == "Multirischio":
         dizionario_txt = f"POLIZZE CASA:\n{sinonimi_casa_txt}\n\nPOLIZZE INFORTUNI:\n{sinonimi_infortuni_txt}"
     else:
-        dizionario_txt = f"POLIZZE CASA:\n{sinonimi_casa_txt}\n\nPOLIZZE INFORTUNI:\n{sinonimi_infortuni_txt}"
+        dizionario_txt = f"POLIZZE CASA:\n{sinonimi_casa_txt}\n\nPOLIZZE INFORTUNI:\n{sinonimi_infortuni_txt}\n\nPOLIZZE SALUTE:\n{sinonimi_salute_txt}"
 
     return f"""Sei un esperto di polizze assicurative italiane. Analizza questo documento (file: {filename}) e usa la funzione extract_sezioni.
 {tipo_note}
@@ -2577,7 +2766,7 @@ REGOLE CRITICHE:
     NON accorpare garanzie "da infortuni" e "da malattia" in una sola sezione se il documento le presenta separatamente.
 — STATO COMATOSO IRREVERSIBILE: se presente come garanzia/sezione separata (non solo menzionata nelle CG generali), estraila come id="stato_comatoso". Nel campo note indica se è legata alla garanzia Morte o autonoma, e la condizione di attivazione (es: "coma > 6 mesi", "stato vegetativo permanente").
 — Se una sezione è ESCLUSA esplicitamente: inclusa=false, opzionale=false. Se è opzionale acquistabile: inclusa=false, opzionale=true.
-— Estrai TUTTE le sezioni presenti o esplicitamente escluse.{garanzie_casa_note}"""
+— Estrai TUTTE le sezioni presenti o esplicitamente escluse.{garanzie_casa_note}{salute_note}"""
 
 
 # ── MODELLO REQUEST ───────────────────────────────────────────────────────────
@@ -2793,9 +2982,11 @@ def _normalize_sezioni(result: dict) -> dict:
     # Per Multirischio o tipo sconosciuto, usa entrambi i dizionari
     if tipo == "Infortuni":
         indexes = [(_SYN_INFORTUNI, SINONIMI_SEZIONI_INFORTUNI)]
+    elif tipo == "Salute":
+        indexes = [(_SYN_SALUTE, SINONIMI_SEZIONI_SALUTE)]
     elif tipo in ("Casa", "RC Auto", "Vita", "Risparmio"):
         indexes = [(_SYN_CASA, SINONIMI_SEZIONI_CASA)]
-    else:  # Multirischio, Salute, altro — prova entrambi
+    else:  # Multirischio, altro — prova entrambi
         indexes = [(_SYN_CASA, SINONIMI_SEZIONI_CASA), (_SYN_INFORTUNI, SINONIMI_SEZIONI_INFORTUNI)]
 
     for s in result.get("sezioni", []):
