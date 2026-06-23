@@ -4,6 +4,9 @@
   "checks": [
     {"desc": "Responsabilità Civile presente", "path": "sezione:rc", "present": true},
     {"desc": "Tutela Legale presente", "path": "sezione:tutela_legale", "present": true},
-    {"desc": "Assistenza presente (garanzie_detail)", "path": "garanzie_detail.assistenza", "present": true}
+    {"desc": "Assistenza presente (garanzie_detail)", "path": "garanzie_detail.assistenza", "present": true},
+
+    {"desc": "Eventi atmosferici scoperto 10% (min 500) — da tabella riepilogo", "path": "garanzie_detail.incendio.gz.eventi_atm.scop", "contains": "10%"},
+    {"desc": "Fenomeno elettrico scoperto 10% (min 250) — da tabella riepilogo", "path": "garanzie_detail.incendio.gz.fenomeno_el.scop", "contains": "10%"}
   ]
 }

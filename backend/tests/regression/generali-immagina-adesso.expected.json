@@ -4,6 +4,9 @@
   "checks": [
     {"desc": "Responsabilità Civile presente", "path": "sezione:rc", "present": true},
     {"desc": "Tutela Legale assente in questo modulo", "path": "sezione:tutela_legale", "absent": true},
-    {"desc": "Catastrofi naturali presenti (terremoto trattato)", "path": "sezione:terremoto_alluvione", "present": true}
+    {"desc": "Catastrofi naturali presenti (terremoto trattato)", "path": "sezione:terremoto_alluvione", "present": true},
+
+    {"desc": "Furto denaro/valori massimo 2.500", "path": "garanzie_detail.furto.gz.denaro.sub", "contains": "2.500"},
+    {"desc": "Eventi atmosferici: scoperto valorizzato (numerico o 'indicato in Polizza', non vuoto)", "path": "garanzie_detail.incendio.gz.eventi_atm.scop", "present": true}
   ]
 }
