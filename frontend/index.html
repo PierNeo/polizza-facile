@@ -1591,10 +1591,15 @@ tr.tbl-detail.tbl-hidden { display:none; }
  <div class="results-topbar" style="padding:10px 32px">
   <h1 id="resultsTitle">Confronto polizze</h1>
   <div class="results-topbar-actions">
+   <button class="btn btn-ghost btn-sm" id="btnAbbinaCliente" onclick="toggleClientPicker()">Abbina cliente</button>
    <button class="btn-print" onclick="printResults()">Esporta PDF</button>
    <button class="btn btn-ghost btn-sm" onclick="navTo('pagDashboard')">← Dashboard</button>
   </div>
  </div>
+
+ <!-- Profilo cliente abbinato (manuale) + selettore -->
+ <div id="clientPickerWrap" style="display:none;padding:6px 32px 0"></div>
+ <div id="clientProfilePanel" style="display:none;padding:8px 32px 0"></div>
 
  <!-- Score cards -->
  <div id="scoreCards" class="score-cards" style="padding:0 32px"></div>
@@ -1604,6 +1609,7 @@ tr.tbl-detail.tbl-hidden { display:none; }
   <div class="table-toolbar">
    <button class="tbl-view-btn" data-mode="detail" onclick="tableSetView('detail')">Vista dettaglio</button>
    <button class="tbl-view-btn active" data-mode="summary" onclick="tableSetView('summary')">Vista sintetica</button>
+   <button class="tbl-view-btn" id="tblDiffBtn" onclick="tableToggleDiff()" title="Mostra solo le garanzie in cui le polizze differiscono">Solo differenze</button>
    <span class="tbl-ref-hint">★ clicca su colonna per marcare come riferimento</span>
   </div>
   <div class="table-outer"><div class="table-scroll"><table id="compTable"></table></div></div>
@@ -4206,6 +4212,7 @@ function _chipDisponibile(policies) {
 
 // Disegna la tabella confronto secondo la vista scelta dal toggle.
 function renderComparisonTable() {
+ _renderClientProfile();
  const policies = _cmpPolicies, cols = _cmpCols;
  if (!policies || !policies.length) return;
  const hasSezioni = policies.some(p => p.sezioni && p.sezioni.length > 0);
@@ -4218,6 +4225,101 @@ function renderComparisonTable() {
   buildTableSezioni(policies, cols);        // vista dettaglio (note complete)
   _applyDetailRows();
  }
+ _applyDiffFilter();
+}
+
+// ── Toggle "Solo differenze" ─────────────────────────────────────────────────
+// Nasconde le righe in cui TUTTE le polizze hanno gli stessi valori, così
+// l'agente vede subito dove i prodotti divergono. Default: off (lista completa).
+let _onlyDiff = false;
+function tableToggleDiff() {
+ _onlyDiff = !_onlyDiff;
+ _applyDiffFilter();
+}
+
+// ── Abbinamento MANUALE cliente ↔ analisi ────────────────────────────────────
+// L'agente sceglie se mostrare il profilo del cliente accanto al confronto.
+// Nessun collegamento automatico: si abbina e si stacca a mano.
+let _attachedClient = null;
+function toggleClientPicker() {
+ const wrap = document.getElementById('clientPickerWrap'); if (!wrap) return;
+ if (wrap.style.display !== 'none') { wrap.style.display = 'none'; return; }
+ const cs = (typeof getClients === 'function' ? getClients() : []) || [];
+ if (!cs.length) {
+  wrap.innerHTML = '<div style="font-size:12px;color:var(--gray-400)">Nessun cliente in rubrica. Compila prima un questionario.</div>';
+ } else {
+  const opts = '<option value="">— scegli un cliente dalla rubrica —</option>' +
+   cs.map(c => `<option value="${esc(c.id)}">${esc(c.nome||'(senza nome)')}</option>`).join('');
+  wrap.innerHTML = `<select class="search-input" style="max-width:340px" onchange="abbinaCliente(this.value)">${opts}</select>`;
+ }
+ wrap.style.display = 'block';
+}
+function abbinaCliente(id) {
+ if (!id) return;
+ const cs = (typeof getClients === 'function' ? getClients() : []) || [];
+ _attachedClient = cs.find(c => c.id === id) || null;
+ const wrap = document.getElementById('clientPickerWrap'); if (wrap) wrap.style.display = 'none';
+ _renderClientProfile();
+}
+function staccaProfilo() { _attachedClient = null; _renderClientProfile(); }
+function _renderClientProfile() {
+ const el = document.getElementById('clientProfilePanel'); if (!el) return;
+ const btn = document.getElementById('btnAbbinaCliente');
+ const c = _attachedClient;
+ if (!c) { el.style.display = 'none'; el.innerHTML = ''; if (btn) btn.textContent = 'Abbina cliente'; return; }
+ if (btn) btn.textContent = 'Cambia cliente';
+ const a = c.answers || {};
+ const sintesi = (c.raccomandazioni && c.raccomandazioni.sintesi_profilo) || '';
+ const chip = v => `<span style="font-size:12px;background:var(--gray-50,#f1efe8);color:var(--gray-600,#5f5e5a);padding:3px 9px;border-radius:20px">${esc(v)}</span>`;
+ const chips = ['eta','stato_civile','persone_a_carico','abitazione','tipo_lavoro']
+  .map(k => a[k]).filter(Boolean).map(chip).join('');
+ const preocc = Array.isArray(a['preoccupazioni']) ? a['preoccupazioni'].join(' · ') : (a['preoccupazioni'] || '');
+ const budget = a['budget'] || '';
+ const initials = (c.nome || '?').trim().split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase();
+ el.style.display = 'block';
+ el.innerHTML = `<div style="border:1px solid var(--gray-200);border-radius:12px;padding:14px 16px;background:#fff">
+   <div style="display:flex;align-items:center;gap:10px;margin-bottom:${(sintesi||chips||preocc||budget)?'10px':'0'}">
+     <div style="width:36px;height:36px;border-radius:50%;background:var(--blue-soft,#e6f1fb);color:var(--blue,#185fa5);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">${esc(initials)}</div>
+     <div><div style="font-weight:600;font-size:14px">${esc(c.nome||'')}</div><div style="font-size:11px;color:var(--gray-400)">Profilo ed esigenze · abbinato manualmente</div></div>
+     <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="staccaProfilo()">Stacca profilo</button>
+   </div>
+   ${sintesi ? `<div style="font-size:13px;line-height:1.6;color:var(--gray-700);margin-bottom:10px">${esc(sintesi)}</div>` : ''}
+   ${chips ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${(preocc||budget)?'10px':'0'}">${chips}</div>` : ''}
+   ${(preocc||budget) ? `<div style="display:flex;gap:28px;flex-wrap:wrap;font-size:12px">
+     ${preocc ? `<div><div style="color:var(--gray-400);margin-bottom:2px">Preoccupazioni principali</div><div style="color:var(--gray-700)">${esc(preocc)}</div></div>` : ''}
+     ${budget ? `<div><div style="color:var(--gray-400);margin-bottom:2px">Budget</div><div style="color:var(--gray-700)">${esc(budget)}</div></div>` : ''}
+   </div>` : ''}
+ </div>`;
+}
+function _applyDiffFilter() {
+ const tbl = document.getElementById('compTable'); if (!tbl) return;
+ const db = document.getElementById('tblDiffBtn'); if (db) db.classList.toggle('active', _onlyDiff);
+ const NP = (_cmpPolicies || []).length;
+ const rows = Array.from(tbl.querySelectorAll('tr'));
+ rows.forEach(tr => { tr.style.display = ''; });        // reset (lascia agire eventuali classi)
+ if (!_onlyDiff || NP < 2) return;
+ const norm = el => (el.innerText || '').replace(/\s+/g, ' ').trim().toLowerCase();
+ // 1) nasconde le righe-dato identiche tra tutti i prodotti
+ rows.forEach(tr => {
+  if (tr.classList.contains('tbl-hidden')) return;       // riga dettaglio già nascosta
+  const tds = Array.from(tr.children);
+  if (tds.length < 2) return;                            // intestazione di sezione (colspan)
+  const data = tds.slice(1);
+  if (data.length % NP !== 0) return;                    // riga irregolare → lascia visibile
+  const gs = data.length / NP;
+  const groups = [];
+  for (let i = 0; i < NP; i++) groups.push(data.slice(i * gs, (i + 1) * gs).map(norm).join('|'));
+  if (groups.every(g => g === groups[0])) tr.style.display = 'none';
+ });
+ // 2) nasconde le intestazioni di sezione rimaste senza righe visibili
+ let header = null, anyVisible = false;
+ const flush = () => { if (header && !anyVisible) header.style.display = 'none'; };
+ rows.forEach(tr => {
+  const isHeader = Array.from(tr.children).length === 1;  // td unico con colspan
+  if (isHeader) { flush(); header = tr; anyVisible = false; }
+  else if (tr.style.display !== 'none' && !tr.classList.contains('tbl-hidden')) anyVisible = true;
+ });
+ flush();
 }
 
 // Mostra (dettaglio) o nasconde (sintetica) le righe Sublimiti/Note nella tabella estesa.
