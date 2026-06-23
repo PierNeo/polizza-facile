@@ -20,6 +20,9 @@
     {"desc": "Fenomeno elettrico (Danni elettrici) franchigia 250 (supplemento opzionale)", "path": "garanzie_detail.incendio.gz.fenomeno_el.fra", "contains": "250"},
     {"desc": "Ricerca del guasto (condutture gas) franchigia 250 (supplemento opzionale)", "path": "garanzie_detail.incendio.gz.ricerca_guasto.fra", "contains": "250"},
 
+    {"desc": "EXTRA (schema estensibile): Furto oggetti nelle dipendenze — scoperto 10% min 250", "path": "garanzie_detail.furto.gz.furto_dipendenze.scop", "contains": "10%"},
+    {"desc": "EXTRA (schema estensibile): Preziosi e Valori in banca — scoperto 10%", "path": "garanzie_detail.furto.gz.preziosi_banca.scop", "contains": "10%"},
+
     {"desc": "GUARDIA: furto base SENZA scoperto ordinario (il 20% e' condizionato, non va forzato)", "path": "garanzie_detail.furto.gz.furto_b.scop", "absent": true},
     {"desc": "GUARDIA: incendio base SENZA franchigia ordinaria (i 250 sono di nicchia/opzionali)", "path": "garanzie_detail.incendio.gz.incendio_b.fra", "absent": true}
   ]
