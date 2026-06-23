@@ -2687,7 +2687,8 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
   ASSISTENZA — alloggio ≠ artigiani: ass_allogg.sub (pernottamento/hotel) ha quasi sempre un limite DIVERSO e MAGGIORE rispetto agli artigiani (tipicamente €300 vs €250). NON usare il valore alloggio per idraulico/elettricista/fabbro.
   RC — rc_inquin: se il testo RC esclude esplicitamente l'inquinamento (es: "non comprende i danni da inquinamento o contaminazione") → rc_inquin=null. Altrimenti → {{"sub": null, "scop": null, "fra": null}}.
   INCENDIO — demolizione: riporta ESATTAMENTE come scritto ("30% dell'indennizzo" ≠ "5% del massimale"). Non confondere.
-  INCENDIO — ricerca_guasto: cerca il massimale fisso NELL'ARTICOLO DEDICATO (es: "max €2.500"), non nelle tabelle generali."""
+  INCENDIO — ricerca_guasto: cerca il massimale fisso NELL'ARTICOLO DEDICATO (es: "max €2.500"), non nelle tabelle generali.
+  SCHEMA ESTENSIBILE — sotto-garanzie EXTRA: se una sotto-garanzia ha un PROPRIO limite/scoperto/franchigia ma NON rientra negli id standard elencati sopra, AGGIUNGILA comunque dentro "gz" con un id descrittivo in snake_case e un campo "nome" leggibile — non scartarla. Esempi reali: Furto "oggetti nelle dipendenze" (scoperto 10% min €250), "Preziosi e valori in banca" (scoperto 10%). Formato: "furto": {{"gz": {{..., "furto_dipendenze": {{"nome": "Furto oggetti nelle dipendenze", "scop": "10% min. €250"}}, "preziosi_banca": {{"nome": "Preziosi e valori in banca", "scop": "10%"}}}}}}. REGOLA D'ORO: non perdere MAI uno scoperto/franchigia/limite solo perché la sotto-garanzia non è in elenco — creale una riga extra con nome."""
 
     sinonimi_casa_txt = "\n".join(
         f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
