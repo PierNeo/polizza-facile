@@ -4598,8 +4598,9 @@ function _casaGz(p, sezId, gzId) {
  if (raw === undefined) return { state:'sa' };
  const opt = !!raw.opt;
  const lim = raw.sub || null, scop = raw.scop || null, fra = raw.fra || null;
- if (!lim && !scop && !fra) return { state: opt?'opt-sa':'sa' };
- return { state: opt?'opt':'val', lim: lim || 'S.A.', scop, fra };
+ const meta = { fonte: raw.fonte || null, conf: raw.conf || null };
+ if (!lim && !scop && !fra) return { state: opt?'opt-sa':'sa', ...meta };
+ return { state: opt?'opt':'val', lim: lim || 'S.A.', scop, fra, ...meta };
 }
 
 // Stato di una sezione "src:sezione" (cat. naturali, tutela legale) da p.sezioni.
@@ -4609,8 +4610,9 @@ function _casaSez(p, sezId) {
  if (!s.inclusa && !s.opzionale) return { state:'off' };
  const lim = s.massimale || null, scop = s.scoperto || null, fra = s.franchigia || null;
  const opt = (s.opzionale && !s.inclusa);
- if (!lim && !scop && !fra) return { state: opt?'opt-sa':'sa' };
- return { state: opt?'opt':'val', lim: lim || 'S.A.', scop, fra };
+ const meta = { fonte: s.fonte || null, conf: s.confidenza || null };
+ if (!lim && !scop && !fra) return { state: opt?'opt-sa':'sa', ...meta };
+ return { state: opt?'opt':'val', lim: lim || 'S.A.', scop, fra, ...meta };
 }
 
 // Sfondi colonna (per distinguere visivamente Limite / Scoperto / Franchigia)
@@ -4620,17 +4622,24 @@ const _BG_LIM = '#EAF2FF', _BG_SCOP = '#FFF4E8', _BG_FRA = '#FDEDE9';
 function _casaCells(st) {
  const dash = `<span style="color:var(--gray-400)">—</span>`;
  const cell = (inner, bg) => `<td style="text-align:center;vertical-align:middle;padding:7px 8px;background:${bg};border-bottom:1px solid #fff;border-right:1px solid #fff;font-size:12px">${inner}</td>`;
+ // Indicatore fonte (ⓘ con riferimento CGA) + confidenza bassa (⚠ verificare)
+ const meta = () => {
+  let m = '';
+  if (st.fonte) m += ` <span title="Fonte CGA: ${esc(st.fonte)}" style="color:var(--gray-300);font-size:9px;cursor:help">ⓘ</span>`;
+  if (st.conf === 'bassa') m += ` <span title="Confidenza bassa — verificare sul CGA prima di proporre" style="color:#B26A00;font-size:10px;cursor:help">⚠</span>`;
+  return m;
+ };
  let lim, scop, fra;
  if (st.state === 'off') { lim = `<span style="color:#C62828;font-style:italic;font-size:11px">Esclusa</span>`; scop = dash; fra = dash; }
  else if (st.state === 'nd') { lim = `<span style="color:var(--gray-300);font-size:10px;font-style:italic" title="Sezione non presente in questo documento (può essere in un modulo separato)">non in doc.</span>`; scop = dash; fra = dash; }
  else if (st.state === 'sa' || st.state === 'opt-sa') {
   const opt = st.state==='opt-sa' ? ` <span style="color:#7C3AED;font-size:9px">◆ opz.</span>` : '';
-  lim = `<strong style="color:#0D47A1">S.A.</strong>${opt}`; scop = dash; fra = dash;
+  lim = `<strong style="color:#0D47A1">S.A.</strong>${opt}${meta()}`; scop = dash; fra = dash;
  } else {
   const opt = st.state==='opt' ? ` <span style="color:#7C3AED;font-size:9px">◆ opz.</span>` : '';
   // "Somma assicurata" (in qualsiasi forma) → "S.A."
   const limTxt = (st.lim && /somma\s+assicurat/i.test(st.lim)) ? 'S.A.' : (st.lim || 'S.A.');
-  lim = `<strong style="color:#0D47A1">${esc(limTxt)}</strong>${opt}`;
+  lim = `<strong style="color:#0D47A1">${esc(limTxt)}</strong>${opt}${meta()}`;
   scop = st.scop ? `<span style="color:#E65100;font-weight:600">${esc(st.scop)}</span>` : dash;
   fra  = st.fra  ? `<span style="color:#C62828;font-weight:600">${esc(st.fra)}</span>`  : dash;
  }
@@ -4682,26 +4691,40 @@ function buildTableGaranzieCasa(policies, cols) {
   // ── Sotto-garanzie EXTRA (fuori dalla lista fissa) rilevate dall'estrazione ──
   // Schema estensibile: mostra le sotto-garanzie con valori propri (es. furto
   // dipendenze, preziosi in banca) che non hanno una riga predefinita.
+  // ALLINEAMENTO: si raggruppano per NOME normalizzato (non per id), così la
+  // stessa voce di compagnie diverse — anche con slug diversi — sta su una riga.
   const knownIds = new Set(sez.garanzie.map(g => g.id));
   CASA_MARGINALI.filter(m => m.sez === sez.id).forEach(m => knownIds.add(m.id));
-  const extra = {}; // id -> etichetta
+  const normNome = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const labelOf = (k, raw) => (raw && raw.nome) ? raw.nome : k.replace(/_/g, ' ');
+  const extraKeyForPolicy = (p, nk) => {     // trova la chiave gz di p che combacia col gruppo nk
+   const det = p.garanzie_detail && p.garanzie_detail[sez.id];
+   if (!det || !det.gz) return null;
+   return Object.keys(det.gz).find(k => {
+    if (knownIds.has(k)) return false;
+    const raw = det.gz[k]; if (raw === null || raw === undefined) return false;
+    return normNome(labelOf(k, raw)) === nk || normNome(k) === nk;
+   }) || null;
+  };
+  const extra = {}; // nomeNormalizzato -> etichetta da mostrare
   policies.forEach(p => {
    const det = p.garanzie_detail && p.garanzie_detail[sez.id];
    if (!det || !det.gz) return;
    Object.keys(det.gz).forEach(k => {
-    if (knownIds.has(k) || k in extra) return;
+    if (knownIds.has(k)) return;
     const raw = det.gz[k];
     if (raw === null || raw === undefined) return; // null=esclusa: niente riga extra
-    extra[k] = (raw && raw.nome) ? raw.nome : k.replace(/_/g, ' ');
+    const nk = normNome(labelOf(k, raw)); if (!nk || nk in extra) return;
+    extra[nk] = labelOf(k, raw);
    });
   });
   let ei = sez.garanzie.length;
-  Object.keys(extra).forEach(k => {
+  Object.keys(extra).forEach(nk => {
    const rowBg = (ei++ % 2 === 0) ? 'var(--white)' : 'var(--gray-50)';
-   html += `<tr><td style="padding:8px 14px 8px 22px;font-size:11px;color:var(--gray-600);font-weight:500;background:${rowBg};border-left:3px solid ${c}55;border-bottom:1px solid var(--gray-100)">${esc(extra[k])} <span title="Sotto-garanzia rilevata nel documento, oltre a quelle standard" style="color:${c};font-weight:700">＋</span></td>`;
+   html += `<tr><td style="padding:8px 14px 8px 22px;font-size:11px;color:var(--gray-600);font-weight:500;background:${rowBg};border-left:3px solid ${c}55;border-bottom:1px solid var(--gray-100)">${esc(extra[nk])} <span title="Sotto-garanzia rilevata nel documento, oltre a quelle standard" style="color:${c};font-weight:700">＋</span></td>`;
    policies.forEach(p => {
-    const det = p.garanzie_detail && p.garanzie_detail[sez.id];
-    const st = (!det || !det.gz || !(k in det.gz)) ? { state:'nd' } : _casaGz(p, sez.id, k);
+    const key = extraKeyForPolicy(p, nk);
+    const st = key ? _casaGz(p, sez.id, key) : { state:'nd' };
     html += _casaCells(st, rowBg);
    });
    html += '</tr>';
