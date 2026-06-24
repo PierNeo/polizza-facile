@@ -1,0 +1,13 @@
+{
+  "_nota": "Allianz 'Bonus Malus autovetture e autotassametri' (RC Auto, ed. RCA 10/2024 + ARD 11/2024). RCA è la base; Incendio/Furto, Kasko, Cristalli, Eventi naturali/Atti vandalici, Infortuni conducente, Assistenza sono OPZIONALI. RCA massimale di legge €6.450.000 persone / €1.300.000 cose. Furto: scoperto ordinario 20% (25% perdita totale). NB: questo golden verifica presenza garanzie + il massimale RCA (inequivocabile); i check su scoperti/franchigie per garanzia verranno affinati dopo la prima estrazione reale, quando si vede la struttura esatta.",
+  "tipo": ["RC Auto"],
+  "checks": [
+    {"desc": "RCA presente", "path": "sezione:rca", "present": true},
+    {"desc": "RCA massimale 6.450.000 (danni a persone)", "path": "sezione:rca.massimale", "contains": "6.450.000"},
+    {"desc": "Incendio e Furto presente (opzionale)", "path": "sezione:furto_incendio", "present": true},
+    {"desc": "Kasko / collisione presente (opzionale)", "path": "sezione:kasko", "present": true},
+    {"desc": "Cristalli presente (opzionale)", "path": "sezione:cristalli_auto", "present": true},
+    {"desc": "Infortuni del conducente presente (opzionale)", "path": "sezione:infortuni_conducente", "present": true},
+    {"desc": "Assistenza stradale presente", "path": "sezione:assistenza_stradale", "present": true}
+  ]
+}
