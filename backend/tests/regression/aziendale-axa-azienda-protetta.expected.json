@@ -1,0 +1,13 @@
+{
+  "_nota": "AXA 'Azienda Protetta - Linea PMI' (multirischio PMI). Seconda compagnia, naming diverso: serve a verificare l'ALLINEAMENTO del dizionario Aziendale tra compagnie (es. 'Incendio All Risks'→danni_beni, 'Danni Indiretti'→protezione_reddito, 'Guasti Macchine'→fenomeno_elettrico). Sezioni AXA: A Incendio All Risks, B Danni Indiretti, C Furto e Rapina, D Guasti Macchine/Elettronica, E Assistenza, F Responsabilità Civile, G Tutela Legale. Eventi catastrofali, RCO/RC prodotti e cyber sono qui clausole/sotto-garanzie, non sezioni a sé. tipo accettato: Aziendale o Multirischio.",
+  "tipo": ["Aziendale", "Multirischio"],
+  "checks": [
+    {"desc": "Incendio All Risks → Danni ai beni", "path": "sezione:danni_beni", "present": true},
+    {"desc": "Danni Indiretti → Protezione del reddito", "path": "sezione:protezione_reddito", "present": true},
+    {"desc": "Furto e Rapina → Furto", "path": "sezione:furto_aziendale", "present": true},
+    {"desc": "Guasti Macchine/Elettronica → Fenomeno elettrico/guasti", "path": "sezione:fenomeno_elettrico", "present": true},
+    {"desc": "Assistenza presente", "path": "sezione:assistenza", "present": true},
+    {"desc": "Responsabilità Civile → RCT", "path": "sezione:rct", "present": true},
+    {"desc": "Tutela Legale presente", "path": "sezione:tutela_legale", "present": true}
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "_nota": "UnipolSai Impresa&Servizi (multirischio PMI, ed. 01/2018, 162 pag). Multirischio aziendale completo: Danni ai beni, Furto, Fenomeno elettrico/guasti, Eventi catastrofali, RC verso terzi (RCT), RC prestatori (RCO/RCI), RC prodotto difettoso, Protezione del reddito (interruzione attività), Tutela legale, Assistenza, Protezione digitale (cyber). Golden iniziale: verifica che il dizionario Aziendale mappi correttamente le sezioni reali del documento. I valori (massimali RC, sotto-limiti partite, diaria interruzione) si aggiungono dopo la prima estrazione reale. tipo accettato: Aziendale o Multirischio.",
+  "tipo": ["Aziendale", "Multirischio"],
+  "checks": [
+    {"desc": "Danni ai beni presente", "path": "sezione:danni_beni", "present": true},
+    {"desc": "Furto presente", "path": "sezione:furto_aziendale", "present": true},
+    {"desc": "Fenomeno elettrico/elettronico e guasti presente", "path": "sezione:fenomeno_elettrico", "present": true},
+    {"desc": "Eventi catastrofali presente", "path": "sezione:eventi_catastrofali", "present": true},
+    {"desc": "RC verso terzi (RCT) presente", "path": "sezione:rct", "present": true},
+    {"desc": "RC prestatori di lavoro (RCO/RCI) presente", "path": "sezione:rco", "present": true},
+    {"desc": "RC da prodotto difettoso presente", "path": "sezione:rc_prodotti", "present": true},
+    {"desc": "Protezione del reddito (interruzione attività) presente", "path": "sezione:protezione_reddito", "present": true},
+    {"desc": "Tutela legale presente", "path": "sezione:tutela_legale", "present": true},
+    {"desc": "Protezione digitale (cyber) presente", "path": "sezione:protezione_digitale", "present": true}
+  ]
+}

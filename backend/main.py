@@ -2626,6 +2626,116 @@ SINONIMI_SEZIONI_RCAUTO: dict[str, dict] = {
 }
 _SYN_RCAUTO = _build_synonym_index(SINONIMI_SEZIONI_RCAUTO)
 
+# Ramo AZIENDALE (multirischio PMI). Property + RC + interruzione attività + cyber.
+# I sotto-limiti (fabbricato/contenuto/macchinari/merci, ecc.) vanno nel campo "gz".
+SINONIMI_SEZIONI_AZIENDALE: dict[str, dict] = {
+    "danni_beni": {
+        "id": "danni_beni",
+        "nome_standard": "Danni ai beni (incendio fabbricato e contenuto)",
+        "sinonimi": [
+            "danni ai beni", "incendio", "incendio e altri eventi", "danni materiali",
+            "fabbricato e contenuto", "incendio fabbricato", "property",
+            "incendio all risks", "all risks", "danni ai beni all risks",
+        ],
+        "sotto_garanzie": [],
+    },
+    "furto_aziendale": {
+        "id": "furto_aziendale",
+        "nome_standard": "Furto",
+        "sinonimi": [
+            "furto", "furto e rapina", "furto contenuto", "furto aziendale",
+            "furto a primo rischio assoluto", "rapina",
+        ],
+        "sotto_garanzie": [],
+    },
+    "fenomeno_elettrico": {
+        "id": "fenomeno_elettrico",
+        "nome_standard": "Fenomeno elettrico/elettronico e guasti",
+        "sinonimi": [
+            "fenomeno elettrico", "danni elettrici", "elettronica e guasti",
+            "guasti macchine", "guasti ai macchinari", "danni da fenomeno elettrico",
+            "apparecchiature elettroniche",
+        ],
+        "sotto_garanzie": [],
+    },
+    "eventi_catastrofali": {
+        "id": "eventi_catastrofali",
+        "nome_standard": "Eventi catastrofali (terremoto/alluvione)",
+        "sinonimi": [
+            "eventi catastrofali", "terremoto", "alluvione", "catastrofi naturali",
+            "terremoto e alluvione", "calamità naturali", "inondazione e allagamento",
+        ],
+        "sotto_garanzie": [],
+    },
+    "rct": {
+        "id": "rct",
+        "nome_standard": "Responsabilità civile verso terzi (RCT)",
+        "sinonimi": [
+            "responsabilità civile verso terzi", "rct", "rc terzi", "rc verso terzi",
+            "responsabilità civile", "rc generale", "rc dell'impresa",
+        ],
+        "sotto_garanzie": [],
+    },
+    "rco": {
+        "id": "rco",
+        "nome_standard": "RC prestatori di lavoro (RCO/RCI)",
+        "sinonimi": [
+            "rco", "rci", "rc prestatori di lavoro", "responsabilità civile prestatori",
+            "rc verso prestatori di lavoro", "rc dipendenti", "rc operai",
+        ],
+        "sotto_garanzie": [],
+    },
+    "rc_prodotti": {
+        "id": "rc_prodotti",
+        "nome_standard": "RC da prodotto difettoso",
+        "sinonimi": [
+            "rc prodotti", "responsabilità civile prodotti", "rc da prodotto difettoso",
+            "product liability", "rc prodotto", "danni da prodotto",
+        ],
+        "sotto_garanzie": [],
+    },
+    "protezione_reddito": {
+        "id": "protezione_reddito",
+        "nome_standard": "Protezione del reddito (interruzione attività)",
+        "sinonimi": [
+            "protezione del reddito", "interruzione attività", "interruzione di esercizio",
+            "perdita di profitti", "business interruption", "danni indiretti",
+            "perdita pigioni", "diaria giornaliera", "indennità giornaliera attività",
+        ],
+        "sotto_garanzie": [],
+    },
+    "tutela_legale": {
+        "id": "tutela_legale",
+        "nome_standard": "Tutela legale",
+        "sinonimi": [
+            "tutela legale", "tutela legale impresa", "difesa legale", "spese legali",
+            "assistenza legale",
+        ],
+        "sotto_garanzie": [],
+    },
+    "assistenza": {
+        "id": "assistenza",
+        "nome_standard": "Assistenza",
+        "sinonimi": [
+            "assistenza", "assistenza impresa", "pronto intervento", "servizi di assistenza",
+            "assistenza tecnica",
+        ],
+        "sotto_garanzie": [],
+    },
+    "protezione_digitale": {
+        "id": "protezione_digitale",
+        "nome_standard": "Protezione digitale (cyber)",
+        "sinonimi": [
+            "protezione digitale", "cyber", "cyber risk", "rischi informatici",
+            "sicurezza informatica", "attacco informatico", "danni cyber",
+            "assistenza informatica", "protezione dati", "cyber e dati",
+            "protezione dati e reputazione on-line",
+        ],
+        "sotto_garanzie": [],
+    },
+}
+_SYN_AZIENDALE = _build_synonym_index(SINONIMI_SEZIONI_AZIENDALE)
+
 
 # ── TOOL USE SCHEMA PER SEZIONI ───────────────────────────────────────────────
 
@@ -2652,6 +2762,11 @@ Lascia null se la garanzia non ha canali distinti."""
         sotto_garanzie_desc = """Oggetto con varianti della garanzia, se il documento le distingue (es. furto vs incendio
 con franchigie diverse). Lascia null se non ci sono varianti. I sotto-limiti (km traino, giorni auto
 sostitutiva, capitali morte/IP del conducente) vanno nel campo "gz" della sezione, non qui."""
+    elif tipo_polizza == "Aziendale":
+        sezioni_enum = [d["nome_standard"] for d in SINONIMI_SEZIONI_AZIENDALE.values()]
+        sotto_garanzie_desc = """Non usare questo campo per i sotto-limiti: i sotto-limiti delle sezioni aziendali
+(fabbricato, contenuto, macchinari, merci, ricorso terzi; valori in cassaforte; diaria/perdita pigioni per
+l'interruzione attività) vanno nel campo "gz" della sezione. Lascia null."""
     else:  # Infortuni
         sezioni_enum = [d["nome_standard"] for d in SINONIMI_SEZIONI_INFORTUNI.values()]
         sotto_garanzie_desc = """Oggetto con varianti della sezione, quando il documento le distingue esplicitamente.
@@ -2704,7 +2819,7 @@ IDs garanzie (usa esattamente questi):
     properties = {
         "compagnia":  {"type": ["string", "null"]},
         "prodotto":   {"type": ["string", "null"]},
-        "tipo":       {"type": "string", "enum": ["RC Auto", "Casa", "Vita", "Infortuni", "Salute", "Multirischio", "Risparmio", "altro"]},
+        "tipo":       {"type": "string", "enum": ["RC Auto", "Casa", "Vita", "Infortuni", "Salute", "Multirischio", "Aziendale", "Risparmio", "altro"]},
         "premio":     {"type": ["string", "null"]},
     }
     if garanzie_detail_schema:
@@ -2722,7 +2837,7 @@ IDs garanzie (usa esattamente questi):
                     "items": {
                         "type": "object",
                         "properties": {
-                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, sostegno_protezione, tutela_legale, assistenza_sanitaria. SALUTE: ricovero_conv, ricovero_nonconv, ricovero_ssn, pre_ricovero, post_ricovero, parto, alta_diagnostica_conv, alta_diagnostica_nonconv, alta_diagnostica_ssn, visite_conv, visite_nonconv, visite_ssn, checkup, prest_post_ricovero, massimale_annuo, assistenza_sanitaria, tutela_legale. RC AUTO: rca, kasko, furto_incendio, eventi_naturali, atti_vandalici_auto, cristalli_auto, infortuni_conducente, assistenza_stradale, tutela_legale"},
+                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, sostegno_protezione, tutela_legale, assistenza_sanitaria. SALUTE: ricovero_conv, ricovero_nonconv, ricovero_ssn, pre_ricovero, post_ricovero, parto, alta_diagnostica_conv, alta_diagnostica_nonconv, alta_diagnostica_ssn, visite_conv, visite_nonconv, visite_ssn, checkup, prest_post_ricovero, massimale_annuo, assistenza_sanitaria, tutela_legale. RC AUTO: rca, kasko, furto_incendio, eventi_naturali, atti_vandalici_auto, cristalli_auto, infortuni_conducente, assistenza_stradale, tutela_legale. AZIENDALE: danni_beni, furto_aziendale, fenomeno_elettrico, eventi_catastrofali, rct, rco, rc_prodotti, protezione_reddito, tutela_legale, assistenza, protezione_digitale"},
                             "nome":         {"type": "string", "description": f"Nome NORMALIZZATO. Usa ESATTAMENTE uno di: {', '.join(sezioni_enum)}. NON inventare nomi diversi — usa i sinonimi per riconoscere la sezione, poi metti il nome standard."},
                             "inclusa":      {"type": "boolean", "description": "true se presente nel pacchetto base"},
                             "opzionale":    {"type": "boolean", "description": "true se acquistabile come extra, false se assente"},
@@ -2803,6 +2918,22 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
         f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
         for sid, d in SINONIMI_SEZIONI_RCAUTO.items()
     )
+    sinonimi_aziendale_txt = "\n".join(
+        f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
+        for sid, d in SINONIMI_SEZIONI_AZIENDALE.items()
+    )
+
+    # Guida specifica ramo Aziendale (multirischio PMI)
+    aziendale_note = ""
+    if tipo_hint == "Aziendale":
+        aziendale_note = """
+— POLIZZE AZIENDALI (multirischio PMI) — struttura a sezioni con sotto-limiti in "gz":
+  • Danni ai beni: massimale di sezione + "gz" per le partite — {{"fabbricato": {{...}}, "contenuto": {{...}}, "macchinari": {{...}}, "merci": {{...}}, "ricorso_terzi": {{...}}}}.
+  • Furto: forma (primo rischio assoluto/relativo) nel testo; "gz" per valori in cassaforte, merci all'aperto, portavalori.
+  • RC: estrai i MASSIMALI fissi per RCT, RCO/RCI, RC prodotti come sezioni distinte (rct, rco, rc_prodotti). Nel campo note: massimale per sinistro/per persona, retroattività/postuma.
+  • PROTEZIONE DEL REDDITO (interruzione attività): è un indennizzo A TEMPO. Metti il massimale di sezione e nel "gz" le forme: {{"diaria": {{"nome": "Diaria giornaliera", "sub": "€X/gg per max N gg"}}, "perdita_pigioni": {{...}}, "maggiori_costi": {{...}}}}. Nel campo note specifica il periodo di indennizzo.
+  • Cyber (protezione digitale): massimale + sotto-limiti (danni propri vs RC, ripristino dati) in "gz".
+  Le sezioni aziendali sono spesso attivabili a blocchi: marca inclusa/opzionale secondo il testo."""
 
     # Guida specifica ramo RC Auto
     rcauto_note = ""
@@ -2844,6 +2975,8 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
         dizionario_txt = f"POLIZZE SALUTE:\n{sinonimi_salute_txt}"
     elif tipo_hint == "RC Auto":
         dizionario_txt = f"POLIZZE RC AUTO:\n{sinonimi_rcauto_txt}"
+    elif tipo_hint == "Aziendale":
+        dizionario_txt = f"POLIZZE AZIENDALI (multirischio PMI):\n{sinonimi_aziendale_txt}"
     elif tipo_hint == "Multirischio":
         dizionario_txt = f"POLIZZE CASA:\n{sinonimi_casa_txt}\n\nPOLIZZE INFORTUNI:\n{sinonimi_infortuni_txt}"
     else:
@@ -2883,7 +3016,7 @@ REGOLE CRITICHE:
 — STATO COMATOSO IRREVERSIBILE: se presente come garanzia/sezione separata (non solo menzionata nelle CG generali), estraila come id="stato_comatoso". Nel campo note indica se è legata alla garanzia Morte o autonoma, e la condizione di attivazione (es: "coma > 6 mesi", "stato vegetativo permanente").
 — Se una sezione è ESCLUSA esplicitamente: inclusa=false, opzionale=false. Se è opzionale acquistabile: inclusa=false, opzionale=true.
 — SOTTO-LIMITI STRUTTURATI (Infortuni e Salute): per ogni sezione, oltre a massimale/scoperto/franchigia, spezza i sotto-limiti numerici nel campo "gz" come voci con "nome" leggibile e i loro sub/scop/fra. Esempio Rimborso spese: gz = {{"protesi": {{"nome": "Protesi anatomiche", "sub": "50% mass. max €5.000"}}, "apparecchiature": {{"nome": "Apparecchiature terapeutiche/ortopediche", "sub": "€2.500"}}, "infermieristica": {{"nome": "Assistenza infermieristica", "sub": "€50/gg x 90 gg"}}, "spese_post_ricovero": {{"nome": "Spese post-ricovero", "sub": "30% SA entro 360 gg"}}}}. NON lasciare i sotto-limiti solo nel testo libero: mettili in "gz" così diventano righe confrontabili. Usa lo STESSO "nome" per lo stesso concetto tra compagnie diverse, così le righe si allineano.
-— Estrai TUTTE le sezioni presenti o esplicitamente escluse.{garanzie_casa_note}{salute_note}{rcauto_note}"""
+— Estrai TUTTE le sezioni presenti o esplicitamente escluse.{garanzie_casa_note}{salute_note}{rcauto_note}{aziendale_note}"""
 
 
 # ── MODELLO REQUEST ───────────────────────────────────────────────────────────
@@ -2927,14 +3060,15 @@ async def _detect_tipo_pdf(first_chunk_bytes: bytes, filename: str) -> str:
                     {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}},
                     {"type": "text", "text": (
                         "Che tipo di polizza assicurativa è questo documento? "
-                        "Rispondi con UNA SOLA parola tra: Casa, Infortuni, RC Auto, Vita, Multirischio, Salute, altro. "
+                        "Rispondi con UNA SOLA parola tra: Casa, Infortuni, RC Auto, Vita, Multirischio, Salute, Aziendale, altro. "
+                        "Usa 'Aziendale' per polizze rivolte a imprese/attività/PMI (multirischio impresa, capannoni, RC d'impresa). "
                         "Solo la parola, nient'altro."
                     )}
                 ]
             }]
         )
         tipo_raw = msg.content[0].text.strip().split()[0] if msg.content else ""
-        VALIDI = {"Casa", "Infortuni", "RC Auto", "Vita", "Multirischio", "Salute", "altro"}
+        VALIDI = {"Casa", "Infortuni", "RC Auto", "Vita", "Multirischio", "Salute", "Aziendale", "altro"}
         tipo = tipo_raw if tipo_raw in VALIDI else "Casa"
         logger.info(f"[sezioni] tipo rilevato per '{filename}': {tipo}")
         return tipo
@@ -3103,6 +3237,8 @@ def _normalize_sezioni(result: dict) -> dict:
         indexes = [(_SYN_SALUTE, SINONIMI_SEZIONI_SALUTE)]
     elif tipo == "RC Auto":
         indexes = [(_SYN_RCAUTO, SINONIMI_SEZIONI_RCAUTO)]
+    elif tipo == "Aziendale":
+        indexes = [(_SYN_AZIENDALE, SINONIMI_SEZIONI_AZIENDALE)]
     elif tipo in ("Casa", "Vita", "Risparmio"):
         indexes = [(_SYN_CASA, SINONIMI_SEZIONI_CASA)]
     else:  # Multirischio, altro — prova entrambi
