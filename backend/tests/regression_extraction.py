@@ -88,14 +88,22 @@ def _extract(token: str, pdf_path: str) -> dict:
 
 def _resolve(result: dict, path: str):
     """Risolve un path nel JSON estratto. Ritorna _MISSING se non trovato."""
-    # sezione per id
+    # sezione per id — supporta campi annidati: sezione:<id>.gz.<sub>.scop, ecc.
     if path.startswith("sezione:"):
         rest = path[len("sezione:"):]
         sid, _, field = rest.partition(".")
         sez = next((s for s in (result.get("sezioni") or []) if s.get("id") == sid), None)
         if sez is None:
             return _MISSING
-        return sez if not field else sez.get(field, _MISSING)
+        if not field:
+            return sez
+        cur = sez
+        for part in field.split("."):
+            if isinstance(cur, dict) and part in cur:
+                cur = cur[part]
+            else:
+                return _MISSING
+        return cur
     # dotted nei dict
     cur = result
     for part in path.split("."):

@@ -1,0 +1,16 @@
+{
+  "_nota": "Tandem Futuro Family (Italiana/Reale, Infortuni). Modulare: le garanzie sono attivabili per combinazione → opzionali. Valori verificati dal CGA ed. 2025.09. NB: i check gz.* usano i nomi-chiave suggeriti nel prompt (protesi, apparecchiature); se il modello usa uno slug diverso il check segnala e si allinea. Tutela legale NON presente in questo prodotto (≠ Tandem Futuro Free).",
+  "tipo": ["Infortuni"],
+  "checks": [
+    {"desc": "Morte da infortuni presente", "path": "sezione:morte", "present": true},
+    {"desc": "Invalidità permanente presente", "path": "sezione:ip_infortuni", "present": true},
+    {"desc": "IP con franchigia 3%", "path": "sezione:ip_infortuni.franchigia", "contains": "3%"},
+    {"desc": "Rimborso spese presente", "path": "sezione:rss_infortuni", "present": true},
+    {"desc": "Rimborso spese scoperto 20% (min €75)", "path": "sezione:rss_infortuni.scoperto", "contains": "20%"},
+    {"desc": "Rimborso spese — sotto-limite protesi €5.000 (gz)", "path": "sezione:rss_infortuni.gz.protesi.sub", "contains": "5.000"},
+    {"desc": "Rimborso spese — sotto-limite apparecchiature €2.500 (gz)", "path": "sezione:rss_infortuni.gz.apparecchiature.sub", "contains": "2.500"},
+    {"desc": "Diaria ricovero presente", "path": "sezione:diaria_ricovero", "present": true},
+    {"desc": "Rendita vitalizia €12.000 lordi annui", "path": "sezione:rendita_vitalizia.massimale", "contains": "12.000"},
+    {"desc": "Tutela legale assente in questo prodotto", "path": "sezione:tutela_legale", "absent": true}
+  ]
+}
