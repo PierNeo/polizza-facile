@@ -4603,6 +4603,18 @@ function _casaGz(p, sezId, gzId) {
  return { state: opt?'opt':'val', lim: lim || 'S.A.', scop, fra, ...meta };
 }
 
+// Converte un oggetto grezzo {sub,scop,fra,opt,fonte,conf} nello stato per _casaCells.
+// undefined → 'nd' (non in doc), null → 'off' (esclusa).
+function _rawToState(raw) {
+ if (raw === null) return { state:'off' };
+ if (raw === undefined) return { state:'nd' };
+ const opt = !!raw.opt;
+ const lim = raw.sub || null, scop = raw.scop || null, fra = raw.fra || null;
+ const meta = { fonte: raw.fonte || null, conf: raw.conf || null };
+ if (!lim && !scop && !fra) return { state: opt?'opt-sa':'sa', ...meta };
+ return { state: opt?'opt':'val', lim: lim || 'S.A.', scop, fra, ...meta };
+}
+
 // Stato di una sezione "src:sezione" (cat. naturali, tutela legale) da p.sezioni.
 function _casaSez(p, sezId) {
  const s = (p.sezioni||[]).find(x => x.id === sezId);
@@ -4778,11 +4790,44 @@ function buildTableSezioni3col(policies, cols) {
  if (!order.length) {
   html += `<tr><td colspan="${NP*3+1}" style="padding:20px;text-align:center;color:var(--gray-400);font-size:12px">Nessuna garanzia estratta</td></tr>`;
  }
+ const normNome = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+ const labelOf = (k, raw) => (raw && raw.nome) ? raw.nome : k.replace(/_/g, ' ');
+ const gzOf = (p, sid) => { const s = (p.sezioni||[]).find(x => x.id === sid); return (s && s.gz) || null; };
+
  order.forEach((sid, gi) => {
   const bg = gi % 2 === 0 ? 'var(--white)' : 'var(--gray-50)';
   html += `<tr><td style="padding:9px 14px;font-size:12px;color:var(--gray-700);font-weight:500;background:${bg};border-left:3px solid var(--polo);border-bottom:1px solid var(--gray-100)">${esc(nomeById[sid])}</td>`;
   policies.forEach(p => { html += _casaCells(_casaSez(p, sid)); });
   html += '</tr>';
+
+  // Sotto-limiti strutturati della sezione (Infortuni/Salute), allineati per nome
+  const sub = {}; // nomeNormalizzato -> etichetta
+  policies.forEach(p => {
+   const gz = gzOf(p, sid); if (!gz) return;
+   Object.keys(gz).forEach(k => {
+    const raw = gz[k]; if (raw === null || raw === undefined) return;
+    const nk = normNome(labelOf(k, raw)); if (!nk || nk in sub) return;
+    sub[nk] = labelOf(k, raw);
+   });
+  });
+  let si = 0;
+  Object.keys(sub).forEach(nk => {
+   const sbg = (si++ % 2 === 0) ? 'var(--white)' : 'var(--gray-50)';
+   html += `<tr><td style="padding:7px 14px 7px 28px;font-size:11px;color:var(--gray-600);background:${sbg};border-left:3px solid var(--polo);border-bottom:1px solid var(--gray-100)">${esc(sub[nk])} <span title="Sotto-limite della garanzia, rilevato dal documento" style="color:var(--polo);font-weight:700">＋</span></td>`;
+   policies.forEach(p => {
+    const gz = gzOf(p, sid);
+    let st = { state:'nd' };
+    if (gz) {
+     const key = Object.keys(gz).find(k => {
+      const raw = gz[k]; if (raw === null || raw === undefined) return false;
+      return normNome(labelOf(k, raw)) === nk || normNome(k) === nk;
+     });
+     if (key) st = _rawToState(gz[key]);
+    }
+    html += _casaCells(st);
+   });
+   html += '</tr>';
+  });
  });
 
  html += '</tbody>';
