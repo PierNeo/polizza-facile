@@ -2538,6 +2538,94 @@ SINONIMI_SEZIONI_SALUTE: dict[str, dict] = {
 }
 _SYN_SALUTE = _build_synonym_index(SINONIMI_SEZIONI_SALUTE)
 
+# Ramo RC AUTO / VEICOLI — la triade limite/scoperto/franchigia calza bene:
+# RCA ha massimale fisso, kasko/furto hanno franchigie/scoperti, ecc. I sotto-limiti
+# (km traino, giorni auto sostitutiva, capitali conducente) vanno nel campo "gz".
+SINONIMI_SEZIONI_RCAUTO: dict[str, dict] = {
+    "rca": {
+        "id": "rca",
+        "nome_standard": "Responsabilità Civile Auto (RCA)",
+        "sinonimi": [
+            "responsabilità civile auto", "rca", "rc auto", "rc autoveicoli",
+            "responsabilità civile obbligatoria", "garanzia rca", "massimale rca",
+        ],
+        "sotto_garanzie": [],
+    },
+    "kasko": {
+        "id": "kasko",
+        "nome_standard": "Kasko / collisione",
+        "sinonimi": [
+            "kasko", "collisione", "danni al veicolo", "mini kasko", "kasko collisione",
+            "garanzia kasko", "danni accidentali al veicolo",
+        ],
+        "sotto_garanzie": [],
+    },
+    "furto_incendio": {
+        "id": "furto_incendio",
+        "nome_standard": "Furto e incendio",
+        "sinonimi": [
+            "furto e incendio", "furto incendio", "incendio e furto", "furto",
+            "incendio del veicolo", "furto del veicolo",
+        ],
+        "sotto_garanzie": [],
+    },
+    "eventi_naturali": {
+        "id": "eventi_naturali",
+        "nome_standard": "Eventi naturali",
+        "sinonimi": [
+            "eventi naturali", "eventi atmosferici", "calamità naturali",
+            "grandine", "alluvione veicolo", "eventi socio-politici",
+        ],
+        "sotto_garanzie": [],
+    },
+    "atti_vandalici_auto": {
+        "id": "atti_vandalici_auto",
+        "nome_standard": "Atti vandalici",
+        "sinonimi": [
+            "atti vandalici", "vandalismo", "danni da atti vandalici",
+            "eventi sociopolitici", "atti dolosi di terzi",
+        ],
+        "sotto_garanzie": [],
+    },
+    "cristalli_auto": {
+        "id": "cristalli_auto",
+        "nome_standard": "Cristalli",
+        "sinonimi": [
+            "cristalli", "rottura cristalli", "cristalli auto", "parabrezza",
+            "vetri del veicolo", "garanzia cristalli",
+        ],
+        "sotto_garanzie": [],
+    },
+    "infortuni_conducente": {
+        "id": "infortuni_conducente",
+        "nome_standard": "Infortuni del conducente",
+        "sinonimi": [
+            "infortuni del conducente", "infortuni conducente", "conducente",
+            "tutela del conducente", "infortuni alla guida", "guida sicura",
+        ],
+        "sotto_garanzie": [],
+    },
+    "assistenza_stradale": {
+        "id": "assistenza_stradale",
+        "nome_standard": "Assistenza stradale",
+        "sinonimi": [
+            "assistenza stradale", "soccorso stradale", "traino", "auto sostitutiva",
+            "assistenza veicoli", "pronto intervento stradale",
+        ],
+        "sotto_garanzie": [],
+    },
+    "tutela_legale": {
+        "id": "tutela_legale",
+        "nome_standard": "Tutela legale",
+        "sinonimi": [
+            "tutela legale", "tutela legale auto", "difesa legale", "assistenza legale",
+            "spese legali", "tutela giudiziaria",
+        ],
+        "sotto_garanzie": [],
+    },
+}
+_SYN_RCAUTO = _build_synonym_index(SINONIMI_SEZIONI_RCAUTO)
+
 
 # ── TOOL USE SCHEMA PER SEZIONI ───────────────────────────────────────────────
 
@@ -2559,6 +2647,11 @@ Per ASSISTENZA: artigiani, asciugatura, vigilanza, deposito_contenuto, pernottam
 Per le garanzie con più canali (ricovero, alta diagnostica, visite) NON usare questo campo: crea invece
 una SEZIONE separata per canale (convenzionato / non convenzionato / SSN) usando gli id dedicati.
 Lascia null se la garanzia non ha canali distinti."""
+    elif tipo_polizza == "RC Auto":
+        sezioni_enum = [d["nome_standard"] for d in SINONIMI_SEZIONI_RCAUTO.values()]
+        sotto_garanzie_desc = """Oggetto con varianti della garanzia, se il documento le distingue (es. furto vs incendio
+con franchigie diverse). Lascia null se non ci sono varianti. I sotto-limiti (km traino, giorni auto
+sostitutiva, capitali morte/IP del conducente) vanno nel campo "gz" della sezione, non qui."""
     else:  # Infortuni
         sezioni_enum = [d["nome_standard"] for d in SINONIMI_SEZIONI_INFORTUNI.values()]
         sotto_garanzie_desc = """Oggetto con varianti della sezione, quando il documento le distingue esplicitamente.
@@ -2629,7 +2722,7 @@ IDs garanzie (usa esattamente questi):
                     "items": {
                         "type": "object",
                         "properties": {
-                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, sostegno_protezione, tutela_legale, assistenza_sanitaria. SALUTE: ricovero_conv, ricovero_nonconv, ricovero_ssn, pre_ricovero, post_ricovero, parto, alta_diagnostica_conv, alta_diagnostica_nonconv, alta_diagnostica_ssn, visite_conv, visite_nonconv, visite_ssn, checkup, prest_post_ricovero, massimale_annuo, assistenza_sanitaria, tutela_legale"},
+                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, sostegno_protezione, tutela_legale, assistenza_sanitaria. SALUTE: ricovero_conv, ricovero_nonconv, ricovero_ssn, pre_ricovero, post_ricovero, parto, alta_diagnostica_conv, alta_diagnostica_nonconv, alta_diagnostica_ssn, visite_conv, visite_nonconv, visite_ssn, checkup, prest_post_ricovero, massimale_annuo, assistenza_sanitaria, tutela_legale. RC AUTO: rca, kasko, furto_incendio, eventi_naturali, atti_vandalici_auto, cristalli_auto, infortuni_conducente, assistenza_stradale, tutela_legale"},
                             "nome":         {"type": "string", "description": f"Nome NORMALIZZATO. Usa ESATTAMENTE uno di: {', '.join(sezioni_enum)}. NON inventare nomi diversi — usa i sinonimi per riconoscere la sezione, poi metti il nome standard."},
                             "inclusa":      {"type": "boolean", "description": "true se presente nel pacchetto base"},
                             "opzionale":    {"type": "boolean", "description": "true se acquistabile come extra, false se assente"},
@@ -2706,6 +2799,22 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
         f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
         for sid, d in SINONIMI_SEZIONI_SALUTE.items()
     )
+    sinonimi_rcauto_txt = "\n".join(
+        f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
+        for sid, d in SINONIMI_SEZIONI_RCAUTO.items()
+    )
+
+    # Guida specifica ramo RC Auto
+    rcauto_note = ""
+    if tipo_hint == "RC Auto":
+        rcauto_note = """
+— POLIZZE RC AUTO — massimali e franchigie:
+  • RCA: massimale FISSO nel testo (es. "€6.450.000 danni a persone + €1.300.000 cose", o unico "€7.500.000"). Estrai i valori esatti, MAI "Somma assicurata".
+  • Kasko / Furto e incendio / Eventi naturali: massimale = "Valore del veicolo" (massimale_num=0). Riporta la franchigia/scoperto ESATTI (es. fra "€500", scop "15% min. €500"). Furto e incendio possono avere franchigie diverse → usa "gz" con voci "furto" e "incendio" se distinte.
+  • Cristalli: massimale fisso (es. "€1.500") o "Valore del cristallo"; riporta la franchigia (es. "€100").
+  • Infortuni del conducente: capitali FISSI → mettili in "gz": {{"morte": {{"nome": "Morte", "sub": "€100.000"}}, "ip": {{"nome": "Invalidità permanente", "sub": "€200.000"}}}}.
+  • Assistenza stradale: sotto-limiti in "gz": {{"traino": {{"nome": "Traino", "sub": "fino a X km"}}, "auto_sostitutiva": {{"nome": "Auto sostitutiva", "sub": "X giorni"}}}}.
+  Cerca i valori in "DIP", "DIP Aggiuntivo", "Condizioni di Assicurazione", "Tabella delle garanzie/massimali"."""
 
     # Guida specifica per ramo Salute (modello per canale)
     salute_note = ""
@@ -2733,6 +2842,8 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
         dizionario_txt = f"POLIZZE INFORTUNI:\n{sinonimi_infortuni_txt}"
     elif tipo_hint == "Salute":
         dizionario_txt = f"POLIZZE SALUTE:\n{sinonimi_salute_txt}"
+    elif tipo_hint == "RC Auto":
+        dizionario_txt = f"POLIZZE RC AUTO:\n{sinonimi_rcauto_txt}"
     elif tipo_hint == "Multirischio":
         dizionario_txt = f"POLIZZE CASA:\n{sinonimi_casa_txt}\n\nPOLIZZE INFORTUNI:\n{sinonimi_infortuni_txt}"
     else:
@@ -2772,7 +2883,7 @@ REGOLE CRITICHE:
 — STATO COMATOSO IRREVERSIBILE: se presente come garanzia/sezione separata (non solo menzionata nelle CG generali), estraila come id="stato_comatoso". Nel campo note indica se è legata alla garanzia Morte o autonoma, e la condizione di attivazione (es: "coma > 6 mesi", "stato vegetativo permanente").
 — Se una sezione è ESCLUSA esplicitamente: inclusa=false, opzionale=false. Se è opzionale acquistabile: inclusa=false, opzionale=true.
 — SOTTO-LIMITI STRUTTURATI (Infortuni e Salute): per ogni sezione, oltre a massimale/scoperto/franchigia, spezza i sotto-limiti numerici nel campo "gz" come voci con "nome" leggibile e i loro sub/scop/fra. Esempio Rimborso spese: gz = {{"protesi": {{"nome": "Protesi anatomiche", "sub": "50% mass. max €5.000"}}, "apparecchiature": {{"nome": "Apparecchiature terapeutiche/ortopediche", "sub": "€2.500"}}, "infermieristica": {{"nome": "Assistenza infermieristica", "sub": "€50/gg x 90 gg"}}, "spese_post_ricovero": {{"nome": "Spese post-ricovero", "sub": "30% SA entro 360 gg"}}}}. NON lasciare i sotto-limiti solo nel testo libero: mettili in "gz" così diventano righe confrontabili. Usa lo STESSO "nome" per lo stesso concetto tra compagnie diverse, così le righe si allineano.
-— Estrai TUTTE le sezioni presenti o esplicitamente escluse.{garanzie_casa_note}{salute_note}"""
+— Estrai TUTTE le sezioni presenti o esplicitamente escluse.{garanzie_casa_note}{salute_note}{rcauto_note}"""
 
 
 # ── MODELLO REQUEST ───────────────────────────────────────────────────────────
@@ -2990,7 +3101,9 @@ def _normalize_sezioni(result: dict) -> dict:
         indexes = [(_SYN_INFORTUNI, SINONIMI_SEZIONI_INFORTUNI)]
     elif tipo == "Salute":
         indexes = [(_SYN_SALUTE, SINONIMI_SEZIONI_SALUTE)]
-    elif tipo in ("Casa", "RC Auto", "Vita", "Risparmio"):
+    elif tipo == "RC Auto":
+        indexes = [(_SYN_RCAUTO, SINONIMI_SEZIONI_RCAUTO)]
+    elif tipo in ("Casa", "Vita", "Risparmio"):
         indexes = [(_SYN_CASA, SINONIMI_SEZIONI_CASA)]
     else:  # Multirischio, altro — prova entrambi
         indexes = [(_SYN_CASA, SINONIMI_SEZIONI_CASA), (_SYN_INFORTUNI, SINONIMI_SEZIONI_INFORTUNI)]
