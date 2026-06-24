@@ -20,3 +20,4 @@ venv/
 # Cache PDF locale
 backend/pdf_cache/
 backend/tests/regression/*.pdf
+__pycache__/
