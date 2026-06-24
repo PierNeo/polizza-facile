@@ -1,0 +1,9 @@
+{
+  "_nota": "Allianz Ultra Salute (MODULARE: 6 moduli uniti in un PDF — regolamento + spese mediche + eventi gravi + diaria ricovero + IP infortunio + IP malattia, 204 pag). Valida il modello SALUTE a CANALI: ricovero in strutture convenzionate / non convenzionate a rimborso / SSN (indennizzo forfettario = 3x SA). Prodotto a Soluzioni (Essential/Plus/Premium/Top) e ibrido (anche IP), quindi molte somme sono 'indicate in scheda tecnica' → variabili. Questo golden verifica il CUORE (i tre canali ricovero presenti); i check sui valori (alta diagnostica franchigia €100 / scoperto 20% max €2.500, disturbi mentali €1.500, SSN 3x SA) si aggiungono dopo la prima estrazione reale, viste le chiavi/struttura effettive. NB: tipo potrebbe risultare Salute o Multirischio (ibrido).",
+  "tipo": ["Salute", "Multirischio"],
+  "checks": [
+    {"desc": "Ricovero strutture convenzionate presente (canale conv.)", "path": "sezione:ricovero_conv", "present": true},
+    {"desc": "Ricovero strutture non convenzionate presente (canale rimborso)", "path": "sezione:ricovero_nonconv", "present": true},
+    {"desc": "Ricovero SSN / indennizzo forfettario presente (canale SSN)", "path": "sezione:ricovero_ssn", "present": true}
+  ]
+}
