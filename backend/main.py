@@ -2623,6 +2623,43 @@ SINONIMI_SEZIONI_RCAUTO: dict[str, dict] = {
         ],
         "sotto_garanzie": [],
     },
+    # ── Condizioni RCA (non garanzie con triade — il dato va nel massimale/note) ──
+    "rivalsa": {
+        "id": "rivalsa",
+        "nome_standard": "Rivalsa",
+        "sinonimi": [
+            "rivalsa", "diritto di rivalsa", "azione di rivalsa", "regresso",
+            "recupero somme", "casi di rivalsa",
+        ],
+        "sotto_garanzie": [],
+    },
+    "clausola_guida": {
+        "id": "clausola_guida",
+        "nome_standard": "Clausola di guida",
+        "sinonimi": [
+            "clausola di guida", "guida libera", "guida esperta", "guida esclusiva",
+            "tipo di guida", "guida del veicolo",
+        ],
+        "sotto_garanzie": [],
+    },
+    "bonus_malus": {
+        "id": "bonus_malus",
+        "nome_standard": "Formula tariffaria (Bonus/Malus)",
+        "sinonimi": [
+            "bonus malus", "bonus/malus", "classe di merito", "formula tariffaria",
+            "franchigia fissa", "pejus", "tariffa fissa",
+        ],
+        "sotto_garanzie": [],
+    },
+    "carta_verde": {
+        "id": "carta_verde",
+        "nome_standard": "Estensione territoriale / Carta Verde",
+        "sinonimi": [
+            "carta verde", "estensione territoriale", "validità territoriale",
+            "copertura all'estero", "ambito territoriale",
+        ],
+        "sotto_garanzie": [],
+    },
 }
 _SYN_RCAUTO = _build_synonym_index(SINONIMI_SEZIONI_RCAUTO)
 
@@ -2956,7 +2993,13 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
   • Cristalli: massimale fisso (es. "€1.500") o "Valore del cristallo"; riporta la franchigia (es. "€100").
   • Infortuni del conducente: capitali FISSI → mettili in "gz": {{"morte": {{"nome": "Morte", "sub": "€100.000"}}, "ip": {{"nome": "Invalidità permanente", "sub": "€200.000"}}}}.
   • Assistenza stradale: sotto-limiti in "gz": {{"traino": {{"nome": "Traino", "sub": "fino a X km"}}, "auto_sostitutiva": {{"nome": "Auto sostitutiva", "sub": "X giorni"}}}}.
-  Cerca i valori in "DIP", "DIP Aggiuntivo", "Condizioni di Assicurazione", "Tabella delle garanzie/massimali"."""
+  Cerca i valori in "DIP", "DIP Aggiuntivo", "Condizioni di Assicurazione", "Tabella delle garanzie/massimali".
+— CONDIZIONI RCA (NON sono garanzie con limite/scoperto/franchigia — metti il contenuto nel campo "massimale" in forma sintetica e i dettagli in "note"):
+  • rivalsa: i casi in cui l'Impresa si rivale sull'assicurato (es. "ebbrezza >0,8 g/l, stupefacenti, conducente non abilitato, revisione scaduta"). È il rischio nascosto per il cliente: estraila SEMPRE se presente. massimale = elenco sintetico dei casi.
+  • clausola_guida: "Guida libera / Guida esperta / Guida esclusiva" se indicata (spesso nella Posizione assicurativa → "indicato in Polizza").
+  • bonus_malus: formula tariffaria (es. "Bonus/Malus 38 classi", "Franchigia fissa", "Pejus") e regole di evoluzione classi se nel testo.
+  • carta_verde: estensione territoriale / Carta Verde (Paesi coperti).
+  Queste voci hanno scoperto/franchigia = null (la triade non si applica)."""
 
     # Guida specifica per ramo Salute (modello per canale)
     salute_note = ""
