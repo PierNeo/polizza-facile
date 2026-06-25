@@ -3877,8 +3877,38 @@ function renderVerificaGrid() {
      </div>`;
     }).join('')}
    </div>
+   ${_verificaSommeBlock(p, pi)}
   </div>`;
  }).join('');
+}
+
+// Blocco "Somme dal preventivo": per le sezioni con massimale variabile / "indicato in
+// Polizza" (tipico Infortuni/Vita), permette di inserire a mano il capitale reale dal
+// preventivo, così il confronto non resta generico. Scrive su s.massimale / s.massimale_num.
+function _verificaSommeBlock(p, pi) {
+ const sez = (p.sezioni || []).filter(s =>
+   (s.inclusa || s.opzionale) &&
+   (!s.massimale || /indicat|in polizza|variabil|scheda/i.test(s.massimale) || s.massimale_num === 0)
+ );
+ if (!sez.length) return '';
+ const rows = sez.map(s => {
+  const cur = (s.massimale && !/indicat|in polizza|variabil|scheda/i.test(s.massimale)) ? s.massimale : '';
+  return `<div class="verifica-field"><label title="${esc(s.nome||s.id)}" style="min-width:150px">${esc(s.nome||s.id)}</label>
+    <input value="${esc(cur)}" oninput="vSetSezMass(${pi},'${esc(s.id)}',this.value)" placeholder="capitale dal preventivo, es. € 100.000"></div>`;
+ }).join('');
+ return `<div class="verifica-garanzie">
+   <div class="verifica-garanzie-title"><span>Somme dal preventivo</span><span style="font-weight:400;color:var(--gray-400)">facoltativo · inserisci i capitali reali</span></div>
+   ${rows}
+  </div>`;
+}
+
+function vSetSezMass(pi, sezId, val) {
+ const s = (verificaPolicies[pi].sezioni || []).find(x => x.id === sezId);
+ if (!s) return;
+ const v = (val || '').trim();
+ s.massimale = v || 'Indicato in Polizza';
+ const num = parseFloat(v.replace(/[^0-9.,]/g, '').replace(/\./g, '').replace(',', '.'));
+ s.massimale_num = (v && !isNaN(num)) ? num : 0;
 }
 
 function vSetMeta(pi, field, val) {
@@ -4633,7 +4663,7 @@ function _casaSez(p, sezId) {
  if (!s.inclusa && !s.opzionale) return { state:'off' };
  const lim = s.massimale || null, scop = s.scoperto || null, fra = s.franchigia || null;
  const opt = (s.opzionale && !s.inclusa);
- const meta = { fonte: s.fonte || null, conf: s.confidenza || null };
+ const meta = { fonte: s.fonte || null, conf: s.confidenza || null, formule: (Array.isArray(s.formule) && s.formule.length) ? s.formule : null };
  if (!lim && !scop && !fra) return { state: opt?'opt-sa':'sa', ...meta };
  return { state: opt?'opt':'val', lim: lim || 'S.A.', scop, fra, ...meta };
 }
@@ -4650,6 +4680,7 @@ function _casaCells(st) {
   let m = '';
   if (st.fonte) m += ` <span title="Fonte CGA: ${esc(st.fonte)}" style="color:var(--gray-300);font-size:9px;cursor:help">ⓘ</span>`;
   if (st.conf === 'bassa') m += ` <span title="Confidenza bassa — verificare sul CGA prima di proporre" style="color:#B26A00;font-size:10px;cursor:help">⚠</span>`;
+  if (st.formule) m += `<div style="font-size:9px;color:#7C3AED;margin-top:1px" title="Inclusa nelle formule: ${esc(st.formule.join(', '))}">▣ ${esc(st.formule.join('·'))}</div>`;
   return m;
  };
  let lim, scop, fra;
@@ -4798,9 +4829,11 @@ function buildTableSezioni3col(policies, cols) {
 
  let html = '<thead><tr><th rowspan="2" style="text-align:left;min-width:190px;vertical-align:bottom;padding:10px 14px;font-size:11px;color:var(--gray-500)">Garanzia</th>';
  policies.forEach((p, i) => {
+  const formule = (Array.isArray(p.formule) && p.formule.length)
+   ? `<span style="display:block;margin-top:3px;font-size:9px;color:#7C3AED" title="Formule/pacchetti vendibili">▣ Formule: ${esc(p.formule.join(' · '))}</span>` : '';
   html += `<th colspan="3" style="border-top:3px solid ${cols[i]};text-align:center;padding:8px 10px">
    <span class="th-company">${esc(p.compagnia||'')}</span>
-   <span class="th-product">${esc(p.prodotto||'')}</span></th>`;
+   <span class="th-product">${esc(p.prodotto||'')}</span>${formule}</th>`;
  });
  html += '</tr><tr>';
  policies.forEach(() => { html += subHdr('Limite','#0D47A1',_BG_LIM)+subHdr('Scoperto','#E65100',_BG_SCOP)+subHdr('Franchigia','#C62828',_BG_FRA); });
