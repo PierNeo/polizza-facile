@@ -4544,6 +4544,9 @@ const CASA_SEZIONI_SCHEMA = [
    { id:'sparg_acqua',    nome:"Spargimento d'acqua" },
    { id:'ricerca_guasto', nome:'Ricerca del guasto' },
    { id:'atti_vandal',    nome:'Atti vandalici' },
+   { id:'guasti_serramenti', nome:'Guasti ai serramenti (furto/atti vandalici)' },
+   { id:'demolizione',    nome:'Spese di demolizione e sgombero' },
+   { id:'fotovoltaico',   nome:'Impianti fotovoltaici / pannelli solari' },
  ]},
  { id:'furto',      nome:'Furto',                  color:'#1565C0', src:'detail', garanzie:[
    { id:'furto_b',      nome:'Furto' },
@@ -4554,8 +4557,12 @@ const CASA_SEZIONI_SCHEMA = [
    { id:'oggetti_arte', nome:'Quadri, tappeti, sculture' },
  ]},
  { id:'rc',         nome:'Responsabilità Civile',  color:'#1B5E20', src:'detail', garanzie:[
-   { id:'__mass__',  nome:'Massimale RC verso terzi' },
-   { id:'rc_figli',  nome:'Danni da figli minori' },
+   { id:'__mass__',          nome:'Massimale RC verso terzi' },
+   { id:'rc_vita_privata',   nome:'RC vita privata' },
+   { id:'rc_conduzione',     nome:'RC conduzione alloggi' },
+   { id:'rc_proprieta_fabbricati', nome:'RC proprietà dei fabbricati' },
+   { id:'rc_animali',        nome:'RC animali domestici' },
+   { id:'rc_figli',          nome:'Danni da figli minori' },
  ]},
  { id:'cristalli',  nome:'Cristalli',              color:'#6A1B9A', src:'detail', garanzie:[
    { id:'crist_b',    nome:'Rottura cristalli' },
@@ -4568,17 +4575,21 @@ const CASA_SEZIONI_SCHEMA = [
    { id:'ass_fabbro', nome:'Intervento fabbro' },
    { id:'ass_allogg', nome:'Alloggio alternativo' },
  ]},
- { id:'terremoto_alluvione', nome:'Catastrofi naturali', color:'#5D4037', src:'sezione' },
+ { id:'catastrofi', nome:'Catastrofi naturali', color:'#5D4037', src:'detail', garanzie:[
+   { id:'terremoto',   nome:'Terremoto' },
+   { id:'allagamento', nome:'Allagamento' },
+   { id:'alluvione',   nome:'Alluvione' },
+   { id:'inondazione', nome:'Inondazione' },
+   { id:'esondazione', nome:'Esondazione' },
+ ]},
  { id:'tutela_legale',       nome:'Tutela Legale',       color:'#37474F', src:'sezione' },
 ];
 
 // Coperture marginali (di nicchia): NON in griglia, elencate in fondo se incluse.
 const CASA_MARGINALI = [
- { sez:'incendio',   id:'demolizione',  nome:'Demolizione e sgombero' },
- { sez:'incendio',   id:'fotovoltaico', nome:'Impianti fotovoltaici / pannelli solari' },
- { sez:'rc',         id:'rc_cani',      nome:'RC danni da animali domestici' },
  { sez:'rc',         id:'rc_inquin',    nome:'RC inquinamento ambientale' },
  { sez:'rc',         id:'rc_incend',    nome:'RC danni da incendio a terzi' },
+ { sez:'rc',         id:'rc_cani',      nome:'RC danni da animali (altro)' },
  { sez:'assistenza', id:'ass_guard',    nome:'Guardianìa temporanea' },
 ];
 
@@ -4644,6 +4655,7 @@ function _casaCells(st) {
  let lim, scop, fra;
  if (st.state === 'off') { lim = `<span style="color:#C62828;font-style:italic;font-size:11px">Esclusa</span>`; scop = dash; fra = dash; }
  else if (st.state === 'nd') { lim = `<span style="color:var(--gray-300);font-size:10px;font-style:italic" title="Sezione non presente in questo documento (può essere in un modulo separato)">non in doc.</span>`; scop = dash; fra = dash; }
+ else if (st.state === 'incl_allrisk') { lim = `<span style="color:#1B5E20;font-size:10px;font-style:italic" title="Polizza All Risk: garanzia compresa nella copertura generale anche senza articolo dedicato">compresa (All Risk)</span>`; scop = dash; fra = dash; }
  else if (st.state === 'sa' || st.state === 'opt-sa') {
   const opt = st.state==='opt-sa' ? ` <span style="color:#7C3AED;font-size:9px">◆ opz.</span>` : '';
   lim = `<strong style="color:#0D47A1">S.A.</strong>${opt}${meta()}`; scop = dash; fra = dash;
@@ -4667,9 +4679,11 @@ function buildTableGaranzieCasa(policies, cols) {
  let html = '<thead>';
  html += `<tr><th rowspan="2" style="text-align:left;min-width:170px;vertical-align:bottom;padding:10px 14px;font-size:11px;color:var(--gray-500)">Garanzia</th>`;
  policies.forEach((p, i) => {
+  const forma = p.forma_copertura ? `<span style="display:inline-block;margin-top:3px;font-size:9px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#1B5E20;background:#E8F5E9;border-radius:10px;padding:1px 7px" title="Forma di copertura: ${esc(p.forma_copertura)}">${esc(p.forma_copertura)}</span>` : '';
   html += `<th colspan="3" style="border-top:3px solid ${cols[i]};text-align:center;padding:8px 10px">
    <span class="th-company">${esc(p.compagnia||'')}</span>
    <span class="th-product">${esc(p.prodotto||'')}</span>
+   ${forma}
   </th>`;
  });
  html += '</tr><tr>';
@@ -4696,7 +4710,12 @@ function buildTableGaranzieCasa(policies, cols) {
   sez.garanzie.forEach((gz, gi) => {
    const rowBg = gi % 2 === 0 ? 'var(--white)' : 'var(--gray-50)';
    html += `<tr><td style="padding:8px 14px 8px 22px;font-size:11px;color:var(--gray-600);font-weight:500;background:${rowBg};border-left:3px solid ${c}55;border-bottom:1px solid var(--gray-100)">${esc(gz.nome)}</td>`;
-   policies.forEach(p => { html += _casaCells(_casaGz(p, sez.id, gz.id), rowBg); });
+   policies.forEach(p => {
+    let st = _casaGz(p, sez.id, gz.id);
+    // Polizza All Risk: i cristalli non documentati sono compresi nella copertura generale
+    if (st.state === 'nd' && sez.id === 'cristalli' && p.forma_copertura === 'All Risk') st = { state:'incl_allrisk' };
+    html += _casaCells(st, rowBg);
+   });
    html += '</tr>';
   });
 

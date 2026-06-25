@@ -2786,8 +2786,9 @@ Struttura richiesta:
 {
   "incendio":   {"mass": "€ X", "gz": {"incendio_b": {"sub": null, "scop": null, "fra": "€ 250"}, "eventi_atm": {"sub": "€ 200.000", "scop": "10% min. €500", "fra": null}, ...}},
   "furto":      {"mass": "€ X", "gz": {"furto_b": {...}, "scippo": {...}, "guasti_ladri": {...}, "preziosi": {...}, "denaro": {...}, "oggetti_arte": {...}}},
-  "rc":         {"mass": "€ X", "gz": {"rc_figli": {"sub": null, "scop": null, "fra": null}, "rc_cani": {...}, "rc_inquin": {...}, "rc_incend": {...}}},
+  "rc":         {"mass": "€ X", "gz": {"rc_vita_privata": {"sub": "indicato in Polizza"}, "rc_conduzione": {...}, "rc_proprieta_fabbricati": {...}, "rc_animali": {...}, "rc_figli": {...}}},
   "cristalli":  {"mass": "€ X", "gz": {"crist_b": {...}, "crist_spec": {...}, "crist_san": {...}}} oppure null se sezione assente,
+  "catastrofi": {"mass": "€ X", "gz": {"terremoto": {"scop": "10% min. €10.000"}, "allagamento": {...}, "alluvione": {...}, "inondazione": {...}, "esondazione": {...}}} oppure null se assenti,
   "assistenza": {"mass": "€ 250/evento", "gz": {"ass_idraul": {"sub": "€ 250", "scop": null, "fra": null}, "ass_elett": {"sub": "€ 250", "scop": null, "fra": null}, "ass_fabbro": {"sub": "€ 250", "scop": null, "fra": null}, "ass_allogg": {"sub": "€ X", "scop": null, "fra": null}, "ass_guard": {"sub": "€ X", "scop": null, "fra": null}}}
 }
 Regole valore garanzia:
@@ -2808,11 +2809,18 @@ Regole valore garanzia:
 — CRISTALLI — la copertura per rottura di vetri/cristalli ("Vetri e cristalli", "rottura cristalli e lastre", "rottura lastre/specchi") è spesso una garanzia collocata DENTRO la sezione Incendio/Protezione Casa (es. articolo "Vetri e cristalli" nell'elenco delle opzioni a premio aggiuntivo), non una sezione autonoma. In quel caso popola COMUNQUE la chiave "cristalli": crist_b={"opt": true} se è un supplemento a pagamento (aggiungi sub/scop/fra se indicati, es. danni al contenuto max €3.000), oppure crist_b inclusa nella base ({"sub": ...} o {"sub": null, "scop": null, "fra": null}) se è compresa senza supplemento. Valorizza crist_spec (specchi/lastre) e crist_san (sanitari) SOLO se il testo li distingue esplicitamente, altrimenti ometti quelle sotto-garanzie. Includi la chiave "cristalli" ogni volta che il documento menziona la copertura per rottura di vetri/cristalli/specchi/lastre, anche come opzione; ometti la chiave "cristalli" SOLO se il documento non ne parla affatto.
 — INCENDIO — demolizione (spese_demolizione): il sub va letto ESATTAMENTE come scritto nel testo. "30% dell'indennizzo" e "5% del massimale" sono VALORI DIVERSI e non intercambiabili. Copia il testo esatto (es: "30% dell'indennizzo", "20% dell'indennizzo max €30.000").
 — INCENDIO — ricerca_guasto: il sublimite si trova NELL'ARTICOLO DEDICATO (es: "Art. X Ricerca del guasto"), tipicamente "5% del valore assicurato alla partita fabbricato con il massimo di €X". Riporta il massimale fisso come sub (es: "€ 2.500", non "€ 1.000" se il testo dice €2.500).
+— INCENDIO — voci da includere nella sezione (NON tra le marginali): guasti_serramenti (danni ai serramenti/infissi da furto o atti vandalici), demolizione (spese di demolizione e sgombero), fotovoltaico (impianti fotovoltaici/pannelli solari). Sono garanzie importanti della sezione Incendio.
+— ALL RISK vs RISCHI NOMINATI: nel campo top-level "forma_copertura" indica "All Risk" se la polizza copre TUTTI i danni tranne quelli esclusi (formula "all risks"/"tutti i rischi"), oppure "Rischi Nominati" se copre SOLO gli eventi elencati. Se non è chiaro → null.
+— ALL RISK — copertura implicita: in una polizza ALL RISK, una garanzia property non esplicitamente esclusa è COMPRESA anche se non ha un articolo dedicato. In particolare i CRISTALLI: se non c'è un articolo "vetri/cristalli" ma la polizza è All Risk e non li esclude, popola crist_b = {"sub": null, "scop": null, "fra": null, "nome": "Rottura cristalli (compresa All Risk)"} invece di omettere la sezione.
+— RC — VOCI DA ESTRARRE con i rispettivi massimali: rc_vita_privata (RC della vita privata, NON verso terzi generica), rc_conduzione (RC conduzione alloggi/locatario), rc_proprieta_fabbricati (RC proprietà del fabbricato), rc_animali (RC animali domestici), rc_figli (danni da figli minori). Per OGNI voce metti il massimale nel "sub" (es. "fino a €1.000.000" o "indicato in Polizza"). Per rc_figli: scrivi SEMPRE "indicato in Polizza" e aggiungi il massimale se esiste (es. "indicato in Polizza, max €500.000").
+— CATASTROFI naturali: NON accorparle in una riga sola. Spezzale nella chiave "catastrofi" con voci separate: terremoto, allagamento, alluvione, inondazione, esondazione — ognuna con il suo scoperto/franchigia/limite. Se il documento le tratta insieme, replica lo stesso valore sulle voci presenti; ometti le voci non coperte.
+— ETICHETTE LIMITI: distingui SEMPRE i sublimiti "complessivi" da quelli "per singolo oggetto". Es. Preziosi e collezioni → sub "fino a €15.000 complessivamente"; Quadri/tappeti/sculture → sub "€25.000 per singolo oggetto". Quando il limite è una percentuale, scrivilo come "fino al X% della SA" (es. "fino al 50% SA contenuto, max €15.000 complessivo").
 IDs garanzie (usa esattamente questi):
-  incendio:   incendio_b, eventi_atm, fenomeno_el, sparg_acqua, ricerca_guasto, atti_vandal, demolizione, fotovoltaico
+  incendio:   incendio_b, eventi_atm, fenomeno_el, sparg_acqua, ricerca_guasto, atti_vandal, guasti_serramenti, demolizione, fotovoltaico
   furto:      furto_b, scippo, guasti_ladri, preziosi, denaro, oggetti_arte
-  rc:         rc_figli, rc_cani, rc_inquin, rc_incend
+  rc:         rc_vita_privata, rc_conduzione, rc_proprieta_fabbricati, rc_animali, rc_figli, rc_inquin, rc_incend, rc_cani
   cristalli:  crist_b, crist_spec, crist_san
+  catastrofi: terremoto, allagamento, alluvione, inondazione, esondazione
   assistenza: ass_idraul, ass_elett, ass_fabbro, ass_allogg, ass_guard"""
         }
 
@@ -2821,6 +2829,7 @@ IDs garanzie (usa esattamente questi):
         "prodotto":   {"type": ["string", "null"]},
         "tipo":       {"type": "string", "enum": ["RC Auto", "Casa", "Vita", "Infortuni", "Salute", "Multirischio", "Aziendale", "Risparmio", "altro"]},
         "premio":     {"type": ["string", "null"]},
+        "forma_copertura": {"type": ["string", "null"], "enum": ["All Risk", "Rischi Nominati", None], "description": "Solo per polizze a danni (Casa/Aziendale): 'All Risk' se copre tutti i danni tranne gli esclusi, 'Rischi Nominati' se copre solo gli eventi elencati. null se non applicabile o non chiaro."},
     }
     if garanzie_detail_schema:
         properties["garanzie_detail"] = garanzie_detail_schema
