@@ -1,0 +1,15 @@
+{
+  "_nota": "Italiana 'Salute! Al Sicuro - Vita Intera' (assicurazione sanitaria, Reale Group, Ed. 2024.05). Prodotto Salute puro a Opzioni (Comfort/Deluxe) con i tre canali ricovero. Valori verificati riga per riga dal CGA. Questo golden valida il modello SALUTE a canali (convenzionate / non convenzionate / SSN) e i massimali/scoperti chiave. tipo accettato: Salute o Multirischio.",
+  "tipo": ["Salute", "Multirischio"],
+  "checks": [
+    {"desc": "Ricovero convenzionate presente (canale conv.)", "path": "sezione:ricovero_conv", "present": true},
+    {"desc": "Ricovero convenzionate massimale 600.000 (Comfort)", "path": "sezione:ricovero_conv.massimale", "contains": "600.000"},
+    {"desc": "Ricovero non convenzionate presente (canale rimborso)", "path": "sezione:ricovero_nonconv", "present": true},
+    {"desc": "Ricovero non convenzionate scoperto 30%", "path": "sezione:ricovero_nonconv.scoperto", "contains": "30%"},
+    {"desc": "Ricovero SSN / indennità sostitutiva presente (canale SSN)", "path": "sezione:ricovero_ssn", "present": true},
+    {"desc": "Alta diagnostica convenzionate presente", "path": "sezione:alta_diagnostica_conv", "present": true},
+    {"desc": "Alta diagnostica non convenzionate presente", "path": "sezione:alta_diagnostica_nonconv", "present": true},
+    {"desc": "Visite specialistiche convenzionate presente", "path": "sezione:visite_conv", "present": true},
+    {"desc": "Visite specialistiche non convenzionate presente", "path": "sezione:visite_nonconv", "present": true}
+  ]
+}
