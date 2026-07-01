@@ -4672,6 +4672,35 @@ function _casaSez(p, sezId) {
 const _BG_LIM = '#EAF2FF', _BG_SCOP = '#FFF4E8', _BG_FRA = '#FDEDE9';
 
 // Rende 3 celle <td> (Limite, Scoperto, Franchigia) per uno stato.
+// Spacchetta una cella con più alternative in un elenco verticale, una per riga.
+//  · "A oppure B oppure C"  → opzioni esclusive, numerate "Opz 1 / 2 / 3"
+//  · "A | B | C"            → livelli/scaglioni, elenco puntato
+// Se non ci sono separatori, ritorna null (la cella resta com'è).
+function _splitAlts(txt) {
+ if (!txt) return null;
+ if (/\soppure\s/i.test(txt)) {
+  const parts = txt.split(/\s+oppure\s+/i).map(s => s.trim()).filter(Boolean);
+  if (parts.length > 1) return { kind:'opt', parts };
+ }
+ if (txt.indexOf('|') >= 0) {
+  const parts = txt.split('|').map(s => s.trim()).filter(Boolean);
+  if (parts.length > 1) return { kind:'lvl', parts };
+ }
+ return null;
+}
+function _fmtMulti(txt, color, bold) {
+ const w = bold ? 700 : 600;
+ const alt = _splitAlts(txt);
+ if (!alt) return `<span style="color:${color};font-weight:${w}">${esc(txt)}</span>`;
+ const lines = alt.parts.map((p, i) => {
+  const lead = alt.kind === 'opt'
+   ? `<span style="color:var(--gray-400);font-weight:700;font-size:10px">Opz&nbsp;${i+1}</span> `
+   : `<span style="color:var(--gray-400)">•</span> `;
+  return `<div style="text-align:left;padding:1px 0;line-height:1.35">${lead}<span style="color:${color};font-weight:${w}">${esc(p)}</span></div>`;
+ }).join('');
+ return `<div style="display:inline-block;text-align:left">${lines}</div>`;
+}
+
 function _casaCells(st) {
  const dash = `<span style="color:var(--gray-400)">—</span>`;
  const cell = (inner, bg) => `<td style="text-align:center;vertical-align:middle;padding:7px 8px;background:${bg};border-bottom:1px solid #fff;border-right:1px solid #fff;font-size:12px">${inner}</td>`;
@@ -4694,9 +4723,9 @@ function _casaCells(st) {
   const opt = st.state==='opt' ? ` <span style="color:#7C3AED;font-size:9px">◆ opz.</span>` : '';
   // "Somma assicurata" (in qualsiasi forma) → "S.A."
   const limTxt = (st.lim && /somma\s+assicurat/i.test(st.lim)) ? 'S.A.' : (st.lim || 'S.A.');
-  lim = `<strong style="color:#0D47A1">${esc(limTxt)}</strong>${opt}${meta()}`;
-  scop = st.scop ? `<span style="color:#E65100;font-weight:600">${esc(st.scop)}</span>` : dash;
-  fra  = st.fra  ? `<span style="color:#C62828;font-weight:600">${esc(st.fra)}</span>`  : dash;
+  lim  = `${_fmtMulti(limTxt, '#0D47A1', true)}${opt}${meta()}`;
+  scop = st.scop ? _fmtMulti(st.scop, '#E65100', false) : dash;
+  fra  = st.fra  ? _fmtMulti(st.fra,  '#C62828', false) : dash;
  }
  return cell(lim, _BG_LIM) + cell(scop, _BG_SCOP) + cell(fra, _BG_FRA);
 }
