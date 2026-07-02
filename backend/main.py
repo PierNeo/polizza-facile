@@ -3002,7 +3002,8 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
   • RC: estrai i MASSIMALI fissi per RCT, RCO/RCI, RC prodotti come sezioni distinte (rct, rco, rc_prodotti). Nel campo note: massimale per sinistro/per persona, retroattività/postuma.
   • PROTEZIONE DEL REDDITO (interruzione attività): è un indennizzo A TEMPO. Metti il massimale di sezione e nel "gz" le forme: {{"diaria": {{"nome": "Diaria giornaliera", "sub": "€X/gg per max N gg"}}, "perdita_pigioni": {{...}}, "maggiori_costi": {{...}}}}. Nel campo note specifica il periodo di indennizzo.
   • Cyber (protezione digitale): massimale + sotto-limiti (danni propri vs RC, ripristino dati) in "gz".
-  Le sezioni aziendali sono spesso attivabili a blocchi: marca inclusa/opzionale secondo il testo."""
+  Le sezioni aziendali sono spesso attivabili a blocchi: marca inclusa/opzionale secondo il testo.
+— AZIENDALE — FRANCHIGIE/SCOPERTI DI DETTAGLIO: nella tabella delle Delimitazioni (colonna "Franchigie/Scoperti") ogni singola garanzia RC può avere una franchigia/scoperto PROPRIO, spesso indicato come "Solo per danni a Cose: € 500" o "10% minimo € 1.500". CATTURALO nel campo scoperto/franchigia della relativa voce (o nel "gz" della sotto-garanzia) invece di lasciare "—". Vale in particolare per le voci RC: Danni da Furto a terzi, Danni da Incendio a terzi, Beni presso terzi, Operazioni di movimentazione, Interruzione attività. Riporta il testo esatto, includendo la condizione se presente (es. fra="€ 500 (solo danni a cose)")."""
 
     # Guida specifica ramo RC Auto
     rcauto_note = ""
