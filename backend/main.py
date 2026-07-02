@@ -2219,6 +2219,18 @@ SINONIMI_SEZIONI_INFORTUNI: dict[str, dict] = {
         ],
         "sotto_garanzie": [],
     },
+    "ip_infortuni_franch25": {
+        "id": "ip_infortuni_franch25",
+        "nome_standard": "Invalidità permanente da infortunio franchigia 25%",
+        "sinonimi": [
+            "invalidità permanente da infortunio franchigia 25%",
+            "invalidità permanente da infortuni franchigia 25%",
+            "ip da infortunio franchigia 25%", "ip infortunio franchigia 25",
+            "invalidità permanente franchigia 25%", "ip franchigia 25% da infortunio",
+            "invalidità permanente grave da infortunio franchigia 25%",
+        ],
+        "sotto_garanzie": [],
+    },
     "rss_infortuni": {
         "id": "rss_infortuni",
         "nome_standard": "Rimborso spese sanitarie da infortuni",
@@ -2884,7 +2896,7 @@ IDs garanzie (usa esattamente questi):
                     "items": {
                         "type": "object",
                         "properties": {
-                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, sostegno_protezione, tutela_legale, assistenza_sanitaria. SALUTE: ricovero_conv, ricovero_nonconv, ricovero_ssn, pre_ricovero, post_ricovero, parto, alta_diagnostica_conv, alta_diagnostica_nonconv, alta_diagnostica_ssn, visite_conv, visite_nonconv, visite_ssn, checkup, prest_post_ricovero, massimale_annuo, assistenza_sanitaria, tutela_legale. RC AUTO: rca, kasko, furto_incendio, eventi_naturali, atti_vandalici_auto, cristalli_auto, infortuni_conducente, assistenza_stradale, tutela_legale. AZIENDALE: danni_beni, furto_aziendale, fenomeno_elettrico, eventi_catastrofali, rct, rco, rc_prodotti, protezione_reddito, tutela_legale, assistenza, protezione_digitale"},
+                            "id":           {"type": "string", "description": "ID normalizzato (snake_case). CASA: incendio, furto, rc, assistenza, tutela_legale, terremoto_alluvione, fotovoltaico. INFORTUNI: morte, ip_infortuni, ip_infortuni_grave, ip_infortuni_franch25, rss_infortuni, rss_malattia, diaria_gesso, diaria_ricovero, diaria_post_ricovero, diaria_inabilita, diaria_inabilita_malattia, ip_malattia, rendita_vitalizia, rendita_malattia, stato_comatoso, sostegno_protezione, tutela_legale, assistenza_sanitaria. SALUTE: ricovero_conv, ricovero_nonconv, ricovero_ssn, pre_ricovero, post_ricovero, parto, alta_diagnostica_conv, alta_diagnostica_nonconv, alta_diagnostica_ssn, visite_conv, visite_nonconv, visite_ssn, checkup, prest_post_ricovero, massimale_annuo, assistenza_sanitaria, tutela_legale. RC AUTO: rca, kasko, furto_incendio, eventi_naturali, atti_vandalici_auto, cristalli_auto, infortuni_conducente, assistenza_stradale, tutela_legale. AZIENDALE: danni_beni, furto_aziendale, fenomeno_elettrico, eventi_catastrofali, rct, rco, rc_prodotti, protezione_reddito, tutela_legale, assistenza, protezione_digitale"},
                             "nome":         {"type": "string", "description": f"Nome NORMALIZZATO. Usa ESATTAMENTE uno di: {', '.join(sezioni_enum)}. NON inventare nomi diversi — usa i sinonimi per riconoscere la sezione, poi metti il nome standard."},
                             "inclusa":      {"type": "boolean", "description": "true se presente nel pacchetto base"},
                             "opzionale":    {"type": "boolean", "description": "true se acquistabile come extra, false se assente"},
@@ -2908,7 +2920,7 @@ IDs garanzie (usa esattamente questi):
                     }
                 },
                 "punti_di_forza": {"type": "array", "items": {"type": "string"}, "description": "Max 4 punti concreti con valori numerici"},
-                "esclusioni":     {"type": "array", "items": {"type": "string"}, "description": "Max 5 esclusioni sorprendenti per il cliente"},
+                "esclusioni":     {"type": "array", "items": {"type": "string"}, "description": "Max 6 esclusioni rilevanti/sorprendenti per il cliente. Per INFORTUNI: se il documento distingue sport/rischi ESCLUSI da quelli INCLUSI CON LIMITAZIONI, tieni i due gruppi separati (es. 'Sport esclusi: paracadutismo, kitesurf, pugilato, speleologia…' e 'Sport inclusi con limitazioni: alpinismo, immersioni, ciclismo — diaria non operante, IP franchigia min. 5%'). Aggiungi SEMPRE, in coda alla voce, il RIFERIMENTO al punto del CGA dove sono elencate (es. '(art. 8.3, pag. 31-32)'), così il consulente le verifica senza doverle riportare tutte. Riporta i principali e rimanda all'articolo per il dettaglio: NON appesantire."},
                 "consigliata_per":{"type": ["string", "null"]},
             },
             "required": ["tipo", "sezioni"]
@@ -2970,6 +2982,15 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
         f"  • '{d['nome_standard']}' (id: {sid}) — sinonimi: {', '.join(d['sinonimi'][:5])}"
         for sid, d in SINONIMI_SEZIONI_AZIENDALE.items()
     )
+
+    # Guida specifica ramo Infortuni (regole fini: IP, diarie, spese, esclusioni)
+    infortuni_note = ""
+    if tipo_hint in ("Infortuni", "Multirischio", ""):
+        infortuni_note = """
+— INFORTUNI — ASSORBIMENTO FRANCHIGIA IP: molte polizze prevedono che, superata una soglia di invalidità, la franchigia SPARISCA e/o si liquidi il 100%. Cattura SEMPRE queste due soglie nel campo "note" della riga IP: (a) soglia oltre cui la franchigia è ASSORBITA (es. "franchigia assorbita se IP > 15%": sopra la soglia si paga l'intera % accertata senza franchigia); (b) soglia di indennizzo totale (es. "IP ≥ 66% = 100% della somma assicurata"). Sono decisive per il cliente: riportale sempre se nel testo.
+— INFORTUNI — "IP da infortunio franchigia 25%" (id=ip_infortuni_franch25): è una garanzia DISTINTA dalla IP base (ip_infortuni) e dalla IP grave (ip_infortuni_grave), con una TABELLA di indennizzo propria (tipicamente: nessun indennizzo ≤25%; percentuale crescente da tabella tra le soglie; 100% oltre una soglia alta, es. ≥65%). NON confonderla con la "IP da malattia" (id=ip_malattia): questa è da INFORTUNIO. Se il documento presenta sia la versione da infortunio sia quella da malattia, estraile SEPARATE. Nel campo "note" riporta la logica della tabella (soglia di non indennizzo e soglia del 100%).
+— INFORTUNI — DIARIA INABILITÀ TEMPORANEA, quota parziale: se il testo dice che la diaria è pagata INTEGRALE per incapacità TOTALE e al 50% (o altra %) per incapacità PARZIALE, riportalo nel campo "note" (es. "100% se inabilità totale, 50% se parziale"). È DIVERSO dalla franchigia in giorni: cattura ENTRAMBI (franchigia in giorni nel campo "franchigia", la quota parziale nel campo "note").
+— INFORTUNI — SPESE SANITARIE con/senza ricovero: distingui chiaramente le spese IN PRESENZA DI RICOVERO da quelle IN ASSENZA DI RICOVERO (hanno spesso scoperti/limiti diversi). Mettile come voci distinte in "gz" con nome leggibile — es. {"spese_con_ricovero": {"nome": "Spese con ricovero", "sub": "...", "scop": "..."}, "spese_senza_ricovero": {"nome": "Spese senza ricovero", "sub": "...", "scop": "20% min. €75"}} — invece di accorparle in una sola voce."""
 
     # Guida specifica ramo Aziendale (multirischio PMI)
     aziendale_note = ""
@@ -3075,7 +3096,7 @@ REGOLE CRITICHE:
 — FORMULE / COMBINAZIONI (prodotti modulari Infortuni/Salute): se il prodotto si vende a pacchetti (es. Essential/Plus/Premium/Top, o Combinazioni 1-7, o Base/Comfort/Top), popola il campo top-level "formule" con TUTTI i pacchetti, e per OGNI sezione il campo "formule" con i pacchetti che la includono (cerca la tabella "Quale garanzia in quale combinazione/soluzione"). Così l'agente vede cosa contiene ogni pacchetto. Se il prodotto non è a formule, lascia null ovunque.
 — CURVA DI INDENNIZZO IP (invalidità permanente) — cattura SEMPRE la logica completa, non solo la franchigia %: nel campo "franchigia" la franchigia (es. "3%") e nel campo "note" la CURVA: tipo di tabella (es. tabella INAIL/ANIA/contrattuale), come paga tra le soglie ("quanto eccede il 3% tra 3-15%"), la soglia oltre cui paga l'INTERO 100% (es. "≥66% = 100% SA"), ed eventuali supervalutazioni/raddoppi per grandi invalidità o danno estetico. Due polizze con franchigia 3% possono pagare in modo molto diverso: la differenza è nella curva.
 — SOTTO-LIMITI STRUTTURATI (Infortuni e Salute): per ogni sezione, oltre a massimale/scoperto/franchigia, spezza i sotto-limiti numerici nel campo "gz" come voci con "nome" leggibile e i loro sub/scop/fra. Esempio Rimborso spese: gz = {{"protesi": {{"nome": "Protesi anatomiche", "sub": "50% mass. max €5.000"}}, "apparecchiature": {{"nome": "Apparecchiature terapeutiche/ortopediche", "sub": "€2.500"}}, "infermieristica": {{"nome": "Assistenza infermieristica", "sub": "€50/gg x 90 gg"}}, "spese_post_ricovero": {{"nome": "Spese post-ricovero", "sub": "30% SA entro 360 gg"}}}}. NON lasciare i sotto-limiti solo nel testo libero: mettili in "gz" così diventano righe confrontabili. Usa lo STESSO "nome" per lo stesso concetto tra compagnie diverse, così le righe si allineano.
-— Estrai TUTTE le sezioni presenti o esplicitamente escluse.{garanzie_casa_note}{salute_note}{rcauto_note}{aziendale_note}"""
+— Estrai TUTTE le sezioni presenti o esplicitamente escluse.{garanzie_casa_note}{infortuni_note}{salute_note}{rcauto_note}{aziendale_note}"""
 
 
 # ── MODELLO REQUEST ───────────────────────────────────────────────────────────
