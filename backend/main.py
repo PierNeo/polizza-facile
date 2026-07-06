@@ -3041,6 +3041,9 @@ def _build_sezioni_prompt(filename: str, tipo_hint: str = "") -> str:
 — SALUTE — valori personalizzati: se massimale/scoperto/franchigia sono rimandati al contratto, scrivi
   "indicato in Polizza" invece di lasciare vuoto (la garanzia esiste, il valore è personalizzato).
 — SALUTE — canale assente: se un canale non è previsto dal prodotto, NON creare quella riga (verrà mostrato "—").
+— SALUTE — CASO MISTO "struttura convenzionata + medico/équipe NON convenzionato": molte polizze, anche in struttura convenzionata, applicano uno scoperto (es. 30% min €X) sulla PARTE dell'équipe/medico se questo non è convenzionato. Se il CGA lo prevede, riportalo nella "note" del canale convenzionato (es. "nessuno scoperto; ma 30% min €100 sull'équipe se il medico non è convenzionato"): NON dire semplicemente "convenzionato = nessuno scoperto" se esiste questo terzo caso.
+— SALUTE — FRANCHIGIA "NETWORK" CHE SOSTITUISCE LO SCOPERTO: se il CGA dice che la franchigia (es. "network"/"fuori network" indicata in scheda) OPERA IN SOSTITUZIONE dello scoperto (non si sommano), indicalo esplicitamente nella "note" della riga (es. "franchigia network in scheda, sostituisce lo scoperto"). È decisivo per il calcolo a carico del cliente.
+— SALUTE — DIARIE/INDENNITÀ RIDOTTE FUORI NETWORK: se alcune indennità sostitutive/diarie forfettarie sono ridotte (es. −50%) quando si usa una struttura fuori network / senza preventiva autorizzazione, riportalo nella "note" del canale interessato (es. "diaria ridotta del 50% fuori network").
 """
 
     # Mostra solo il dizionario rilevante per il tipo noto, entrambi se sconosciuto
