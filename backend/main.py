@@ -3730,6 +3730,7 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
                 result = _normalize_sezioni(result)
                 await queue.put({"type": "progress", "step": "Raffinamento valori mancanti...", "pct": 93})
                 result = await _refine_sezioni(result, chunks[0][0], req.filename, tipo_effettivo)
+                result["cga_doc_id"] = await _cga_store_text(pdf_bytes, req.filename, tipo_effettivo)
                 _extraction_cache[cache_key] = result
                 await queue.put({"type": "result", "data": result})
 
