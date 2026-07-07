@@ -3540,6 +3540,81 @@ async def cga_index(req: ExtractSezioniRequest):
     return {"ok": True, "cga_doc_id": doc_id}
 
 
+# ── CHAT AI sulle clausole (piece 2) ─────────────────────────────────────────
+
+_CHAT_SYSTEM_PROMPT = """Sei l'assistente di "Polizza Facile", esperto di polizze assicurative italiane. Parli con un assicuratore professionista. Rispondi in italiano, in modo breve e chiaro.
+
+REGOLE FERREE (non derogabili):
+1. FONTE UNICA: rispondi USANDO SOLO gli "ESTRATTI DAL CGA" e i "DATI ESTRATTI" che ti vengono forniti. Se l'informazione NON è presente negli estratti, dillo esplicitamente: «Non risulta nel CGA — va verificato in scheda/Posizione assicurativa.» NON inventare mai massimali, scoperti, franchigie o coperture.
+2. CITA SEMPRE: ogni affermazione fattuale (valori, presenza/assenza di una copertura) va seguita dalla citazione "(pag. N)" così com'è negli estratti (e l'articolo se compare). Non citare pagine che non sono negli estratti.
+3. DISTINGUI: separa nettamente i FATTI del CGA ("Il CGA prevede…") dalle SPIEGAZIONI generali ("In generale, la franchigia è…"). Marca le spiegazioni didattiche come generali: non spacciarle per clausole di questa polizza.
+4. CONFRONTO: quando ci sono più polizze, attribuisci ogni valore alla polizza giusta usando le etichette fornite. Non mescolare.
+5. NEUTRALITÀ: niente valutazioni o consigli di vendita ("questa è migliore", "conviene"). Esponi i fatti; la valutazione spetta all'assicuratore.
+6. CONCISIONE: 2-5 frasi. Se la domanda è ambigua, chiedi una breve precisazione invece di indovinare."""
+
+class ChatRequest(BaseModel):
+    question: str
+    cga_doc_ids: list[str] = []   # CGA da interrogare (1 = singola polizza; 2-4 = confronto)
+    labels: list[str] = []        # etichette leggibili per ogni doc (es. "Italiana Tuttocasa")
+    sezioni: list = []            # dati già estratti (facoltativi) per contesto rapido
+    history: list = []            # conversazione precedente: [{"role","content"}]
+
+@app.post("/api/chat")
+async def chat(req: ChatRequest, request: Request):
+    _current_user(request)  # richiede autenticazione
+    q = (req.question or "").strip()
+    if not q:
+        raise HTTPException(400, "Domanda vuota")
+    if len(q) > 1000:
+        raise HTTPException(400, "Domanda troppo lunga")
+
+    # 1) Recupera i passaggi pertinenti dal testo integrale di ogni CGA
+    blocks = []
+    for i, doc_id in enumerate(req.cga_doc_ids[:4]):
+        label = req.labels[i] if i < len(req.labels) else f"Polizza {i+1}"
+        doc = await _cga_get_text(doc_id)
+        if not doc:
+            blocks.append(f"### {label}\n(testo CGA non ancora indicizzato per questa polizza)")
+            continue
+        passages = _cga_retrieve(doc, q, k=5)
+        if passages:
+            txt = "\n".join(f"(pag. {p['page']}) {p['text']}" for p in passages)
+            blocks.append(f"### {label} — dal CGA «{doc.get('filename','')}»\n{txt}")
+        else:
+            blocks.append(f"### {label}\n(nessun passaggio pertinente trovato nel CGA per questa domanda)")
+
+    dati = ""
+    if req.sezioni:
+        try:
+            dati = "DATI ESTRATTI (tabella comparativa):\n" + json.dumps(req.sezioni, ensure_ascii=False)[:4000]
+        except Exception:
+            dati = ""
+    estratti = "\n\n".join(blocks) if blocks else "(nessun CGA fornito)"
+    user_msg = f"{dati}\n\nESTRATTI DAL CGA (fonte autorevole, cita queste pagine):\n{estratti}\n\nDOMANDA: {q}"
+
+    messages = []
+    for h in (req.history or [])[-6:]:
+        role = h.get("role"); content = h.get("content")
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": str(content)[:2000]})
+    messages.append({"role": "user", "content": user_msg})
+
+    try:
+        resp = await call_claude(model=MODEL_TEXT, max_tokens=700,
+                                 system=_CHAT_SYSTEM_PROMPT, messages=messages)
+        answer = resp.content[0].text if resp.content else ""
+    except HTTPException:
+        raise
+    except Exception as e:
+        friendly = _ai_error_message(e)
+        if friendly:
+            raise HTTPException(503, friendly)
+        logger.error(f"[chat] errore: {e}")
+        raise HTTPException(500, "Errore durante la risposta AI")
+
+    return {"answer": answer.strip()}
+
+
 # ── ENDPOINT: POST /api/extract-sezioni ──────────────────────────────────────
 
 @app.post("/api/extract-sezioni")
