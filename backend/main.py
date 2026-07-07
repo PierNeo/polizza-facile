@@ -3456,6 +3456,90 @@ Restituisci SOLO un JSON con questa struttura:
     return result
 
 
+# ── CGA FULLTEXT (fondamenta per la chat AI) ─────────────────────────────────
+# Salviamo il testo integrale di ogni CGA analizzato, così la chat può rispondere
+# su clausole e dettagli che NON sono finiti nella tabella estratta, citando la pagina.
+# Nessun costo AI: è solo estrazione testo (pypdf) + storage Qdrant per hash.
+
+def _cga_doc_id(pdf_bytes: bytes) -> str:
+    """UUID deterministico dal contenuto del PDF: stesso CGA → stesso id."""
+    h = hashlib.sha256(pdf_bytes).hexdigest()
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, "cga-fulltext:" + h))
+
+def _cga_text_from_pdf(pdf_bytes: bytes) -> dict:
+    """Testo del CGA pagina per pagina (con n. pagina, per le citazioni)."""
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    pages = []
+    for i, p in enumerate(reader.pages):
+        try:
+            t = p.extract_text() or ""
+        except Exception:
+            t = ""
+        t = re.sub(r"[ \t]+", " ", t).strip()
+        if t:
+            pages.append({"n": i + 1, "text": t})
+    return {"n_pages": len(reader.pages), "pages": pages}
+
+async def _cga_store_text(pdf_bytes: bytes, filename: str, tipo: str) -> str:
+    """Salva il testo integrale del CGA (keyed per hash). Ritorna il doc_id. Non solleva."""
+    doc_id = _cga_doc_id(pdf_bytes)
+    try:
+        payload = _cga_text_from_pdf(pdf_bytes)
+        payload["filename"] = filename
+        payload["tipo"] = tipo or ""
+        await _q_set(doc_id, {"_cga_fulltext": payload})
+        logger.info(f"[cga-text] salvato '{filename}' ({payload['n_pages']} pag) → {doc_id[:8]}")
+    except Exception as e:
+        logger.error(f"[cga-text] store '{filename}': {e}")
+    return doc_id
+
+async def _cga_get_text(doc_id: str) -> dict | None:
+    """Recupera il testo integrale di un CGA salvato."""
+    data = await _q_get(doc_id)
+    if isinstance(data, dict):
+        return data.get("_cga_fulltext")
+    return None
+
+def _cga_retrieve(doc: dict, query: str, k: int = 5) -> list[dict]:
+    """Passaggi più pertinenti nel CGA (keyword overlap). Ritorna [{page, text}]."""
+    if not doc:
+        return []
+    terms = set(re.findall(r"[a-zàèéìòùA-Z]{4,}", (query or "").lower()))
+    if not terms:
+        return []
+    out = []
+    for pg in doc.get("pages", []):
+        for para in re.split(r"(?<=[.;:])\s+(?=[A-Z0-9•\-])", pg.get("text", "")):
+            para = para.strip()
+            if len(para) < 40:
+                continue
+            low = para.lower()
+            score = sum(low.count(t) for t in terms)
+            if score:
+                out.append({"page": pg["n"], "text": para[:700], "score": score})
+    out.sort(key=lambda x: -x["score"])
+    return out[:k]
+
+
+# ── ENDPOINT: POST /api/cga-index — salva il testo di un CGA (backfill, no AI) ─
+
+@app.post("/api/cga-index")
+async def cga_index(req: ExtractSezioniRequest):
+    """
+    Indicizza il testo integrale di un CGA per la chat AI, SENZA estrazione AI.
+    Utile per il backfill delle polizze già estratte. Nessun costo crediti.
+    """
+    try:
+        pdf_bytes = base64.b64decode(req.pdf_base64)
+    except Exception:
+        raise HTTPException(400, "pdf_base64 non valido")
+    if len(pdf_bytes) < 100:
+        raise HTTPException(400, "PDF troppo piccolo o vuoto")
+    _check_pdf_limits(pdf_bytes)
+    doc_id = await _cga_store_text(pdf_bytes, req.filename, req.tipo_hint or "")
+    return {"ok": True, "cga_doc_id": doc_id}
+
+
 # ── ENDPOINT: POST /api/extract-sezioni ──────────────────────────────────────
 
 @app.post("/api/extract-sezioni")
@@ -3501,6 +3585,8 @@ async def extract_sezioni(req: ExtractSezioniRequest):
         result = _merge_sezioni(results) if len(results) > 1 else results[0]
         result = _normalize_sezioni(result)
         result = await _refine_sezioni(result, chunks[0][0], req.filename, tipo_effettivo)
+        # Indicizza il testo integrale del CGA per la chat AI (no costo AI aggiuntivo)
+        result["cga_doc_id"] = await _cga_store_text(pdf_bytes, req.filename, tipo_effettivo)
         _extraction_cache[cache_key] = result
         return result
 
