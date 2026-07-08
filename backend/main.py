@@ -3177,7 +3177,7 @@ async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: 
     try:
         msg = await call_claude(
             model=MODEL_VISION,
-            max_tokens=8192,
+            max_tokens=16384,  # headroom per l'enumerazione completa delle garanzie (evita JSON troncato → sezioni vuote)
             tools=[_sezione_schema(tipo_hint or "Casa")],
             tool_choice={"type": "tool", "name": "extract_sezioni"},
             messages=[{
@@ -3192,11 +3192,28 @@ async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: 
                 ]
             }]
         )
-        if msg.stop_reason == "max_tokens":
+        troncato = (msg.stop_reason == "max_tokens")
+        if troncato:
             logger.warning(f"[sezioni] TRONCATO (max_tokens) chunk {chunk_info} di '{filename}' — alcune sezioni potrebbero mancare")
         for block in msg.content:
             if block.type == "tool_use":
-                return block.input
+                data = block.input or {}
+                # Guardia anti-regressione: se il troncamento ha svuotato le sezioni,
+                # riprova UNA volta con più token invece di restituire una tabella vuota.
+                if troncato and not (data.get("sezioni") or data.get("garanzie_detail")):
+                    logger.warning(f"[sezioni] retry chunk {chunk_info} di '{filename}' con max_tokens raddoppiato")
+                    retry = await call_claude(
+                        model=MODEL_VISION, max_tokens=32000,
+                        tools=[_sezione_schema(tipo_hint or "Casa")],
+                        tool_choice={"type": "tool", "name": "extract_sezioni"},
+                        messages=[{"role": "user", "content": [
+                            {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}, "cache_control": {"type": "ephemeral"}},
+                            {"type": "text", "text": prompt}]}]
+                    )
+                    for b2 in retry.content:
+                        if b2.type == "tool_use" and (b2.input or {}).get("sezioni"):
+                            return b2.input
+                return data
         return {}
     except Exception as e:
         # Errori di SERVIZIO (credito esaurito, chiave, rate limit): falli emergere
