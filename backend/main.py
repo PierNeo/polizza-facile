@@ -3471,6 +3471,77 @@ Restituisci SOLO un JSON con questa struttura:
     return result
 
 
+# ── SECONDO PASSAGGIO: COMPLETEZZA GARANZIE (additivo, mai distruttivo) ───────
+# Dopo l'estrazione base (accurata), un passaggio mirato cerca nel CGA le garanzie
+# COPERTE non ancora estratte (tipiche dei modulari densi: Premium/Top, selezionabili)
+# e le AGGIUNGE. Non modifica né rimuove MAI le garanzie già presenti: nel peggiore
+# dei casi (errore o nessuna aggiunta) il risultato resta identico al baseline.
+# Disattivabile con env var GAP_FILL_DISABLED=1.
+
+_GAP_FILL_TIPI = {"Aziendale", "Salute", "Infortuni", "RC Auto"}  # solo formato "sezioni" (Casa usa garanzie_detail)
+
+def _norm_nome(s: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
+
+async def _extract_gaps_sezioni(chunk_bytes: bytes, result: dict, filename: str, tipo_hint: str) -> dict:
+    """Aggiunge le garanzie coperte mancanti. ADDITIVO: non tocca mai le esistenti.
+    In caso di errore/nessuna aggiunta ritorna il result invariato."""
+    try:
+        if os.getenv("GAP_FILL_DISABLED") == "1":
+            return result
+        sezioni = result.get("sezioni")
+        if not isinstance(sezioni, list) or not sezioni:
+            return result  # niente baseline da integrare (o formato garanzie_detail) → salta
+        esistenti = [(s.get("nome") or s.get("id") or "") for s in sezioni]
+        esistenti_norm = {_norm_nome(x) for x in esistenti if x}
+        elenco = "; ".join(sorted({x for x in esistenti if x}))
+        chunk_b64 = base64.b64encode(chunk_bytes).decode()
+        prompt = (
+            "Da questo CGA sono GIÀ state estratte queste garanzie:\n"
+            f"{elenco}\n\n"
+            "Compito: trova SOLO le ALTRE garanzie COPERTE dal prodotto che NON sono nell'elenco sopra — "
+            "comprese quelle \"selezionabili\"/\"aggiuntive\" o valide solo per certe Soluzioni (es. Premium/Top). "
+            "Per ognuna compila id, nome, inclusa, opzionale (true se selezionabile/aggiuntiva a premio), "
+            "massimale, massimale_num, scoperto, franchigia, e \"formule\" (le soluzioni che la includono).\n"
+            "REGOLE FERREE:\n"
+            "— NON ri-elencare le garanzie già presenti sopra.\n"
+            "— NON inventare: includi SOLO garanzie che hanno un articolo di copertura reale nel CGA.\n"
+            "— Una garanzia esclusa del tutto dal prodotto NON va inclusa.\n"
+            "— Se non ci sono altre garanzie coperte oltre a quelle elencate, restituisci sezioni = []."
+        )
+        msg = await call_claude(
+            model=MODEL_VISION, max_tokens=8192,
+            tools=[_sezione_schema(tipo_hint)],
+            tool_choice={"type": "tool", "name": "extract_sezioni"},
+            messages=[{"role": "user", "content": [
+                {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}, "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": prompt}
+            ]}]
+        )
+        nuove = []
+        for block in msg.content:
+            if block.type == "tool_use":
+                nuove = (block.input or {}).get("sezioni") or []
+                break
+        added = 0
+        for s in nuove:
+            nome = s.get("nome") or s.get("id") or ""
+            if not nome:
+                continue
+            nk = _norm_nome(nome)
+            if not nk or nk in esistenti_norm:
+                continue  # duplicato → skip (mai sovrascrivere una esistente)
+            esistenti_norm.add(nk)
+            sezioni.append(s)
+            added += 1
+        if added:
+            result["sezioni"] = sezioni
+            logger.info(f"[gap-fill] '{filename}' ({tipo_hint}): +{added} garanzie mancanti aggiunte")
+    except Exception as e:
+        logger.warning(f"[gap-fill] '{filename}' saltato (uso baseline): {e}")
+    return result
+
+
 # ── CGA FULLTEXT (fondamenta per la chat AI) ─────────────────────────────────
 # Salviamo il testo integrale di ogni CGA analizzato, così la chat può rispondere
 # su clausole e dettagli che NON sono finiti nella tabella estratta, citando la pagina.
@@ -3675,6 +3746,9 @@ async def extract_sezioni(req: ExtractSezioniRequest):
         result = _merge_sezioni(results) if len(results) > 1 else results[0]
         result = _normalize_sezioni(result)
         result = await _refine_sezioni(result, chunks[0][0], req.filename, tipo_effettivo)
+        # Secondo passaggio ADDITIVO di completezza (solo formato sezioni; mai distruttivo)
+        if tipo_effettivo in _GAP_FILL_TIPI:
+            result = await _extract_gaps_sezioni(chunks[0][0], result, req.filename, tipo_effettivo)
         # Indicizza il testo integrale del CGA per la chat AI (no costo AI aggiuntivo)
         result["cga_doc_id"] = await _cga_store_text(pdf_bytes, req.filename, tipo_effettivo)
         _extraction_cache[cache_key] = result
@@ -3745,6 +3819,9 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
                 result = _normalize_sezioni(result)
                 await queue.put({"type": "progress", "step": "Raffinamento valori mancanti...", "pct": 93})
                 result = await _refine_sezioni(result, chunks[0][0], req.filename, tipo_effettivo)
+                if tipo_effettivo in _GAP_FILL_TIPI:
+                    await queue.put({"type": "progress", "step": "Controllo completezza garanzie...", "pct": 95})
+                    result = await _extract_gaps_sezioni(chunks[0][0], result, req.filename, tipo_effettivo)
                 result["cga_doc_id"] = await _cga_store_text(pdf_bytes, req.filename, tipo_effettivo)
                 _extraction_cache[cache_key] = result
                 await queue.put({"type": "result", "data": result})
