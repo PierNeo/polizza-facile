@@ -3480,8 +3480,15 @@ Restituisci SOLO un JSON con questa struttura:
 
 _GAP_FILL_TIPI = {"Aziendale", "Salute", "Infortuni", "RC Auto"}  # solo formato "sezioni" (Casa usa garanzie_detail)
 
+_STOPWORDS_NOME = {"di", "del", "dei", "della", "delle", "degli", "da", "dal", "dai",
+                   "e", "a", "ad", "in", "per", "su", "con", "il", "lo", "la", "i",
+                   "gli", "le", "un", "uno", "una", "al", "allo", "alla", "ai", "agli",
+                   "alle", "o", "od", "the"}
+
 def _norm_nome(s: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
+    s = re.sub(r"[^a-zàèéìòù0-9\s]+", " ", (s or "").lower())
+    toks = [w for w in s.split() if w and w not in _STOPWORDS_NOME]
+    return " ".join(toks)
 
 async def _extract_gaps_sezioni(chunk_bytes: bytes, result: dict, filename: str, tipo_hint: str) -> dict:
     """Aggiunge le garanzie coperte mancanti. ADDITIVO: non tocca mai le esistenti.
@@ -3492,9 +3499,25 @@ async def _extract_gaps_sezioni(chunk_bytes: bytes, result: dict, filename: str,
         sezioni = result.get("sezioni")
         if not isinstance(sezioni, list) or not sezioni:
             return result  # niente baseline da integrare (o formato garanzie_detail) → salta
-        esistenti = [(s.get("nome") or s.get("id") or "") for s in sezioni]
-        esistenti_norm = {_norm_nome(x) for x in esistenti if x}
-        elenco = "; ".join(sorted({x for x in esistenti if x}))
+        # Insieme dei nomi già presenti: righe principali (nome+id) E sotto-garanzie (gz),
+        # così il filtro anti-duplicato becca anche i doppioni cross-livello.
+        esistenti_norm = set()
+        nomi_visibili = []
+        for s in sezioni:
+            for key in (s.get("nome"), s.get("id")):
+                if key:
+                    esistenti_norm.add(_norm_nome(key))
+            if s.get("nome"):
+                nomi_visibili.append(s["nome"])
+            gz = s.get("gz")
+            if isinstance(gz, dict):
+                for gk, gv in gz.items():
+                    nm = (gv.get("nome") if isinstance(gv, dict) else None) or gk
+                    if nm:
+                        esistenti_norm.add(_norm_nome(nm))
+                        nomi_visibili.append(nm)
+        esistenti_norm.discard("")
+        elenco = "; ".join(sorted({x for x in nomi_visibili if x}))
         chunk_b64 = base64.b64encode(chunk_bytes).decode()
         prompt = (
             "Da questo CGA sono GIÀ state estratte queste garanzie:\n"
