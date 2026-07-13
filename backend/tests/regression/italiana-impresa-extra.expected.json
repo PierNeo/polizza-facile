@@ -1,0 +1,14 @@
+{
+  "_nota": "Italiana 'Impresa Extra' (multirischio artigiani/PMI, Ed. 01/2024, 122 pag). Estrazione col SECONDO PASSAGGIO di completezza attivo — molto ricca (~60 garanzie). VALORI VERIFICATI SUL CGA (2026-07-10): Eventi atmosferici 70% SA per bene, franchigia €500; Grandine su fragili €25.000; Sovraccarico neve/ghiaccio 50% SA per bene fr €500; Fenomeno elettrico (Danni ai beni) Contenuto €10.000/Fabbricato 5% SA fr €250; Atti vandalici 70% SA fr €500; Atti di terrorismo 50% SA scoperto 10% min €1.000; Bagnamento acqua condotta €500.000 fr €250; Bagnamento estinzione a pioggia €25.000; Rigurgito/traboccamento €100.000 fr €500; Ricerca guasti tubazioni €25.000; Lastre e insegne €2.500 fr €250; Maggiori costi proseguimento attività €150.000 fr €3.000 (max 60 gg); Indennità aggiuntiva danni indiretti 20% indennizzo; Spese demolizione (Danni ai beni) 20% indennizzo; Contenuto presso terzi 25% SA Contenuto max €10.000; Contenuto presso fiere 25% max €10.000 scoperto 20%; Portavalori €5.000 scoperto 10%; Sostituzione serrature €2.500; Fenomeno elettrico (sezione) scoperto 25%/40% fr €250; RCT massimale indicato in Polizza; RCO/RCI indicato in Polizza max €2.500.000 fr €2.500; Malattie professionali (Cond. Fac. B) 50% massimale max €1.000.000/prestatore; Protezione del reddito €150.000 fr €3.000; Assistenza invii €300/sinistro (idraulico, elettricista, fabbro, vetraio, ambulanza, rientro); Recupero dati €1.000. CATASTROFI (terremoto/alluvione/inondazione) correttamente ESCLUSE (art. 8.1 lett. d). NOTA: molte voci sono sotto-limiti con chiavi model-generate → valori validati a mano; i check automatici restano su presenza sezioni + tipo. tipo accettato: Aziendale o Multirischio.",
+  "tipo": ["Aziendale", "Multirischio"],
+  "checks": [
+    {"desc": "Danni ai beni presente", "path": "sezione:danni_beni", "present": true},
+    {"desc": "Furto presente", "path": "sezione:furto_aziendale", "present": true},
+    {"desc": "Fenomeno elettrico/elettronico presente", "path": "sezione:fenomeno_elettrico", "present": true},
+    {"desc": "RC verso terzi (RCT) presente", "path": "sezione:rct", "present": true},
+    {"desc": "RC prestatori di lavoro (RCO/RCI) presente", "path": "sezione:rco", "present": true},
+    {"desc": "Protezione del reddito (interruzione attività) presente", "path": "sezione:protezione_reddito", "present": true},
+    {"desc": "Tutela legale presente", "path": "sezione:tutela_legale", "present": true},
+    {"desc": "Assistenza presente", "path": "sezione:assistenza", "present": true}
+  ]
+}
