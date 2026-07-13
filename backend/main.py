@@ -3481,6 +3481,29 @@ Restituisci SOLO un JSON con questa struttura:
 
 _GAP_FILL_TIPI = {"Aziendale", "Salute", "Infortuni", "RC Auto"}  # solo formato "sezioni" (Casa usa garanzie_detail)
 
+# Checklist FISSA delle garanzie standard importanti per ramo: il secondo passaggio
+# le verifica UNA PER UNA nel CGA (domanda chiusa e ripetibile), invece di chiedere
+# genericamente "cosa manca" (domanda aperta e variabile).
+_CHECKLIST_RAMO = {
+    "Aziendale": ("Incendio; Eventi atmosferici (uragano/bufera/grandine/vento/trombe d'aria); "
+                  "Sovraccarico neve o ghiaccio; Fenomeno elettrico/elettronico; Bagnatura/Bagnamento "
+                  "(acqua condotta, rottura impianti); Allagamento; Atti vandalici e dolosi; "
+                  "Eventi socio-politici e terrorismo; Furto; Guasti causati dai ladri; Rapina; "
+                  "Cristalli/Lastre; Ricerca del guasto; Spese di demolizione e sgombero; Ricorso terzi; "
+                  "Interruzione attività / Protezione del reddito; RC verso terzi; "
+                  "Catastrofi naturali (terremoto/alluvione/inondazione)"),
+    "Salute":   ("Ricovero convenzionato; Ricovero non convenzionato; Ricovero SSN (indennità sostitutiva); "
+                 "Alta diagnostica; Visite specialistiche; Parto e prestazioni maternità; "
+                 "Ricovero per donazione di organi o trapianti; Massimale oncologico; Disturbi mentali/psichici; "
+                 "Grandi interventi / gravi patologie (eliminazione scoperti); Prevenzione/check-up; "
+                 "Estensione al neonato; Assistenza sanitaria"),
+    "Infortuni":("Morte da infortunio; Invalidità permanente (IP); IP grave; IP da malattia; "
+                 "Diaria da ricovero; Diaria inabilità temporanea; Rimborso spese sanitarie; "
+                 "Rendita vitalizia; Stato comatoso"),
+    "RC Auto":  ("RCA; Kasko/Collisione; Furto e incendio; Eventi naturali; Atti vandalici; Cristalli; "
+                 "Infortuni del conducente; Assistenza stradale; Tutela legale"),
+}
+
 _STOPWORDS_NOME = {"di", "del", "dei", "della", "delle", "degli", "da", "dal", "dai",
                    "e", "a", "ad", "in", "per", "su", "con", "il", "lo", "la", "i",
                    "gli", "le", "un", "uno", "una", "al", "allo", "alla", "ai", "agli",
@@ -3520,10 +3543,20 @@ async def _extract_gaps_sezioni(chunk_bytes: bytes, result: dict, filename: str,
         esistenti_norm.discard("")
         elenco = "; ".join(sorted({x for x in nomi_visibili if x}))
         chunk_b64 = base64.b64encode(chunk_bytes).decode()
+        checklist = _CHECKLIST_RAMO.get(tipo_hint, "")
+        checklist_txt = ""
+        if checklist:
+            checklist_txt = (
+                "\n\n⚑ CHECKLIST OBBLIGATORIA — verifica UNA PER UNA queste garanzie standard del ramo. "
+                "Per OGNUNA che NON è già nell'elenco sopra, cerca nel CGA il suo articolo di copertura: "
+                "se il prodotto la copre (anche solo in certe Soluzioni o a premio aggiuntivo), ESTRAILA con i suoi valori. "
+                "Salta SOLO quelle davvero non coperte in nessuna forma.\n"
+                f"CHECKLIST: {checklist}"
+            )
         prompt = (
             "Da questo CGA sono GIÀ state estratte queste garanzie:\n"
             f"{elenco}\n\n"
-            "Compito: trova SOLO le ALTRE garanzie COPERTE dal prodotto che NON sono nell'elenco sopra — "
+            "Compito: trova le ALTRE garanzie COPERTE dal prodotto che NON sono nell'elenco sopra — "
             "comprese quelle \"selezionabili\"/\"aggiuntive\" o valide solo per certe Soluzioni (es. Premium/Top). "
             "Per ognuna compila id, nome, inclusa, opzionale (true se selezionabile/aggiuntiva a premio), "
             "massimale, massimale_num, scoperto, franchigia, e \"formule\" (le soluzioni che la includono).\n"
@@ -3538,9 +3571,10 @@ async def _extract_gaps_sezioni(chunk_bytes: bytes, result: dict, filename: str,
             "terrorismo/atti vandalici, Guasti causati dai ladri.\n"
             "— Marca \"Esclusa\" (o ometti) SOLO ciò che il prodotto non copre in nessuna forma neppure a premio aggiuntivo.\n"
             "— Se non ci sono altre garanzie coperte oltre a quelle elencate, restituisci sezioni = []."
+            f"{checklist_txt}"
         )
         msg = await call_claude(
-            model=MODEL_VISION, max_tokens=8192,
+            model=MODEL_VISION, max_tokens=16384,
             tools=[_sezione_schema(tipo_hint)],
             tool_choice={"type": "tool", "name": "extract_sezioni"},
             messages=[{"role": "user", "content": [
