@@ -3529,7 +3529,13 @@ async def _extract_gaps_sezioni(chunk_bytes: bytes, result: dict, filename: str,
             "REGOLE FERREE:\n"
             "— NON ri-elencare le garanzie già presenti sopra.\n"
             "— NON inventare: includi SOLO garanzie che hanno un articolo di copertura reale nel CGA.\n"
-            "— Una garanzia esclusa del tutto dal prodotto NON va inclusa.\n"
+            "— ⚠ ATTENZIONE — 'Rischi esclusi PER LA garanzia X' = X È COPERTA: se il CGA ha un articolo intitolato "
+            "\"Rischi esclusi per la garanzia X\", \"Limiti/Delimitazioni della garanzia X\", quell'articolo DELIMITA una "
+            "garanzia che ESISTE ed è coperta (non significa che X è esclusa). Vai a cercarne l'articolo di copertura "
+            "(es. 'Art. 2.2.4 Eventi atmosferici') ed ESTRAILA con i suoi valori e le sue formule. Garanzie tipiche "
+            "trattate così e spesso perse: Eventi atmosferici, Bagnatura/Bagnamento, Allagamento, Eventi socio-politici/"
+            "terrorismo/atti vandalici, Guasti causati dai ladri.\n"
+            "— Marca \"Esclusa\" (o ometti) SOLO ciò che il prodotto non copre in nessuna forma neppure a premio aggiuntivo.\n"
             "— Se non ci sono altre garanzie coperte oltre a quelle elencate, restituisci sezioni = []."
         )
         msg = await call_claude(
