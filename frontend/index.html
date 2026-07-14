@@ -2884,16 +2884,18 @@ function cgaUploadPdf(id) {
   let inp = document.getElementById('_cgaPdfInput');
   if (!inp) {
     inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = 'application/pdf';
+    inp.type = 'file'; inp.accept = 'application/pdf'; inp.multiple = true;
     inp.id = '_cgaPdfInput'; inp.style.display = 'none';
     document.body.appendChild(inp);
   }
   inp.onchange = null; inp.value = '';
   inp.onchange = async function() {
-    const file = inp.files[0];
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.pdf')) { toast('Seleziona un file PDF'); return; }
-    if (file.size > 20 * 1024 * 1024) { toast('File troppo grande (max 20 MB)'); return; }
+    const files = [...inp.files];
+    if (!files.length) return;
+    for (const f of files) {
+      if (!f.name.toLowerCase().endsWith('.pdf')) { toast(`Seleziona solo file PDF ('${f.name}' non lo è)`); return; }
+      if (f.size > 20 * 1024 * 1024) { toast(`File troppo grande (max 20 MB): '${f.name}'`); return; }
+    }
     let ov = document.getElementById('basketExtractOverlay');
     if (!ov) {
       ov = document.createElement('div'); ov.id = 'basketExtractOverlay';
@@ -2911,9 +2913,9 @@ function cgaUploadPdf(id) {
       const b = document.getElementById('_cgaUploadBar'); if (b) b.style.width = pct + '%';
     };
     try {
-      setMsg('Invio al server…', 30);
+      setMsg(files.length > 1 ? `Invio ${files.length} moduli al server…` : 'Invio al server…', 30);
       const formData = new FormData();
-      formData.append('file', file);
+      for (const f of files) formData.append('files', f);
       formData.append('id', id);
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 300000);

@@ -1238,6 +1238,26 @@ def _check_pdf_limits(pdf_bytes: bytes) -> None:
         )
 
 
+def _merge_pdf_bytes(pdf_byte_list: list[bytes]) -> bytes:
+    """
+    Unisce piu' PDF in un unico documento, in ordine (prodotti modulari:
+    es. Allianz Ultra Impresa = Fabbricato+Contenuto+Furto+RC+RC Proprieta').
+    Chiamare solo con len>1: per un singolo PDF va usato il file cosi' com'e'
+    (nessun round-trip pypdf) per zero rischio di alterare l'estrazione.
+    """
+    writer = PdfWriter()
+    for i, b in enumerate(pdf_byte_list):
+        try:
+            reader = PdfReader(io.BytesIO(b))
+        except Exception as e:
+            raise ValueError(f"modulo {i+1}/{len(pdf_byte_list)} non leggibile: {e}")
+        for page in reader.pages:
+            writer.add_page(page)
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
 def _split_pdf_bytes(pdf_bytes: bytes, pages_per_chunk: int = 60) -> list[tuple[bytes, int, int, int]]:
     """
     Divide un PDF in chunk di N pagine per rispettare i limiti dell'API Claude.
@@ -1341,9 +1361,10 @@ async def extract_policy_stream_v2(req: ExtractRequestV2):
 
         async def do_extract():
             try:
-                # Cache check
+                # Cache check (bypassabile con EXTRACTION_CACHE_DISABLED=1 per test di ripetibilità)
                 cache_key = _cache_key(req.pdf_base64[:2000] + str(len(pdf_bytes)))
-                if cache_key in _extraction_cache:
+                _cache_off = os.getenv("EXTRACTION_CACHE_DISABLED") == "1"
+                if not _cache_off and cache_key in _extraction_cache:
                     logger.info(f"[v2 stream] '{req.filename}' — cache hit")
                     await queue.put({"type": "progress", "step": "Risultato dalla cache...", "pct": 95})
                     await queue.put({"type": "result", "data": _extraction_cache[cache_key]})
@@ -1745,8 +1766,9 @@ async def extract_policy(req: ExtractRequest):
     BATCH_SIZE =     16  # chunk processati in parallelo
 
     # Cache: se lo stesso documento è già stato analizzato, restituisce subito il risultato
+    # (bypassabile con EXTRACTION_CACHE_DISABLED=1 per test di ripetibilità)
     cache_key = _cache_key(text)
-    if cache_key in _extraction_cache:
+    if os.getenv("EXTRACTION_CACHE_DISABLED") != "1" and cache_key in _extraction_cache:
         logger.info(f"[extract] '{req.filename}' — cache hit, skip estrazione")
         return _extraction_cache[cache_key]
 
@@ -3998,7 +4020,7 @@ def _load_catalog() -> list[dict]:
             # Aggiorna metadati statici dal repo (URL, nomi) senza toccare dati estratti
             existing = persistent_map[entry["id"]]
             changed = False
-            for field in ("url", "url_type", "prodotto", "compagnia", "tipo", "note"):
+            for field in ("url", "urls", "url_type", "prodotto", "compagnia", "tipo", "note"):
                 if entry.get(field) != existing.get(field):
                     existing[field] = entry.get(field)
                     changed = True
@@ -4087,41 +4109,63 @@ async def _sync_entry(entry: dict) -> dict:
     """
     entry_id = entry["id"]
     url = entry.get("url", "")
-    logger.info(f"[library sync] '{entry_id}' — {url}")
+    # Prodotti modulari: "urls" (lista) ha precedenza su "url" (singolo).
+    # Se assente/vuoto, comportamento identico a oggi (singolo "url").
+    urls: list[str] = entry.get("urls") or ([url] if url else [])
+    logger.info(f"[library sync] '{entry_id}' — {len(urls)} url(s): {urls}")
 
-    # Percorso cache locale per questo entry
+    # Percorso cache locale per questo entry (contiene il PDF gia' unito, se modulare)
     _pdf_cache_file = PDF_CACHE_DIR / f"{entry_id}.pdf"
 
     try:
         pdf_bytes: bytes | None = None
+        download_error: str | None = None
 
-        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http:
-            # Primo tentativo con header browser completi
-            r = await http.get(url, headers=_BROWSER_HEADERS)
+        if not urls:
+            download_error = "Nessun URL configurato"
+        else:
+            module_bytes: list[bytes] = []
+            async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http:
+                for mi, murl in enumerate(urls):
+                    # Primo tentativo con header browser completi
+                    r = await http.get(murl, headers=_BROWSER_HEADERS)
 
-            # Alcuni siti vogliono prima una visita alla homepage (cookie/session)
-            if r.status_code in (400, 403, 429):
-                from urllib.parse import urlparse
-                origin = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
-                logger.info(f"[library sync] '{entry_id}' — HTTP {r.status_code}, provo con Referer {origin}")
-                headers_with_ref = {**_BROWSER_HEADERS, "Referer": origin}
-                r = await http.get(url, headers=headers_with_ref)
+                    # Alcuni siti vogliono prima una visita alla homepage (cookie/session)
+                    if r.status_code in (400, 403, 429):
+                        from urllib.parse import urlparse
+                        origin = f"{urlparse(murl).scheme}://{urlparse(murl).netloc}"
+                        logger.info(f"[library sync] '{entry_id}' — modulo {mi+1}/{len(urls)} HTTP {r.status_code}, provo con Referer {origin}")
+                        headers_with_ref = {**_BROWSER_HEADERS, "Referer": origin}
+                        r = await http.get(murl, headers=headers_with_ref)
 
-            if r.status_code == 200:
-                content_type = r.headers.get("content-type", "")
-                if "html" in content_type and not url.lower().endswith(".pdf"):
-                    logger.warning(f"[library sync] '{entry_id}' — risposta HTML invece di PDF")
+                    if r.status_code == 200:
+                        content_type = r.headers.get("content-type", "")
+                        if "html" in content_type and not murl.lower().endswith(".pdf"):
+                            download_error = f"modulo {mi+1}/{len(urls)}: risposta HTML invece di PDF ({murl})"
+                            break
+                        module_bytes.append(r.content)
+                    else:
+                        download_error = f"modulo {mi+1}/{len(urls)}: HTTP {r.status_code} ({murl})"
+                        break
+
+            if not download_error:
+                if len(module_bytes) == 1:
+                    pdf_bytes = module_bytes[0]
                 else:
-                    pdf_bytes = r.content
+                    try:
+                        pdf_bytes = _merge_pdf_bytes(module_bytes)
+                    except Exception as me:
+                        download_error = f"errore unione moduli PDF: {me}"
 
-            if pdf_bytes is None:
-                # URL fallito — prova la cache locale
-                if _pdf_cache_file.exists():
-                    logger.info(f"[library sync] '{entry_id}' — URL fallito (HTTP {r.status_code}), uso cache locale")
-                    pdf_bytes = _pdf_cache_file.read_bytes()
-                else:
-                    logger.warning(f"[library sync] '{entry_id}' — HTTP {r.status_code}, nessuna cache disponibile")
-                    return {**entry, "sync_status": "error", "sync_error": f"HTTP {r.status_code}"}
+        if pdf_bytes is None:
+            # Download fallito (o incompleto) — mai un'estrazione parziale silenziosa:
+            # o si usa la cache locale del PDF (gia') unito completo, o si segnala errore.
+            if _pdf_cache_file.exists():
+                logger.info(f"[library sync] '{entry_id}' — {download_error}, uso cache locale")
+                pdf_bytes = _pdf_cache_file.read_bytes()
+            else:
+                logger.warning(f"[library sync] '{entry_id}' — {download_error}, nessuna cache disponibile")
+                return {**entry, "sync_status": "error", "sync_error": download_error}
 
         if len(pdf_bytes) < 500:
             return {**entry, "sync_status": "error", "sync_error": "PDF troppo piccolo"}
@@ -4157,6 +4201,19 @@ async def _sync_entry(entry: dict) -> dict:
 
         extracted = _merge_sezioni(results) if len(results) > 1 else results[0]
         extracted = _normalize_sezioni(extracted)
+        # Secondo passaggio di completezza (checklist per ramo) — stessa qualità
+        # dell'analisi interattiva. Additivo: non tocca mai il baseline.
+        # TODO: chunks[0][0] copre solo le prime ~60 pagine. Su un PDF MODULARE unito
+        # (più moduli con urls[] o upload multiplo) la checklist potrebbe non vedere i
+        # moduli nelle pagine successive. Comportamento identico all'analisi interattiva
+        # (non è una regressione di questo cambio), ma per i modulari grandi converrebbe
+        # far girare il gap-fill sull'intero documento o per-chunk.
+        tipo_eff = entry.get("tipo", "")
+        if tipo_eff in _GAP_FILL_TIPI:
+            try:
+                extracted = await _extract_gaps_sezioni(chunks[0][0], extracted, entry.get("prodotto", entry_id), tipo_eff)
+            except Exception as ge:
+                logger.warning(f"[library sync] '{entry_id}' gap-fill saltato: {ge}")
         extracted["_catalog_id"] = entry_id
         extracted["_url"] = url
 
@@ -4333,30 +4390,47 @@ async def library_add(req: LibraryAddRequest):
 @app.post("/api/library/upload-pdf")
 async def library_upload_pdf(
     id: str = Form(...),
-    file: UploadFile = File(...),
-    request: Request = None,
+    files: list[UploadFile] | None = File(None),
+    file: UploadFile | None = File(None),  # legacy: singolo file (compat deploy frontend/backend disallineati)
 ):
     """
-    Permette di caricare manualmente un PDF per una polizza CGA
-    il cui URL è scaduto o non funzionante.
+    Permette di caricare manualmente uno o più PDF per una polizza CGA
+    il cui URL è scaduto o non funzionante (o per prodotti modulari con
+    più fascicoli: es. Allianz Ultra Impresa = Fabbricato+Contenuto+Furto+RC+...).
+    Se sono più file, vengono uniti in ordine prima dell'estrazione.
     Estrae i dati con lo stesso pipeline di _sync_entry.
     """
-    _require_api_key(request)
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Solo file PDF accettati")
+    uploads: list[UploadFile] = [f for f in (files or []) if f is not None] or ([file] if file is not None else [])
+    if not uploads:
+        raise HTTPException(status_code=400, detail="Nessun file caricato")
 
-    pdf_bytes = await file.read()
-    if len(pdf_bytes) < 500:
-        raise HTTPException(status_code=400, detail="PDF troppo piccolo o corrotto")
-    if len(pdf_bytes) > 20 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="PDF troppo grande (max 20 MB)")
+    pdf_parts: list[bytes] = []
+    for f in uploads:
+        if not f.filename.lower().endswith(".pdf"):
+            raise HTTPException(status_code=400, detail=f"Solo file PDF accettati ('{f.filename}')")
+        b = await f.read()
+        if len(b) < 500:
+            raise HTTPException(status_code=400, detail=f"PDF troppo piccolo o corrotto ('{f.filename}')")
+        if len(b) > 20 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail=f"PDF troppo grande (max 20 MB) ('{f.filename}')")
+        pdf_parts.append(b)
+
+    if len(pdf_parts) == 1:
+        pdf_bytes = pdf_parts[0]
+    else:
+        try:
+            pdf_bytes = _merge_pdf_bytes(pdf_parts)
+        except Exception as me:
+            raise HTTPException(status_code=400, detail=f"Errore unione moduli PDF: {me}")
+
+    filenames = ", ".join(f.filename for f in uploads)
 
     catalog = _load_catalog()
     entry = next((e for e in catalog if e["id"] == id), None)
     if entry is None:
         raise HTTPException(status_code=404, detail=f"Voce '{id}' non trovata nel catalogo")
 
-    logger.info(f"[upload-pdf] '{id}' — {len(pdf_bytes)} bytes, file: {file.filename}")
+    logger.info(f"[upload-pdf] '{id}' — {len(pdf_bytes)} bytes, {len(uploads)} file(s): {filenames}")
 
     # Estrai con lo stesso pipeline di _sync_entry
     try:
@@ -4373,7 +4447,7 @@ async def library_upload_pdf(
         extracted = _merge_sezioni(results) if len(results) > 1 else results[0]
         extracted = _normalize_sezioni(extracted)
         extracted["_catalog_id"] = id
-        extracted["_uploaded_file"] = file.filename
+        extracted["_uploaded_file"] = filenames
 
         # Salva in Qdrant (best-effort)
         await _q_set_library(id, extracted)
@@ -4386,7 +4460,7 @@ async def library_upload_pdf(
             "sync_status": "updated",
             "sync_error": None,
             "extracted": extracted,
-            "uploaded_file": file.filename,
+            "uploaded_file": filenames,
         }
         # Aggiorna catalogo
         idx = next((i for i, e in enumerate(catalog) if e["id"] == id), None)
