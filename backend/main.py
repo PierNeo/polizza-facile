@@ -3628,6 +3628,84 @@ async def _extract_gaps_sezioni(chunk_bytes: bytes, result: dict, filename: str,
     return result
 
 
+async def _extract_document_sezioni(pdf_bytes: bytes, prodotto: str, tipo: str) -> dict:
+    """
+    Pipeline completa di estrazione per UN documento: split in chunk, estrazione
+    per chunk, merge, normalizzazione, gap-fill (checklist per ramo). È lo stesso
+    identico procedimento usato per i prodotti a PDF singolo (library_upload_pdf /
+    _sync_entry) — qui centralizzato perché per i prodotti MODULARI va rieseguito
+    una volta per ogni modulo (vedi _combine_module_results), invece che una sola
+    volta sul PDF unito (che su documenti grandi perdeva moduli nel chunking).
+    Ritorna {} se non è stato estratto nulla di utilizzabile.
+    """
+    chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
+    results = await asyncio.gather(*[
+        _extract_sezioni_chunk(cb, ps, pe, pt, prodotto, tipo)
+        for cb, ps, pe, pt in chunks
+    ])
+    results = [r for r in results if r]
+    if not results:
+        return {}
+    extracted = _merge_sezioni(results) if len(results) > 1 else results[0]
+    extracted = _normalize_sezioni(extracted)
+    if tipo in _GAP_FILL_TIPI:
+        try:
+            extracted = await _extract_gaps_sezioni(chunks[0][0], extracted, prodotto, tipo)
+        except Exception as ge:
+            logger.warning(f"[extract] gap-fill saltato per '{prodotto}': {ge}")
+    return extracted
+
+
+def _combine_module_results(results: list[dict], prodotto: str, tipo: str) -> dict:
+    """
+    Combina le estrazioni INDIPENDENTI di più MODULI di uno stesso prodotto MODULARE
+    (ciascuna già passata per _extract_document_sezioni). A differenza di
+    _merge_sezioni (pensata per i chunk di UNO STESSO documento, dedup per "id") qui
+    il dedup è per NOME NORMALIZZATO — moduli diversi possono usare id leggermente
+    diversi per la stessa garanzia — e risolve esplicitamente la contraddizione
+    copertura/esclusione tra moduli: se la stessa garanzia (per nome) compare COPERTA
+    (inclusa/opzionale) in un modulo ed "Esclusa" in un altro (tipico quando un modulo
+    rimanda esplicitamente a un modulo separato per quella garanzia), vince la coperta.
+    Le esclusioni vere — nessun modulo la copre, es. catastrofi terremoto/alluvione —
+    restano invariate.
+    """
+    results = [r for r in results if r]
+    if not results:
+        return {}
+    base = results[0] if len(results) == 1 else _merge_sezioni(results)
+
+    all_sezioni: list[dict] = []
+    for r in results:
+        all_sezioni.extend(r.get("sezioni") or [])
+
+    by_norm: dict[str, list[dict]] = {}
+    order: list[str] = []
+    for s in all_sezioni:
+        nk = _norm_nome(s.get("nome") or s.get("id") or "")
+        if not nk:
+            continue
+        if nk not in by_norm:
+            by_norm[nk] = []
+            order.append(nk)
+        by_norm[nk].append(s)
+
+    def _score(x: dict) -> int:
+        return sum(1 for v in x.values() if v not in (None, 0, "", False))
+
+    combined_sezioni = []
+    for nk in order:
+        group = by_norm[nk]
+        coperte = [s for s in group if s.get("inclusa") or s.get("opzionale")]
+        candidati = coperte or group  # nessuna coperta in nessun modulo -> vera esclusione
+        combined_sezioni.append(max(candidati, key=_score))
+
+    base["sezioni"] = combined_sezioni
+    base["prodotto"] = prodotto
+    if tipo:
+        base["tipo"] = tipo
+    return base
+
+
 # ── CGA FULLTEXT (fondamenta per la chat AI) ─────────────────────────────────
 # Salviamo il testo integrale di ogni CGA analizzato, così la chat può rispondere
 # su clausole e dettagli che NON sono finiti nella tabella estratta, citando la pagina.
@@ -4119,6 +4197,11 @@ async def _sync_entry(entry: dict) -> dict:
 
     try:
         pdf_bytes: bytes | None = None
+        # Moduli scaricati freschi con successo (solo se >1 url): estratti CIASCUNO
+        # per conto suo e poi combinati, invece di unirli in un unico PDF grande
+        # prima dell'estrazione — su documenti grandi il chunking a valle perdeva
+        # moduli interi (varianza, moduli mancanti). Vedi _combine_module_results.
+        fresh_modules: list[bytes] | None = None
         download_error: str | None = None
 
         if not urls:
@@ -4152,10 +4235,14 @@ async def _sync_entry(entry: dict) -> dict:
                 if len(module_bytes) == 1:
                     pdf_bytes = module_bytes[0]
                 else:
+                    fresh_modules = module_bytes
+                    # Il merge qui serve SOLO per la cache locale su disco e l'hash di
+                    # riferimento — non viene più usato per l'estrazione (fresh_modules).
                     try:
                         pdf_bytes = _merge_pdf_bytes(module_bytes)
                     except Exception as me:
                         download_error = f"errore unione moduli PDF: {me}"
+                        fresh_modules = None
 
         if pdf_bytes is None:
             # Download fallito (o incompleto) — mai un'estrazione parziale silenziosa:
@@ -4163,6 +4250,7 @@ async def _sync_entry(entry: dict) -> dict:
             if _pdf_cache_file.exists():
                 logger.info(f"[library sync] '{entry_id}' — {download_error}, uso cache locale")
                 pdf_bytes = _pdf_cache_file.read_bytes()
+                fresh_modules = None  # dalla cache abbiamo solo il documento unito
             else:
                 logger.warning(f"[library sync] '{entry_id}' — {download_error}, nessuna cache disponibile")
                 return {**entry, "sync_status": "error", "sync_error": download_error}
@@ -4187,33 +4275,23 @@ async def _sync_entry(entry: dict) -> dict:
 
         # Hash diverso (o mai estratto) → estrae
         logger.info(f"[library sync] '{entry_id}' — nuovo hash {new_hash[:8]}... estrazione v3")
-        pdf_b64 = base64.b64encode(pdf_bytes).decode()
-
-        chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
-        results = await asyncio.gather(*[
-            _extract_sezioni_chunk(cb, ps, pe, pt, entry.get("prodotto", entry_id), entry.get("tipo", ""))
-            for cb, ps, pe, pt in chunks
-        ])
-        results = [r for r in results if r]
-
-        if not results:
-            return {**entry, "sync_status": "error", "sync_error": "Estrazione vuota"}
-
-        extracted = _merge_sezioni(results) if len(results) > 1 else results[0]
-        extracted = _normalize_sezioni(extracted)
-        # Secondo passaggio di completezza (checklist per ramo) — stessa qualità
-        # dell'analisi interattiva. Additivo: non tocca mai il baseline.
-        # TODO: chunks[0][0] copre solo le prime ~60 pagine. Su un PDF MODULARE unito
-        # (più moduli con urls[] o upload multiplo) la checklist potrebbe non vedere i
-        # moduli nelle pagine successive. Comportamento identico all'analisi interattiva
-        # (non è una regressione di questo cambio), ma per i modulari grandi converrebbe
-        # far girare il gap-fill sull'intero documento o per-chunk.
+        prodotto = entry.get("prodotto", entry_id)
         tipo_eff = entry.get("tipo", "")
-        if tipo_eff in _GAP_FILL_TIPI:
-            try:
-                extracted = await _extract_gaps_sezioni(chunks[0][0], extracted, entry.get("prodotto", entry_id), tipo_eff)
-            except Exception as ge:
-                logger.warning(f"[library sync] '{entry_id}' gap-fill saltato: {ge}")
+
+        if fresh_modules:
+            module_results = await asyncio.gather(*[
+                _extract_document_sezioni(mb, prodotto, tipo_eff) for mb in fresh_modules
+            ])
+            for i, mr in enumerate(module_results):
+                if not mr:
+                    return {**entry, "sync_status": "error",
+                            "sync_error": f"Estrazione vuota per il modulo {i+1}/{len(fresh_modules)}"}
+            extracted = _combine_module_results(module_results, prodotto, tipo_eff)
+        else:
+            extracted = await _extract_document_sezioni(pdf_bytes, prodotto, tipo_eff)
+            if not extracted:
+                return {**entry, "sync_status": "error", "sync_error": "Estrazione vuota"}
+
         extracted["_catalog_id"] = entry_id
         extracted["_url"] = url
 
@@ -4397,8 +4475,10 @@ async def library_upload_pdf(
     Permette di caricare manualmente uno o più PDF per una polizza CGA
     il cui URL è scaduto o non funzionante (o per prodotti modulari con
     più fascicoli: es. Allianz Ultra Impresa = Fabbricato+Contenuto+Furto+RC+...).
-    Se sono più file, vengono uniti in ordine prima dell'estrazione.
-    Estrae i dati con lo stesso pipeline di _sync_entry.
+    Con un solo file: stessa identica pipeline di sempre. Con più file: ciascun
+    modulo viene estratto per conto suo (mai unito in un unico PDF prima
+    dell'estrazione — su documenti grandi il chunking a valle perdeva moduli
+    interi) e i risultati vengono combinati — vedi _combine_module_results.
     """
     uploads: list[UploadFile] = [f for f in (files or []) if f is not None] or ([file] if file is not None else [])
     if not uploads:
@@ -4415,14 +4495,6 @@ async def library_upload_pdf(
             raise HTTPException(status_code=400, detail=f"PDF troppo grande (max 20 MB) ('{f.filename}')")
         pdf_parts.append(b)
 
-    if len(pdf_parts) == 1:
-        pdf_bytes = pdf_parts[0]
-    else:
-        try:
-            pdf_bytes = _merge_pdf_bytes(pdf_parts)
-        except Exception as me:
-            raise HTTPException(status_code=400, detail=f"Errore unione moduli PDF: {me}")
-
     filenames = ", ".join(f.filename for f in uploads)
 
     catalog = _load_catalog()
@@ -4430,22 +4502,41 @@ async def library_upload_pdf(
     if entry is None:
         raise HTTPException(status_code=404, detail=f"Voce '{id}' non trovata nel catalogo")
 
-    logger.info(f"[upload-pdf] '{id}' — {len(pdf_bytes)} bytes, {len(uploads)} file(s): {filenames}")
+    prodotto = entry.get("prodotto", id)
+    tipo = entry.get("tipo", "")
+    logger.info(f"[upload-pdf] '{id}' — {sum(len(p) for p in pdf_parts)} bytes, {len(uploads)} file(s): {filenames}")
 
-    # Estrai con lo stesso pipeline di _sync_entry
     try:
-        new_hash = hashlib.md5(pdf_bytes).hexdigest()
-        chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
-        results = await asyncio.gather(*[
-            _extract_sezioni_chunk(cb, ps, pe, pt, entry.get("prodotto", id), entry.get("tipo", ""))
-            for cb, ps, pe, pt in chunks
-        ])
-        results = [r for r in results if r]
-        if not results:
-            raise HTTPException(status_code=422, detail="Estrazione AI vuota — PDF illeggibile?")
+        # Hash sulla concatenazione grezza dei file: con un solo file è identico
+        # all'hash di sempre (join di un elemento solo = l'elemento stesso).
+        new_hash = hashlib.md5(b"\x00".join(pdf_parts)).hexdigest()
 
-        extracted = _merge_sezioni(results) if len(results) > 1 else results[0]
-        extracted = _normalize_sezioni(extracted)
+        if len(pdf_parts) == 1:
+            # Prodotto a PDF singolo: stessa identica pipeline di sempre (nessun
+            # gap-fill qui, esattamente come oggi — invariato).
+            pdf_bytes = pdf_parts[0]
+            chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
+            results = await asyncio.gather(*[
+                _extract_sezioni_chunk(cb, ps, pe, pt, prodotto, tipo)
+                for cb, ps, pe, pt in chunks
+            ])
+            results = [r for r in results if r]
+            if not results:
+                raise HTTPException(status_code=422, detail="Estrazione AI vuota — PDF illeggibile?")
+            extracted = _merge_sezioni(results) if len(results) > 1 else results[0]
+            extracted = _normalize_sezioni(extracted)
+        else:
+            # Prodotto MODULARE: ogni modulo estratto per conto suo (pipeline
+            # completa, incluso il gap-fill sull'intero modulo) poi combinato.
+            module_results = await asyncio.gather(*[
+                _extract_document_sezioni(part, prodotto, tipo) for part in pdf_parts
+            ])
+            for i, mr in enumerate(module_results):
+                if not mr:
+                    raise HTTPException(status_code=422,
+                        detail=f"Estrazione AI vuota per il modulo {i+1}/{len(pdf_parts)} ('{uploads[i].filename}') — PDF illeggibile?")
+            extracted = _combine_module_results(module_results, prodotto, tipo)
+
         extracted["_catalog_id"] = id
         extracted["_uploaded_file"] = filenames
 
