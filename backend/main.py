@@ -3747,25 +3747,38 @@ def _combine_module_results(results: list[dict], prodotto: str, tipo: str) -> di
 # il frontend fa fallback al rendering di sempre.
 #
 # "parent_id": dove la sezione-griglia corrisponde a UNA sola sezione estratta nota
-# (id fisso dello schema, es. "morte", "ip_infortuni") — usato SOLO per: (a) la voce
-# speciale "Massimale" (non è il nome di una garanzia da cercare, ma il massimale
-# della sezione padre stessa) e (b) dare priorità alla ricerca nelle sue gz. Volutamente
-# un id fisso e non un match testuale sul titolo sezione: "Invalidità Permanente" e
-# "Invalidità Permanente Grave" hanno nomi reali quasi identici (entrambi con suffisso
-# "da infortuni") — un match approssimato le confonderebbe.
+# (id fisso dello schema) — oggi SOLO le 3 sezioni Infortuni (morte/ip_infortuni/
+# ip_infortuni_grave). Usato per: (a) la voce speciale "Massimale" (non è il nome di
+# una garanzia da cercare, ma il massimale della sezione padre stessa) e (b) scopare
+# la ricerca delle ALTRE voci alle SOLE gz di quel padre, senza fallback su gz di
+# ALTRE sezioni — necessario perché Morte/IP/IP-Grave sono sezioni "gemelle" con
+# estensioni quasi identiche (es. "Rapina e sequestro" esiste per ognuna): una ricerca
+# globale pescherebbe il valore della sezione sbagliata (bug reale trovato in test).
+# Volutamente un id fisso e non un match testuale sul titolo sezione: "Invalidità
+# Permanente" e "Invalidità Permanente Grave" hanno nomi reali quasi identici (entrambi
+# col suffisso "da infortuni") — un match approssimato le confonderebbe.
+# Per l'Aziendale invece NESSUNA sezione ha parent_id: le estensioni del ramo
+# (checklist/gap-fill) diventano quasi sempre sezioni di primo livello a sé stanti, non
+# annidate — e il rischio di scambio tra INCENDIO/FURTO/ELETTRONICA/RC è basso (domini
+# semanticamente distinti) — quindi qui si cerca sempre ovunque (vedi _build_griglia).
 
 _GRIGLIA_STANDARD: dict[str, list[dict]] = {
     "Aziendale": [
-        {"nome": "INCENDIO", "parent_id": "danni_beni", "voci": [
+        # Nessun parent_id: a differenza di Infortuni, in Aziendale le estensioni del
+        # ramo (checklist/gap-fill) diventano quasi sempre sezioni di primo livello a
+        # sé stanti — NON annidate nella gz dell'ombrello (es. danni_beni) — quindi
+        # scoping su un padre fisso le mancherebbe quasi sempre (visto in test: "Eventi
+        # atmosferici" ecc. mancate perché cercate solo nelle gz di danni_beni).
+        {"nome": "INCENDIO", "parent_id": None, "voci": [
             "Eventi atmosferici", "Sovraccarico neve", "Eventi socio-politici e dolosi",
             "Terrorismo e sabotaggio", "Fenomeno elettrico", "Spese demolizione e sgombero",
             "Altre spese indirette", "Lastre e insegne", "Danni da bagnamento",
             "Spese di ricerca e riparazione", "Interruzione attività",
         ]},
-        {"nome": "FURTO", "parent_id": "furto_aziendale", "voci": [
+        {"nome": "FURTO", "parent_id": None, "voci": [
             "Danni parificati", "Altre spese indirette", "Rischi esterni",
         ]},
-        {"nome": "ELETTRONICA", "parent_id": "fenomeno_elettrico", "voci": [
+        {"nome": "ELETTRONICA", "parent_id": None, "voci": [
             "Beni assicurabili", "Rischi assicurati",
         ]},
         {"nome": "RESPONSABILITÀ CIVILE", "parent_id": None, "voci": [
@@ -3783,7 +3796,7 @@ _GRIGLIA_STANDARD: dict[str, list[dict]] = {
             "Massimale", "Opzioni franchigia", "Tabella valutazione", "Estensioni sportive",
             "Super liquidazione", "Reinvestimento indennizzo", "Estinzione mutuo",
             "Danno vita relazionale", "Rapina e sequestro", "Assicurato minorenne",
-            "Adeguamento abitazione / auto", "Stato di coma", "Sopravvalutazione parti anatomiche",
+            "Adeguamento abitazione / Adeguamento auto", "Stato di coma", "Sopravvalutazione parti anatomiche",
             "Lesioni speciali", "Indennizzi forfettari per HIV",
         ]},
         {"nome": "INVALIDITÀ PERMANENTE GRAVE", "parent_id": "ip_infortuni_grave", "voci": [
@@ -3794,14 +3807,26 @@ _GRIGLIA_STANDARD: dict[str, list[dict]] = {
 
 
 def _norm_flat(s: str) -> str:
-    """Normalizzazione 'flat' per il matching della griglia: minuscolo, solo lettere
-    (accenti compresi) e cifre, senza spazi. Volutamente NON basata su _norm_nome
-    (che spezza in token e filtra le stopword): un acronimo puntato come 'R.C.O.'
-    finirebbe spezzato in token singoli 'r','c','o' — con la 'o' finale scartata
-    perché coincide con lo stopword italiano 'o' ('oppure'), risultando in 'rc'
-    invece di 'rco' (bug reale riscontrato in test). Qui si confronta l'intera
-    stringa senza tokenizzare, quindi il problema non si pone."""
+    """Normalizzazione 'flat' (usata SOLO per il lookup nel dizionario sinonimi):
+    minuscolo, solo lettere (accenti compresi) e cifre, senza spazi. Volutamente NON
+    basata su _norm_nome (che spezza in token e filtra le stopword): un acronimo
+    puntato come 'R.C.O.' finirebbe spezzato in token singoli 'r','c','o' — con la
+    'o' finale scartata perché coincide con lo stopword italiano 'o' ('oppure'),
+    risultando in 'rc' invece di 'rco' (bug reale riscontrato in test)."""
     return re.sub(r"[^a-zàèéìòù0-9]+", "", (s or "").lower())
+
+
+def _tokens_of(s: str) -> frozenset:
+    """Token normalizzati (via _norm_nome) di una stringa, per il match 'a sottoinsieme'."""
+    return frozenset(w for w in _norm_nome(s or "").split() if w)
+
+
+def _tok_subset_match(a: frozenset, b: frozenset) -> bool:
+    """Vero se i token di UNA delle due stringhe sono interamente contenuti
+    nell'altra — gestisce sia 'Eventi atmosferici' (griglia, conciso) che trova
+    'Eventi atmosferici (uragani, bufere, grandine...)' (nome reale, descrittivo),
+    sia il caso inverso. Richiede token non vuoti da entrambe le parti."""
+    return bool(a) and bool(b) and (a <= b or b <= a)
 
 
 _GRIGLIA_SYN_FLAT: dict[str, dict[str, str]] = {
@@ -3828,23 +3853,24 @@ def _build_griglia(result: dict, tipo: str) -> dict | None:
         return None
 
     sezione_by_id: dict[str, dict] = {}
-    top_index: dict[str, dict] = {}
-    gz_index: dict[str, tuple[dict, dict]] = {}
+    # entries: (token_set, sezione_madre, gz_item|None) — gz_item None per i nomi/id di primo livello
+    top_entries: list[tuple[frozenset, dict]] = []
+    gz_entries: list[tuple[frozenset, dict, dict]] = []
     for s in sezioni_list:
         sid = (s.get("id") or "").strip()
         if sid and sid not in sezione_by_id:
             sezione_by_id[sid] = s
         for key in (s.get("nome"), s.get("id")):
-            nk = _norm_flat(key or "")
-            if nk and nk not in top_index:
-                top_index[nk] = s
+            toks = _tokens_of(key or "")
+            if toks:
+                top_entries.append((toks, s))
         gz = s.get("gz")
         if isinstance(gz, dict):
             for gk, gv in gz.items():
                 nome_gz = (gv.get("nome") if isinstance(gv, dict) else None) or gk
-                nk = _norm_flat(nome_gz or "")
-                if nk and nk not in gz_index:
-                    gz_index[nk] = (s, gv if isinstance(gv, dict) else {})
+                toks = _tokens_of(nome_gz or "")
+                if toks:
+                    gz_entries.append((toks, s, gv if isinstance(gv, dict) else {}))
 
     syn_flat = _GRIGLIA_SYN_FLAT.get(tipo, {})
     used_top_ids: set = set()
@@ -3858,9 +3884,37 @@ def _build_griglia(result: dict, tipo: str) -> dict | None:
         return {"limite": gv.get("sub"), "scoperto": gv.get("scop"), "franchigia": gv.get("fra"),
                 "inclusa": s_madre.get("inclusa"), "opzionale": s_madre.get("opzionale")}
 
+    def _find_hit(alt_nome: str, parent: dict | None, scoped: bool):
+        """Cerca UNA alternativa di voce (già senza '/'). scoped=True → SOLO sinonimo
+        + gz del padre (le 3 sezioni Infortuni, per evitare di pescare da un padre
+        gemello sbagliato). scoped=False → sinonimo + gz/nomi di QUALSIASI sezione."""
+        alt_flat = _norm_flat(alt_nome)
+        sid = syn_flat.get(alt_flat)
+        if sid and sid in sezione_by_id:
+            return ("sezione", sezione_by_id[sid], None)
+
+        alt_tok = _tokens_of(alt_nome)
+        if parent is not None:
+            pgz = parent.get("gz")
+            if isinstance(pgz, dict):
+                for gk, gv in pgz.items():
+                    nome_gz = (gv.get("nome") if isinstance(gv, dict) else None) or gk
+                    if _tok_subset_match(alt_tok, _tokens_of(nome_gz or "")):
+                        return ("gz", parent, gv if isinstance(gv, dict) else {})
+
+        if not scoped:
+            for toks, s_madre, gv in gz_entries:
+                if _tok_subset_match(alt_tok, toks):
+                    return ("gz", s_madre, gv)
+            for toks, s in top_entries:
+                if _tok_subset_match(alt_tok, toks):
+                    return ("sezione", s, None)
+        return None
+
     sezioni_out = []
     for sezione_def in schema:
         parent = sezione_by_id.get(sezione_def["parent_id"]) if sezione_def.get("parent_id") else None
+        scoped = bool(sezione_def.get("parent_id"))
         voci_out = []
         for voce_nome in sezione_def["voci"]:
             if voce_nome == "Massimale":
@@ -3871,35 +3925,15 @@ def _build_griglia(result: dict, tipo: str) -> dict | None:
                     voci_out.append({"nome": voce_nome, "trovata": False})
                 continue
 
-            voce_flat = _norm_flat(voce_nome)
-            has_parent_id = bool(sezione_def.get("parent_id"))
-            hit = None  # (livello, sezione_madre, gz_item|None)
-
-            sid = syn_flat.get(voce_flat)
-            if sid and sid in sezione_by_id:
-                hit = ("sezione", sezione_by_id[sid], None)
-
-            if hit is None and parent is not None:
-                pgz = parent.get("gz")
-                if isinstance(pgz, dict):
-                    for gk, gv in pgz.items():
-                        nome_gz = (gv.get("nome") if isinstance(gv, dict) else None) or gk
-                        if _norm_flat(nome_gz or "") == voce_flat:
-                            hit = ("gz", parent, gv if isinstance(gv, dict) else {})
-                            break
-
-            # Fallback GLOBALE (gz/nomi di QUALSIASI sezione) SOLO per le sezioni-griglia
-            # senza un parent_id fisso (es. RESPONSABILITÀ CIVILE, multi-garanzia per
-            # natura). Per quelle CON parent_id (es. le 3 sezioni Infortuni) niente
-            # fallback globale: pescare da un padre diverso da quello giusto darebbe un
-            # match sbagliato invece di un onesto "non presente" (visto in test: la
-            # "Rapina e sequestro" di MORTE finiva anche su INVALIDITÀ PERMANENTE).
-            if hit is None and not has_parent_id:
-                if voce_flat in gz_index:
-                    s_madre, gv = gz_index[voce_flat]
-                    hit = ("gz", s_madre, gv)
-                elif voce_flat in top_index:
-                    hit = ("sezione", top_index[voce_flat], None)
+            # Voci con "/" (es. "Rischi assicurati / committenze", "Adeguamento
+            # abitazione / auto"): sono ALTERNATIVE, non un'unica etichetta composta
+            # da cercare alla lettera — si prova ciascuna in ordine, vince la prima.
+            alternative = [p.strip() for p in voce_nome.split("/")] if "/" in voce_nome else [voce_nome]
+            hit = None
+            for alt in alternative:
+                hit = _find_hit(alt, parent, scoped)
+                if hit:
+                    break
 
             if hit is None:
                 voci_out.append({"nome": voce_nome, "trovata": False})
