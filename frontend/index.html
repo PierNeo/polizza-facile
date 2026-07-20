@@ -4923,18 +4923,29 @@ function buildTableGaranzieCasa(policies, cols) {
  _tableRefCol = -1;
 }
 
+// Stato di una voce di griglia standard (vedi _build_griglia lato backend) — stessa
+// forma di stato prodotta da _casaSez/_rawToState, così si riusa _casaCells invariata.
+function _griglaVoceState(v) {
+ if (!v || !v.trovata) return { state:'nd' };
+ if (!v.inclusa && !v.opzionale) return { state:'off' };
+ const lim = v.limite || null, scop = v.scoperto || null, fra = v.franchigia || null;
+ const opt = (v.opzionale && !v.inclusa);
+ if (!lim && !scop && !fra) return { state: opt?'opt-sa':'sa' };
+ return { state: opt?'opt':'val', lim: lim || 'S.A.', scop, fra };
+}
+
 // Vista sintetica GENERICA a 3 colonne (Infortuni e tipi misti): una riga per
 // sezione, dati da p.sezioni — Limite/Scoperto/Franchigia, "S.A." dove non c'è limite.
+// Se almeno una polizza confrontata ha 'griglia' (Aziendale/Infortuni — vedi
+// _build_griglia lato backend), l'ordine delle righe segue lo scheletro FISSO per
+// ramo invece dell'unione dinamica di prima occorrenza, con "non documentata" per
+// le voci mancanti + una sezione "Altre garanzie" in coda per ciò che non è in
+// griglia (mai perdere dati). Se NESSUNA polizza ha 'griglia' (Casa non ci arriva
+// nemmeno, RC Auto non lo calcola) il comportamento resta IDENTICO a prima.
 function buildTableSezioni3col(policies, cols) {
  const NP = policies.length;
  const subHdr = (lbl, color, bg) => `<th style="font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:${color};background:${bg};padding:5px 6px;border-bottom:2px solid ${color}">${lbl}</th>`;
-
- // Unione delle sezioni in ordine di prima occorrenza
- const order = []; const nomeById = {};
- policies.forEach(p => (p.sezioni||[]).forEach(s => {
-  if (!s.id) return;
-  if (!(s.id in nomeById)) { nomeById[s.id] = s.nome || s.id; order.push(s.id); }
- }));
+ const griglia = policies.find(p => p.griglia)?.griglia;
 
  let html = '<thead><tr><th rowspan="2" style="text-align:left;min-width:190px;vertical-align:bottom;padding:10px 14px;font-size:11px;color:var(--gray-500)">Garanzia</th>';
  policies.forEach((p, i) => {
@@ -4948,23 +4959,22 @@ function buildTableSezioni3col(policies, cols) {
  policies.forEach(() => { html += subHdr('Limite','#0D47A1',_BG_LIM)+subHdr('Scoperto','#E65100',_BG_SCOP)+subHdr('Franchigia','#C62828',_BG_FRA); });
  html += '</tr></thead><tbody>';
 
- if (!order.length) {
-  html += `<tr><td colspan="${NP*3+1}" style="padding:20px;text-align:center;color:var(--gray-400);font-size:12px">Nessuna garanzia estratta</td></tr>`;
- }
  const normNome = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
  const labelOf = (k, raw) => (raw && raw.nome) ? raw.nome : k.replace(/_/g, ' ');
  const gzOf = (p, sid) => { const s = (p.sezioni||[]).find(x => x.id === sid); return (s && s.gz) || null; };
 
- order.forEach((sid, gi) => {
-  const bg = gi % 2 === 0 ? 'var(--white)' : 'var(--gray-50)';
-  html += `<tr><td style="padding:9px 14px;font-size:12px;color:var(--gray-700);font-weight:500;background:${bg};border-left:3px solid var(--polo);border-bottom:1px solid var(--gray-100)">${esc(nomeById[sid])}</td>`;
-  policies.forEach(p => { html += _casaCells(_casaSez(p, sid)); });
+ // Riga garanzia + eventuali sotto-limiti (gz), allineati per nome tra le polizze.
+ // getState(p) ritorna lo stato (forma _casaSez) per la polizza p; gzOfRow(p) le sue gz.
+ let gi = 0;
+ const renderRow = (nome, getState, gzOfRow) => {
+  const bg = gi++ % 2 === 0 ? 'var(--white)' : 'var(--gray-50)';
+  html += `<tr><td style="padding:9px 14px;font-size:12px;color:var(--gray-700);font-weight:500;background:${bg};border-left:3px solid var(--polo);border-bottom:1px solid var(--gray-100)">${esc(nome)}</td>`;
+  policies.forEach(p => { html += _casaCells(getState(p)); });
   html += '</tr>';
 
-  // Sotto-limiti strutturati della sezione (Infortuni/Salute), allineati per nome
-  const sub = {}; // nomeNormalizzato -> etichetta
+  const sub = {};
   policies.forEach(p => {
-   const gz = gzOf(p, sid); if (!gz) return;
+   const gz = gzOfRow(p); if (!gz) return;
    Object.keys(gz).forEach(k => {
     const raw = gz[k]; if (raw === null || raw === undefined) return;
     const nk = normNome(labelOf(k, raw)); if (!nk || nk in sub) return;
@@ -4976,7 +4986,7 @@ function buildTableSezioni3col(policies, cols) {
    const sbg = (si++ % 2 === 0) ? 'var(--white)' : 'var(--gray-50)';
    html += `<tr><td style="padding:7px 14px 7px 28px;font-size:11px;color:var(--gray-600);background:${sbg};border-left:3px solid var(--polo);border-bottom:1px solid var(--gray-100)">${esc(sub[nk])} <span title="Sotto-limite della garanzia, rilevato dal documento" style="color:var(--polo);font-weight:700">＋</span></td>`;
    policies.forEach(p => {
-    const gz = gzOf(p, sid);
+    const gz = gzOfRow(p);
     let st = { state:'nd' };
     if (gz) {
      const key = Object.keys(gz).find(k => {
@@ -4989,7 +4999,47 @@ function buildTableSezioni3col(policies, cols) {
    });
    html += '</tr>';
   });
- });
+ };
+
+ if (griglia) {
+  // ── Righe a scheletro fisso per ramo ──────────────────────────────────────
+  griglia.sezioni.forEach(sez => {
+   html += `<tr><td colspan="${NP*3+1}" style="padding:8px 14px 4px;font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--gray-400);background:var(--gray-50);border-bottom:1px solid var(--gray-100)">${esc(sez.nome)}</td></tr>`;
+   sez.voci.forEach(voceDef => {
+    renderRow(voceDef.nome, p => {
+     const pSez = p.griglia?.sezioni?.find(s => s.nome === sez.nome);
+     const v = pSez?.voci?.find(x => x.nome === voceDef.nome);
+     return _griglaVoceState(v);
+    }, () => null); // le voci di griglia non hanno gz proprie (già a livello di dettaglio)
+   });
+  });
+
+  // ── Altre garanzie: unione dinamica di ciò che nessuna voce di griglia copre ──
+  const order = []; const nomeById = {};
+  policies.forEach(p => (p.griglia?.altre_garanzie || []).forEach(s => {
+   if (!s.id) return;
+   if (!(s.id in nomeById)) { nomeById[s.id] = s.nome || s.id; order.push(s.id); }
+  }));
+  if (order.length) {
+   html += `<tr><td colspan="${NP*3+1}" style="padding:8px 14px 4px;font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--gray-400);background:var(--gray-50);border-bottom:1px solid var(--gray-100)">ALTRE GARANZIE</td></tr>`;
+   order.forEach(sid => renderRow(nomeById[sid], p => _casaSez(p, sid), p => gzOf(p, sid)));
+  }
+  html += '</tbody>';
+  document.getElementById('compTable').innerHTML = html;
+  _tableRefCol = -1;
+  return;
+ }
+
+ // ── Comportamento di sempre: unione dinamica di p.sezioni in ordine di prima occorrenza ──
+ const order = []; const nomeById = {};
+ policies.forEach(p => (p.sezioni||[]).forEach(s => {
+  if (!s.id) return;
+  if (!(s.id in nomeById)) { nomeById[s.id] = s.nome || s.id; order.push(s.id); }
+ }));
+ if (!order.length) {
+  html += `<tr><td colspan="${NP*3+1}" style="padding:20px;text-align:center;color:var(--gray-400);font-size:12px">Nessuna garanzia estratta</td></tr>`;
+ }
+ order.forEach(sid => renderRow(nomeById[sid], p => _casaSez(p, sid), p => gzOf(p, sid)));
 
  html += '</tbody>';
  document.getElementById('compTable').innerHTML = html;

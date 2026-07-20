@@ -3656,6 +3656,32 @@ async def _extract_document_sezioni(pdf_bytes: bytes, prodotto: str, tipo: str) 
     return extracted
 
 
+_MODULO_HINT_RE = re.compile(r"\bmodul[oi]\b", re.IGNORECASE)
+
+def _reconcile_esclusioni_moduli(esclusioni: list[str], sezioni_coperte_norm: set[str]) -> list[str]:
+    """
+    Scarta dalle esclusioni testuali (campo libero, max 5-6 voci) quelle diventate
+    contraddittorie dopo la combinazione dei moduli: un modulo può dichiarare "garanzia
+    X esclusa da QUESTO MODULO, vedi modulo separato" — vero nel contesto del singolo
+    modulo, ma fuorviante nel prodotto combinato se un ALTRO modulo copre davvero X
+    (visto in pratica: "Furto e rapina esclusi... in questo modulo" sopravvissuto nel
+    combinato nonostante il modulo Furto copra la garanzia con valori reali).
+    Criterio VOLUTAMENTE conservativo per non perdere esclusioni genuine e sfumate:
+    scarta una voce SOLO se cita esplicitamente un "modulo" E il nome (per intero, a
+    livello di token) di una garanzia che nella tabella finale risulta coperta.
+    """
+    if not esclusioni:
+        return esclusioni
+    out = []
+    for e in esclusioni:
+        if _MODULO_HINT_RE.search(e or ""):
+            e_tokens = set(_norm_nome(e).split())
+            if any(nk and set(nk.split()) <= e_tokens for nk in sezioni_coperte_norm):
+                continue  # contraddetta da una garanzia coperta altrove: scartata
+        out.append(e)
+    return out
+
+
 def _combine_module_results(results: list[dict], prodotto: str, tipo: str) -> dict:
     """
     Combina le estrazioni INDIPENDENTI di più MODULI di uno stesso prodotto MODULARE
@@ -3700,10 +3726,196 @@ def _combine_module_results(results: list[dict], prodotto: str, tipo: str) -> di
         combined_sezioni.append(max(candidati, key=_score))
 
     base["sezioni"] = combined_sezioni
+    coperte_norm = {
+        _norm_nome(s.get("nome") or s.get("id") or "")
+        for s in combined_sezioni if s.get("inclusa") or s.get("opzionale")
+    }
+    base["esclusioni"] = _reconcile_esclusioni_moduli(base.get("esclusioni") or [], coperte_norm)
     base["prodotto"] = prodotto
     if tipo:
         base["tipo"] = tipo
     return base
+
+
+# ── GRIGLIA STANDARD PER RAMO (GRIGLIE_STANDARD.md) ───────────────────────────
+# Fase 1: SOLO riorganizzazione a lettura delle garanzie già estratte contro uno
+# scheletro FISSO di sezioni/voci per ramo — nessuna nuova estrazione, nessuna
+# modifica a 'sezioni'/'garanzie_detail'. Calcolata al volo nelle risposte (mai
+# persistita): si applica retroattivamente a tutto già estratto, senza re-sync.
+# Solo voci [G] di GRIGLIE_STANDARD.md; le [S] (strutturali) sono Fase 2, non qui.
+# Rami senza griglia definita (oggi: Casa, RC Auto) → _build_griglia ritorna None,
+# il frontend fa fallback al rendering di sempre.
+#
+# "parent_id": dove la sezione-griglia corrisponde a UNA sola sezione estratta nota
+# (id fisso dello schema, es. "morte", "ip_infortuni") — usato SOLO per: (a) la voce
+# speciale "Massimale" (non è il nome di una garanzia da cercare, ma il massimale
+# della sezione padre stessa) e (b) dare priorità alla ricerca nelle sue gz. Volutamente
+# un id fisso e non un match testuale sul titolo sezione: "Invalidità Permanente" e
+# "Invalidità Permanente Grave" hanno nomi reali quasi identici (entrambi con suffisso
+# "da infortuni") — un match approssimato le confonderebbe.
+
+_GRIGLIA_STANDARD: dict[str, list[dict]] = {
+    "Aziendale": [
+        {"nome": "INCENDIO", "parent_id": "danni_beni", "voci": [
+            "Eventi atmosferici", "Sovraccarico neve", "Eventi socio-politici e dolosi",
+            "Terrorismo e sabotaggio", "Fenomeno elettrico", "Spese demolizione e sgombero",
+            "Altre spese indirette", "Lastre e insegne", "Danni da bagnamento",
+            "Spese di ricerca e riparazione", "Interruzione attività",
+        ]},
+        {"nome": "FURTO", "parent_id": "furto_aziendale", "voci": [
+            "Danni parificati", "Altre spese indirette", "Rischi esterni",
+        ]},
+        {"nome": "ELETTRONICA", "parent_id": "fenomeno_elettrico", "voci": [
+            "Beni assicurabili", "Rischi assicurati",
+        ]},
+        {"nome": "RESPONSABILITÀ CIVILE", "parent_id": None, "voci": [
+            "Rischi assicurati / committenze", "Soggetti non terzi", "R.C.O.",
+            "RC autoriparatori", "RC installatori", "Inquinamento accidentale",
+            "Sospensione attività di terzi",
+        ]},
+    ],
+    "Infortuni": [
+        {"nome": "MORTE", "parent_id": "morte", "voci": [
+            "Massimale", "Commorienza o morte di un genitore", "Supervalutazione per incidente",
+            "Rapina e sequestro", "Estinzione",
+        ]},
+        {"nome": "INVALIDITÀ PERMANENTE", "parent_id": "ip_infortuni", "voci": [
+            "Massimale", "Opzioni franchigia", "Tabella valutazione", "Estensioni sportive",
+            "Super liquidazione", "Reinvestimento indennizzo", "Estinzione mutuo",
+            "Danno vita relazionale", "Rapina e sequestro", "Assicurato minorenne",
+            "Adeguamento abitazione / auto", "Stato di coma", "Sopravvalutazione parti anatomiche",
+            "Lesioni speciali", "Indennizzi forfettari per HIV",
+        ]},
+        {"nome": "INVALIDITÀ PERMANENTE GRAVE", "parent_id": "ip_infortuni_grave", "voci": [
+            "Massimale", "Opzioni franchigia", "Indennizzo totale",
+        ]},
+    ],
+}
+
+
+def _norm_flat(s: str) -> str:
+    """Normalizzazione 'flat' per il matching della griglia: minuscolo, solo lettere
+    (accenti compresi) e cifre, senza spazi. Volutamente NON basata su _norm_nome
+    (che spezza in token e filtra le stopword): un acronimo puntato come 'R.C.O.'
+    finirebbe spezzato in token singoli 'r','c','o' — con la 'o' finale scartata
+    perché coincide con lo stopword italiano 'o' ('oppure'), risultando in 'rc'
+    invece di 'rco' (bug reale riscontrato in test). Qui si confronta l'intera
+    stringa senza tokenizzare, quindi il problema non si pone."""
+    return re.sub(r"[^a-zàèéìòù0-9]+", "", (s or "").lower())
+
+
+_GRIGLIA_SYN_FLAT: dict[str, dict[str, str]] = {
+    "Aziendale": {_norm_flat(k): v for k, v in _SYN_AZIENDALE.items()},
+    "Infortuni": {_norm_flat(k): v for k, v in _SYN_INFORTUNI.items()},
+}
+
+
+def _build_griglia(result: dict, tipo: str) -> dict | None:
+    """
+    Proietta le garanzie già estratte (result['sezioni']) sullo scheletro fisso
+    _GRIGLIA_STANDARD[tipo]. ADDITIVO e a sola lettura: non modifica 'result'.
+    Nessuna voce viene mai persa: quelle non mappate finiscono in 'altre_garanzie'
+    (sezioni di primo livello per intero, incluse le loro gz). Una sezione di primo
+    livello è esclusa da 'altre_garanzie' SOLO quando il SUO valore di primo livello
+    (massimale/scoperto/franchigia) è mostrato direttamente in una riga di griglia
+    (voce "Massimale" o match diretto per nome) — mai solo perché una SUA gz è stata
+    usata per un'altra voce: quel dato resta comunque visibile in 'altre_garanzie'.
+    Ritorna None se il ramo non ha una griglia definita o non ci sono sezioni.
+    """
+    schema = _GRIGLIA_STANDARD.get(tipo)
+    sezioni_list = result.get("sezioni")
+    if not schema or not isinstance(sezioni_list, list) or not sezioni_list:
+        return None
+
+    sezione_by_id: dict[str, dict] = {}
+    top_index: dict[str, dict] = {}
+    gz_index: dict[str, tuple[dict, dict]] = {}
+    for s in sezioni_list:
+        sid = (s.get("id") or "").strip()
+        if sid and sid not in sezione_by_id:
+            sezione_by_id[sid] = s
+        for key in (s.get("nome"), s.get("id")):
+            nk = _norm_flat(key or "")
+            if nk and nk not in top_index:
+                top_index[nk] = s
+        gz = s.get("gz")
+        if isinstance(gz, dict):
+            for gk, gv in gz.items():
+                nome_gz = (gv.get("nome") if isinstance(gv, dict) else None) or gk
+                nk = _norm_flat(nome_gz or "")
+                if nk and nk not in gz_index:
+                    gz_index[nk] = (s, gv if isinstance(gv, dict) else {})
+
+    syn_flat = _GRIGLIA_SYN_FLAT.get(tipo, {})
+    used_top_ids: set = set()
+
+    def _valori_da_sezione(s: dict) -> dict:
+        return {"limite": s.get("massimale"), "scoperto": s.get("scoperto"),
+                "franchigia": s.get("franchigia"),
+                "inclusa": s.get("inclusa"), "opzionale": s.get("opzionale")}
+
+    def _valori_da_gz(s_madre: dict, gv: dict) -> dict:
+        return {"limite": gv.get("sub"), "scoperto": gv.get("scop"), "franchigia": gv.get("fra"),
+                "inclusa": s_madre.get("inclusa"), "opzionale": s_madre.get("opzionale")}
+
+    sezioni_out = []
+    for sezione_def in schema:
+        parent = sezione_by_id.get(sezione_def["parent_id"]) if sezione_def.get("parent_id") else None
+        voci_out = []
+        for voce_nome in sezione_def["voci"]:
+            if voce_nome == "Massimale":
+                if parent is not None:
+                    used_top_ids.add(id(parent))
+                    voci_out.append({"nome": voce_nome, "trovata": True, **_valori_da_sezione(parent)})
+                else:
+                    voci_out.append({"nome": voce_nome, "trovata": False})
+                continue
+
+            voce_flat = _norm_flat(voce_nome)
+            has_parent_id = bool(sezione_def.get("parent_id"))
+            hit = None  # (livello, sezione_madre, gz_item|None)
+
+            sid = syn_flat.get(voce_flat)
+            if sid and sid in sezione_by_id:
+                hit = ("sezione", sezione_by_id[sid], None)
+
+            if hit is None and parent is not None:
+                pgz = parent.get("gz")
+                if isinstance(pgz, dict):
+                    for gk, gv in pgz.items():
+                        nome_gz = (gv.get("nome") if isinstance(gv, dict) else None) or gk
+                        if _norm_flat(nome_gz or "") == voce_flat:
+                            hit = ("gz", parent, gv if isinstance(gv, dict) else {})
+                            break
+
+            # Fallback GLOBALE (gz/nomi di QUALSIASI sezione) SOLO per le sezioni-griglia
+            # senza un parent_id fisso (es. RESPONSABILITÀ CIVILE, multi-garanzia per
+            # natura). Per quelle CON parent_id (es. le 3 sezioni Infortuni) niente
+            # fallback globale: pescare da un padre diverso da quello giusto darebbe un
+            # match sbagliato invece di un onesto "non presente" (visto in test: la
+            # "Rapina e sequestro" di MORTE finiva anche su INVALIDITÀ PERMANENTE).
+            if hit is None and not has_parent_id:
+                if voce_flat in gz_index:
+                    s_madre, gv = gz_index[voce_flat]
+                    hit = ("gz", s_madre, gv)
+                elif voce_flat in top_index:
+                    hit = ("sezione", top_index[voce_flat], None)
+
+            if hit is None:
+                voci_out.append({"nome": voce_nome, "trovata": False})
+                continue
+
+            livello, s_madre, gv = hit
+            if livello == "sezione":
+                used_top_ids.add(id(s_madre))
+                voci_out.append({"nome": voce_nome, "trovata": True, **_valori_da_sezione(s_madre)})
+            else:
+                voci_out.append({"nome": voce_nome, "trovata": True, **_valori_da_gz(s_madre, gv)})
+
+        sezioni_out.append({"nome": sezione_def["nome"], "voci": voci_out})
+
+    altre_garanzie = [s for s in sezioni_list if id(s) not in used_top_ids]
+    return {"sezioni": sezioni_out, "altre_garanzie": altre_garanzie}
 
 
 # ── CGA FULLTEXT (fondamenta per la chat AI) ─────────────────────────────────
@@ -3915,6 +4127,8 @@ async def extract_sezioni(req: ExtractSezioniRequest):
             result = await _extract_gaps_sezioni(chunks[0][0], result, req.filename, tipo_effettivo)
         # Indicizza il testo integrale del CGA per la chat AI (no costo AI aggiuntivo)
         result["cga_doc_id"] = await _cga_store_text(pdf_bytes, req.filename, tipo_effettivo)
+        # Griglia standard per ramo: additiva, a sola lettura (vedi _build_griglia)
+        result["griglia"] = _build_griglia(result, tipo_effettivo)
         _extraction_cache[cache_key] = result
         return result
 
@@ -3987,6 +4201,8 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
                     await queue.put({"type": "progress", "step": "Controllo completezza garanzie...", "pct": 95})
                     result = await _extract_gaps_sezioni(chunks[0][0], result, req.filename, tipo_effettivo)
                 result["cga_doc_id"] = await _cga_store_text(pdf_bytes, req.filename, tipo_effettivo)
+                # Griglia standard per ramo: additiva, a sola lettura (vedi _build_griglia)
+                result["griglia"] = _build_griglia(result, tipo_effettivo)
                 _extraction_cache[cache_key] = result
                 await queue.put({"type": "result", "data": result})
 
@@ -4373,6 +4589,11 @@ async def library_list():
     result = []
     for entry in catalog:
         data = await _q_get_library(entry["id"])
+        if isinstance(data, dict):
+            # Griglia standard per ramo: calcolata al volo in lettura (mai persistita,
+            # mai una nuova estrazione) — si applica retroattivamente a tutto il già
+            # estratto. Campo additivo: 'sezioni'/'garanzie_detail' restano intatti.
+            data["griglia"] = _build_griglia(data, data.get("tipo") or entry.get("tipo") or "")
         result.append({
             "id": entry["id"],
             "compagnia": entry.get("compagnia"),
