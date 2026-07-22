@@ -4795,6 +4795,7 @@ function _casaCells(st) {
  let lim, scop, fra;
  if (st.state === 'off') { lim = `<span style="color:#C62828;font-style:italic;font-size:11px">Esclusa</span>`; scop = dash; fra = dash; }
  else if (st.state === 'nd') { lim = `<span style="color:var(--gray-300);font-size:10px;font-style:italic" title="Sezione non presente in questo documento (può essere in un modulo separato)">non in doc.</span>`; scop = dash; fra = dash; }
+ else if (st.state === 'ndg') { lim = `<span style="color:var(--gray-400);font-size:10px;font-style:italic" title="Non presente nei dati estratti — da verificare sul CGA (non significa 'esclusa')">non documentato</span>`; scop = dash; fra = dash; }
  else if (st.state === 'incl_allrisk') { lim = `<span style="color:#1B5E20;font-size:10px;font-style:italic" title="Polizza All Risk: garanzia compresa nella copertura generale anche senza articolo dedicato">compresa (All Risk)</span>`; scop = dash; fra = dash; }
  else if (st.state === 'sa' || st.state === 'opt-sa') {
   const opt = st.state==='opt-sa' ? ` <span style="color:#7C3AED;font-size:9px">◆ opz.</span>` : '';
@@ -4926,7 +4927,11 @@ function buildTableGaranzieCasa(policies, cols) {
 // Stato di una voce di griglia standard (vedi _build_griglia lato backend) — stessa
 // forma di stato prodotta da _casaSez/_rawToState, così si riusa _casaCells invariata.
 function _griglaVoceState(v) {
- if (!v || !v.trovata) return { state:'nd' };
+ // Riga della griglia non trovata nei dati estratti → 'ndg' ("non documentato /
+ // da verificare"): NON diamo per esclusa una garanzia che semplicemente non
+ // abbiamo (ancora) estratto. "Esclusa" ('off') solo se l'estrazione l'ha marcata
+ // esplicitamente non coperta (inclusa=false E opzionale=false su una voce trovata).
+ if (!v || !v.trovata) return { state:'ndg' };
  if (!v.inclusa && !v.opzionale) return { state:'off' };
  const lim = v.limite || null, scop = v.scoperto || null, fra = v.franchigia || null;
  const opt = (v.opzionale && !v.inclusa);

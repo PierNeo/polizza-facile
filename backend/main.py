@@ -3787,20 +3787,32 @@ _GRIGLIA_STANDARD: dict[str, list[dict]] = {
             "Sospensione attività di terzi",
         ]},
     ],
+    # Infortuni: righe allineate 1:1 all'opuscolo di riferimento "Tandem Futuro vs
+    # Mercato" (specifica ufficiale fornita dall'agenzia). Sezioni-dettaglio solo per
+    # Morte / IP / IP Grave; le altre garanzie del prodotto (Malattia, Diarie, Spese,
+    # Assistenza) restano in "Altre garanzie", come nell'opuscolo. Le righe strutturali
+    # [S] (Parti Generali: durata, premio, frazionamento, età max...) verranno aggiunte
+    # in una fase successiva, insieme all'estrazione dei dati contrattuali.
     "Infortuni": [
         {"nome": "MORTE", "parent_id": "morte", "voci": [
-            "Massimale", "Commorienza o morte di un genitore", "Supervalutazione per incidente",
-            "Rapina e sequestro", "Estinzione",
+            "Modalità di offerta", "Massimale",
+            "Commorienza o morte di un solo genitore",
+            "Sopravvalutazione per incidente stradale",
+            "Infortunio causato da rapina, tentata rapina e tentativo di sequestro",
+            "Estinzione finanziamento / mutuo",
         ]},
         {"nome": "INVALIDITÀ PERMANENTE", "parent_id": "ip_infortuni", "voci": [
-            "Massimale", "Opzioni franchigia", "Tabella valutazione", "Estensioni sportive",
-            "Super liquidazione", "Reinvestimento indennizzo", "Estinzione mutuo",
-            "Danno vita relazionale", "Rapina e sequestro", "Assicurato minorenne",
-            "Adeguamento abitazione / Adeguamento auto", "Stato di coma", "Sopravvalutazione parti anatomiche",
-            "Lesioni speciali", "Indennizzi forfettari per HIV",
+            "Modalità di offerta", "Massimale",
+            "Opzioni di franchigia disponibili", "Tabella invalidità",
+            "Estensioni sportive", "Superliquidazione", "Reinvestimento dell'indennizzo",
+            "Estinzione finanziamento / mutuo", "Danno alla vita di relazione",
+            "Infortunio causato da rapina, tentata rapina e tentativo di sequestro",
+            "Assicurato minorenne", "Adeguamento abitazione / auto",
+            "Stato di coma", "Sopravvalutazione parti anatomiche",
         ]},
         {"nome": "INVALIDITÀ PERMANENTE GRAVE", "parent_id": "ip_infortuni_grave", "voci": [
-            "Massimale", "Opzioni franchigia", "Indennizzo totale",
+            "Modalità di offerta", "Massimale",
+            "Opzioni di franchigia disponibili", "Indennizzo totale",
         ]},
     ],
 }
@@ -3885,9 +3897,9 @@ def _build_griglia(result: dict, tipo: str) -> dict | None:
                 "inclusa": s_madre.get("inclusa"), "opzionale": s_madre.get("opzionale")}
 
     def _find_hit(alt_nome: str, parent: dict | None, scoped: bool):
-        """Cerca UNA alternativa di voce (già senza '/'). scoped=True → SOLO sinonimo
-        + gz del padre (le 3 sezioni Infortuni, per evitare di pescare da un padre
-        gemello sbagliato). scoped=False → sinonimo + gz/nomi di QUALSIASI sezione."""
+        """Cerca una voce di griglia nell'estratto. scoped=True → SOLO sinonimo + gz
+        del padre (le 3 sezioni Infortuni, per evitare di pescare da un padre gemello
+        sbagliato). scoped=False → sinonimo + gz/nomi di QUALSIASI sezione."""
         alt_flat = _norm_flat(alt_nome)
         sid = syn_flat.get(alt_flat)
         if sid and sid in sezione_by_id:
@@ -3925,16 +3937,32 @@ def _build_griglia(result: dict, tipo: str) -> dict | None:
                     voci_out.append({"nome": voce_nome, "trovata": False})
                 continue
 
-            # Voci con "/" (es. "Rischi assicurati / committenze", "Adeguamento
-            # abitazione / auto"): sono ALTERNATIVE, non un'unica etichetta composta
-            # da cercare alla lettera — si prova ciascuna in ordine, vince la prima.
-            alternative = [p.strip() for p in voce_nome.split("/")] if "/" in voce_nome else [voce_nome]
-            hit = None
-            for alt in alternative:
-                hit = _find_hit(alt, parent, scoped)
-                if hit:
-                    break
+            # "Modalità di offerta" (prima voce di ogni sezione nell'opuscolo): non è
+            # una garanzia da cercare, si deriva dai flag inclusa/opzionale della
+            # sezione padre — dato che GIÀ estraiamo. inclusa→"Compresa",
+            # opzionale→"Facoltativa". Reso come valore testuale semplice (forzo
+            # inclusa=True nella cella così non si somma il badge "◆ opz." al testo).
+            if voce_nome == "Modalità di offerta":
+                val = None
+                if parent is not None:
+                    if parent.get("inclusa"):
+                        val = "Compresa"
+                    elif parent.get("opzionale"):
+                        val = "Facoltativa"
+                if val:
+                    used_top_ids.add(id(parent))
+                    voci_out.append({"nome": voce_nome, "trovata": True, "limite": val,
+                                     "scoperto": None, "franchigia": None,
+                                     "inclusa": True, "opzionale": False})
+                else:
+                    voci_out.append({"nome": voce_nome, "trovata": False})
+                continue
 
+            # Match per token (gestisce anche le etichette con "/" tipo "Rischi
+            # assicurati / committenze": i token dell'estratto "Committenze" sono un
+            # sottoinsieme → match, senza dover cercare il frammento "committenze" a
+            # parte; e niente ricerche rischiose su frammenti generici come "auto"/"mutuo").
+            hit = _find_hit(voce_nome, parent, scoped)
             if hit is None:
                 voci_out.append({"nome": voce_nome, "trovata": False})
                 continue
