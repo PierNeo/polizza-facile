@@ -3672,6 +3672,10 @@ async def _ask_griglia_voci(chunk_bytes: bytes, filename: str, contesto: str, vo
         "— NON inventare: se non trovi un valore numerico, lascialo null.\n"
         "— VALORE SPECIFICO: copia il valore reale dal CGA (percentuale, importo €, giorni, es. '+20% della quota', '250.000 €', 'max 45 gg'). "
         "NON scrivere 'S.A.'/'Somma assicurata' se il CGA indica un valore o una maggiorazione specifica.\n"
+        "— ⚠ MAGGIORAZIONI: molte di queste voci AUMENTANO la somma assicurata (es. commorienza, rapina/sequestro, "
+        "sopravvalutazione, superliquidazione). In questi casi il valore da riportare è l'AUMENTO, con il suo tetto: "
+        "es. '+50% SA, max €500.000', 'indennizzo raddoppiato (max €500.000)', '+20% della quota per ciascun figlio'. "
+        "Riporta l'entità della maggiorazione — MAI il generico 'S.A.'/'Somma assicurata' per una maggiorazione.\n"
         "— limite/scoperto/franchigia: copia i valori testuali dal CGA.\n"
         "— Indica la fonte (articolo/pagina) quando la individui.\n"
         "— Restituisci UNA voce per OGNI elemento dell'elenco, incluse quelle 'assente'."
@@ -3696,16 +3700,35 @@ async def _ask_griglia_voci(chunk_bytes: bytes, filename: str, contesto: str, vo
     return []
 
 
+def _valore_concreto(v) -> bool:
+    """True se il valore contiene un dato concreto (cifra, €, %, giorni, o parole
+    tipo 'aumento'/'raddoppio'/'+') — cioè NON è un generico 'S.A.'/'Somma assicurata'."""
+    if not isinstance(v, str):
+        return False
+    if re.search(r"[0-9€%]|\+|raddoppi|aument|maggioraz|forfait|indennit", v, re.I):
+        return True
+    return False
+
+
 def _griglia_fill_rank(cell: dict | None) -> int:
-    """Priorità di una risposta nel merge cross-chunk: trovata-con-valore >
-    trovata-senza-valore > esclusa > assente > nulla. Così una voce trovata in un
-    chunk qualsiasi batte l'"assente" di un altro chunk."""
+    """Priorità di una risposta nel merge cross-chunk:
+      5 trovata con valore CONCRETO (cifre/€/%…) — es. '+50% SA, max €500.000'
+      4 trovata con valore VAGO (solo 'S.A.'/'Somma assicurata')
+      3 trovata senza valore
+      2 esclusa esplicitamente
+      1 assente · 0 nulla
+    Così una voce trovata batte l'"assente" di un altro chunk, e — a parità di
+    "trovata" — un valore concreto batte un generico 'S.A.' (fix valori vaghi)."""
     if not cell:
         return 0
     stato = cell.get("stato")
     if stato in ("compresa", "opzionale"):
-        ha_valore = any(cell.get(k) for k in ("limite", "scoperto", "franchigia"))
-        return 4 if ha_valore else 3
+        vals = [cell.get(k) for k in ("limite", "scoperto", "franchigia")]
+        if any(_valore_concreto(v) for v in vals):
+            return 5
+        if any(v for v in vals):
+            return 4
+        return 3
     if stato == "esclusa":
         return 2
     if stato == "assente":
