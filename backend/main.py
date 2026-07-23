@@ -3670,7 +3670,9 @@ async def _ask_griglia_voci(chunk_bytes: bytes, filename: str, contesto: str, vo
         "REGOLE FERREE:\n"
         "— stato='esclusa' SOLO se il CGA la esclude ESPLICITAMENTE. Se semplicemente non se ne parla, usa 'assente' (MAI 'esclusa' per assenza).\n"
         "— NON inventare: se non trovi un valore numerico, lascialo null.\n"
-        "— limite/scoperto/franchigia: copia i valori testuali dal CGA (es. limite '250.000 €', franchigia '66%').\n"
+        "— VALORE SPECIFICO: copia il valore reale dal CGA (percentuale, importo €, giorni, es. '+20% della quota', '250.000 €', 'max 45 gg'). "
+        "NON scrivere 'S.A.'/'Somma assicurata' se il CGA indica un valore o una maggiorazione specifica.\n"
+        "— limite/scoperto/franchigia: copia i valori testuali dal CGA.\n"
         "— Indica la fonte (articolo/pagina) quando la individui.\n"
         "— Restituisci UNA voce per OGNI elemento dell'elenco, incluse quelle 'assente'."
     )
@@ -3694,10 +3696,29 @@ async def _ask_griglia_voci(chunk_bytes: bytes, filename: str, contesto: str, vo
     return []
 
 
-async def _extract_griglia_fill_infortuni(chunk_bytes: bytes, result: dict, filename: str) -> dict:
+def _griglia_fill_rank(cell: dict | None) -> int:
+    """Priorità di una risposta nel merge cross-chunk: trovata-con-valore >
+    trovata-senza-valore > esclusa > assente > nulla. Così una voce trovata in un
+    chunk qualsiasi batte l'"assente" di un altro chunk."""
+    if not cell:
+        return 0
+    stato = cell.get("stato")
+    if stato in ("compresa", "opzionale"):
+        ha_valore = any(cell.get(k) for k in ("limite", "scoperto", "franchigia"))
+        return 4 if ha_valore else 3
+    if stato == "esclusa":
+        return 2
+    if stato == "assente":
+        return 1
+    return 0
+
+
+async def _extract_griglia_fill_infortuni(pdf_bytes: bytes, result: dict, filename: str) -> dict:
     """Passaggio ADDITIVO Fase 2: riempie result['_griglia_fill'] con le sotto-clausole
     dell'opuscolo, agganciate alla riga di griglia. Non tocca mai il baseline 'sezioni'.
-    In caso di errore/nessuna risposta lascia il result invariato. Kill-switch:
+    Scansiona l'INTERO documento (tutti i chunk) e fa merge — così una voce viene
+    trovata anche se sta oltre le prime 60 pagine (es. su CGA da 90+ pagine). In caso
+    di errore/nessuna risposta lascia il result invariato. Kill-switch:
     INFORTUNI_GRID_FILL_DISABLED=1."""
     if os.getenv("INFORTUNI_GRID_FILL_DISABLED") == "1":
         return result
@@ -3706,24 +3727,29 @@ async def _extract_griglia_fill_infortuni(chunk_bytes: bytes, result: dict, file
         if not isinstance(sezioni, list) or not sezioni:
             return result
         present_ids = {(s.get("id") or "").strip() for s in sezioni}
+        chunks = _split_pdf_bytes(pdf_bytes, pages_per_chunk=60)
         fill = dict(result.get("_griglia_fill") or {})
         for sez_nome, voci in _GRIGLIA_FILL_INFORTUNI.items():
             parent_id = _GRIGLIA_INFORTUNI_PARENT.get(sez_nome)
             if parent_id and parent_id not in present_ids:
                 continue  # la garanzia padre non è nel prodotto → salta questa sezione
-            answers = await _ask_griglia_voci(chunk_bytes, filename, sez_nome, voci)
             allowed = set(voci)
             sez_fill = dict(fill.get(sez_nome) or {})
-            added = 0
-            for a in answers:
-                voce = (a.get("voce") or "").strip()
-                stato = a.get("stato")
-                if voce in allowed and stato in ("compresa", "opzionale", "esclusa", "assente"):
-                    sez_fill[voce] = {k: a.get(k) for k in ("stato", "limite", "scoperto", "franchigia", "fonte")}
-                    added += 1
+            # Scansiona OGNI chunk; per ciascuna voce tieni la risposta migliore vista.
+            for cb, ps, pe, pt in chunks:
+                answers = await _ask_griglia_voci(cb, filename, sez_nome, voci)
+                for a in answers:
+                    voce = (a.get("voce") or "").strip()
+                    stato = a.get("stato")
+                    if voce not in allowed or stato not in ("compresa", "opzionale", "esclusa", "assente"):
+                        continue
+                    cand = {k: a.get(k) for k in ("stato", "limite", "scoperto", "franchigia", "fonte")}
+                    if _griglia_fill_rank(cand) > _griglia_fill_rank(sez_fill.get(voce)):
+                        sez_fill[voce] = cand
             if sez_fill:
                 fill[sez_nome] = sez_fill
-            logger.info(f"[griglia-fill] '{filename}' {sez_nome}: {added}/{len(voci)} voci compilate")
+            trovate = sum(1 for v in sez_fill.values() if v.get("stato") in ("compresa", "opzionale", "esclusa"))
+            logger.info(f"[griglia-fill] '{filename}' {sez_nome}: {trovate}/{len(voci)} voci trovate ({len(chunks)} chunk)")
         if fill:
             result["_griglia_fill"] = fill
     except Exception as e:
@@ -3759,7 +3785,7 @@ async def _extract_document_sezioni(pdf_bytes: bytes, prodotto: str, tipo: str) 
         except Exception as ge:
             logger.warning(f"[extract] gap-fill saltato per '{prodotto}': {ge}")
     if tipo == "Infortuni":
-        extracted = await _extract_griglia_fill_infortuni(chunks[0][0], extracted, prodotto)
+        extracted = await _extract_griglia_fill_infortuni(pdf_bytes, extracted, prodotto)
     return extracted
 
 
@@ -3943,6 +3969,24 @@ _GRIGLIA_FILL_INFORTUNI: dict[str, list[str]] = {
         "Sopravvalutazione per incidente stradale",
         "Infortunio causato da rapina, tentata rapina e tentativo di sequestro",
         "Estinzione finanziamento / mutuo",
+    ],
+    "INVALIDITÀ PERMANENTE": [
+        "Opzioni di franchigia disponibili",
+        "Tabella invalidità",
+        "Estensioni sportive",
+        "Superliquidazione",
+        "Reinvestimento dell'indennizzo",
+        "Estinzione finanziamento / mutuo",
+        "Danno alla vita di relazione",
+        "Infortunio causato da rapina, tentata rapina e tentativo di sequestro",
+        "Assicurato minorenne",
+        "Adeguamento abitazione / auto",
+        "Stato di coma",
+        "Sopravvalutazione parti anatomiche",
+    ],
+    "INVALIDITÀ PERMANENTE GRAVE": [
+        "Opzioni di franchigia disponibili",
+        "Indennizzo totale",
     ],
 }
 
@@ -4343,7 +4387,7 @@ async def extract_sezioni(req: ExtractSezioniRequest):
             result = await _extract_gaps_sezioni(chunks[0][0], result, req.filename, tipo_effettivo)
         # Fase 2 Infortuni: estrazione guidata dalla griglia (additiva, kill-switch)
         if tipo_effettivo == "Infortuni":
-            result = await _extract_griglia_fill_infortuni(chunks[0][0], result, req.filename)
+            result = await _extract_griglia_fill_infortuni(pdf_bytes, result, req.filename)
         # Indicizza il testo integrale del CGA per la chat AI (no costo AI aggiuntivo)
         result["cga_doc_id"] = await _cga_store_text(pdf_bytes, req.filename, tipo_effettivo)
         # Griglia standard per ramo: additiva, a sola lettura (vedi _build_griglia)
@@ -4421,7 +4465,7 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
                     result = await _extract_gaps_sezioni(chunks[0][0], result, req.filename, tipo_effettivo)
                 if tipo_effettivo == "Infortuni":
                     await queue.put({"type": "progress", "step": "Compilazione griglia infortuni...", "pct": 96})
-                    result = await _extract_griglia_fill_infortuni(chunks[0][0], result, req.filename)
+                    result = await _extract_griglia_fill_infortuni(pdf_bytes, result, req.filename)
                 result["cga_doc_id"] = await _cga_store_text(pdf_bytes, req.filename, tipo_effettivo)
                 # Griglia standard per ramo: additiva, a sola lettura (vedi _build_griglia)
                 result["griglia"] = _build_griglia(result, tipo_effettivo)
