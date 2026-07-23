@@ -3628,6 +3628,111 @@ async def _extract_gaps_sezioni(chunk_bytes: bytes, result: dict, filename: str,
     return result
 
 
+def _griglia_voci_tool() -> dict:
+    """Tool schema per l'estrazione guidata dalla griglia: una risposta per voce."""
+    return {
+        "name": "report_voci",
+        "description": "Riporta, per OGNI voce richiesta, se è prevista nel CGA e con quali valori.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "voci": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "voce": {"type": "string", "description": "Ricopia ESATTAMENTE una delle voci richieste."},
+                            "stato": {"type": "string", "enum": ["compresa", "opzionale", "esclusa", "assente"],
+                                      "description": "compresa=prevista e inclusa nella garanzia; opzionale=prevista solo a premio/selezionabile; esclusa=il CGA la esclude ESPLICITAMENTE; assente=il CGA non ne parla."},
+                            "limite":     {"type": ["string", "null"], "description": "Limite/massimale testuale, es. '250.000 €', 'raddoppio del capitale'. null se assente."},
+                            "scoperto":   {"type": ["string", "null"]},
+                            "franchigia": {"type": ["string", "null"]},
+                            "fonte":      {"type": ["string", "null"], "description": "Riferimento nel CGA, es. 'Art. 2.4.2.1' o 'pag. 5'."},
+                        },
+                        "required": ["voce", "stato"],
+                    },
+                },
+            },
+            "required": ["voci"],
+        },
+    }
+
+
+async def _ask_griglia_voci(chunk_bytes: bytes, filename: str, contesto: str, voci: list[str]) -> list[dict]:
+    """Chiede a Claude, per ciascuna voce, stato+valori dal CGA. Ritorna [] su errore."""
+    chunk_b64 = base64.b64encode(chunk_bytes).decode()
+    elenco = "\n".join(f"- {v}" for v in voci)
+    prompt = (
+        f"Analizza questo CGA di polizza Infortuni (file: {filename}).\n"
+        f"Le voci qui sotto sono sotto-clausole / maggiorazioni della garanzia «{contesto}».\n"
+        f"Per OGNUNA cerca nel CGA se è prevista e riportane stato e valori.\n\n"
+        f"VOCI (ricopia il testo ESATTO nel campo 'voce'):\n{elenco}\n\n"
+        "REGOLE FERREE:\n"
+        "— stato='esclusa' SOLO se il CGA la esclude ESPLICITAMENTE. Se semplicemente non se ne parla, usa 'assente' (MAI 'esclusa' per assenza).\n"
+        "— NON inventare: se non trovi un valore numerico, lascialo null.\n"
+        "— limite/scoperto/franchigia: copia i valori testuali dal CGA (es. limite '250.000 €', franchigia '66%').\n"
+        "— Indica la fonte (articolo/pagina) quando la individui.\n"
+        "— Restituisci UNA voce per OGNI elemento dell'elenco, incluse quelle 'assente'."
+    )
+    try:
+        msg = await call_claude(
+            model=MODEL_VISION, max_tokens=4096,
+            tools=[_griglia_voci_tool()],
+            tool_choice={"type": "tool", "name": "report_voci"},
+            messages=[{"role": "user", "content": [
+                {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}, "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": prompt},
+            ]}],
+        )
+        for block in msg.content:
+            if block.type == "tool_use":
+                return (block.input or {}).get("voci") or []
+    except Exception as e:
+        if _ai_error_message(e):
+            raise
+        logger.warning(f"[griglia-fill] '{filename}' ({contesto}): chiamata fallita: {e}")
+    return []
+
+
+async def _extract_griglia_fill_infortuni(chunk_bytes: bytes, result: dict, filename: str) -> dict:
+    """Passaggio ADDITIVO Fase 2: riempie result['_griglia_fill'] con le sotto-clausole
+    dell'opuscolo, agganciate alla riga di griglia. Non tocca mai il baseline 'sezioni'.
+    In caso di errore/nessuna risposta lascia il result invariato. Kill-switch:
+    INFORTUNI_GRID_FILL_DISABLED=1."""
+    if os.getenv("INFORTUNI_GRID_FILL_DISABLED") == "1":
+        return result
+    try:
+        sezioni = result.get("sezioni")
+        if not isinstance(sezioni, list) or not sezioni:
+            return result
+        present_ids = {(s.get("id") or "").strip() for s in sezioni}
+        fill = dict(result.get("_griglia_fill") or {})
+        for sez_nome, voci in _GRIGLIA_FILL_INFORTUNI.items():
+            parent_id = _GRIGLIA_INFORTUNI_PARENT.get(sez_nome)
+            if parent_id and parent_id not in present_ids:
+                continue  # la garanzia padre non è nel prodotto → salta questa sezione
+            answers = await _ask_griglia_voci(chunk_bytes, filename, sez_nome, voci)
+            allowed = set(voci)
+            sez_fill = dict(fill.get(sez_nome) or {})
+            added = 0
+            for a in answers:
+                voce = (a.get("voce") or "").strip()
+                stato = a.get("stato")
+                if voce in allowed and stato in ("compresa", "opzionale", "esclusa", "assente"):
+                    sez_fill[voce] = {k: a.get(k) for k in ("stato", "limite", "scoperto", "franchigia", "fonte")}
+                    added += 1
+            if sez_fill:
+                fill[sez_nome] = sez_fill
+            logger.info(f"[griglia-fill] '{filename}' {sez_nome}: {added}/{len(voci)} voci compilate")
+        if fill:
+            result["_griglia_fill"] = fill
+    except Exception as e:
+        if _ai_error_message(e):
+            raise
+        logger.warning(f"[griglia-fill] '{filename}' saltato (uso griglia base): {e}")
+    return result
+
+
 async def _extract_document_sezioni(pdf_bytes: bytes, prodotto: str, tipo: str) -> dict:
     """
     Pipeline completa di estrazione per UN documento: split in chunk, estrazione
@@ -3653,6 +3758,8 @@ async def _extract_document_sezioni(pdf_bytes: bytes, prodotto: str, tipo: str) 
             extracted = await _extract_gaps_sezioni(chunks[0][0], extracted, prodotto, tipo)
         except Exception as ge:
             logger.warning(f"[extract] gap-fill saltato per '{prodotto}': {ge}")
+    if tipo == "Infortuni":
+        extracted = await _extract_griglia_fill_infortuni(chunks[0][0], extracted, prodotto)
     return extracted
 
 
@@ -3817,6 +3924,28 @@ _GRIGLIA_STANDARD: dict[str, list[dict]] = {
     ],
 }
 
+# Mappa sezione-griglia → id della sezione-padre estratta (solo Infortuni).
+_GRIGLIA_INFORTUNI_PARENT: dict[str, str | None] = {
+    s["nome"]: s.get("parent_id") for s in _GRIGLIA_STANDARD["Infortuni"]
+}
+
+# ── FASE 2: estrazione GUIDATA DALLA GRIGLIA (Infortuni) ──────────────────────
+# Le sotto-clausole/maggiorazioni dell'opuscolo (Commorienza, Superliquidazione…)
+# sono DENTRO Morte/IP e il baseline non le estrae. Un passaggio ADDITIVO le cerca
+# nel CGA UNA PER UNA (checklist = le righe esatte della griglia) e salva le risposte
+# AGGANCIATE ALLA RIGA (match deterministico per chiave, non fuzzy) in
+# result["_griglia_fill"][<sezione>][<voce>]. Non tocca MAI il baseline 'sezioni'.
+# Roll-out per sezione: per ora SOLO MORTE (poi IP, IP Grave dopo verifica).
+# Kill-switch: INFORTUNI_GRID_FILL_DISABLED=1.
+_GRIGLIA_FILL_INFORTUNI: dict[str, list[str]] = {
+    "MORTE": [
+        "Commorienza o morte di un solo genitore",
+        "Sopravvalutazione per incidente stradale",
+        "Infortunio causato da rapina, tentata rapina e tentativo di sequestro",
+        "Estinzione finanziamento / mutuo",
+    ],
+}
+
 
 def _norm_flat(s: str) -> str:
     """Normalizzazione 'flat' (usata SOLO per il lookup nel dizionario sinonimi):
@@ -3863,6 +3992,11 @@ def _build_griglia(result: dict, tipo: str) -> dict | None:
     sezioni_list = result.get("sezioni")
     if not schema or not isinstance(sezioni_list, list) or not sezioni_list:
         return None
+
+    # Fase 2: risposte dell'estrazione guidata dalla griglia (Infortuni), agganciate
+    # per chiave (sezione → voce). Hanno la PRECEDENZA sul match euristico: sono state
+    # cercate una per una nel CGA, con lo stato giusto (compresa/opzionale/esclusa/assente).
+    griglia_fill = result.get("_griglia_fill") or {}
 
     sezione_by_id: dict[str, dict] = {}
     # entries: (token_set, sezione_madre, gz_item|None) — gz_item None per i nomi/id di primo livello
@@ -3955,6 +4089,26 @@ def _build_griglia(result: dict, tipo: str) -> dict | None:
                                      "scoperto": None, "franchigia": None,
                                      "inclusa": True, "opzionale": False})
                 else:
+                    voci_out.append({"nome": voce_nome, "trovata": False})
+                continue
+
+            # Fase 2 — risposta guidata dalla griglia (precede il match euristico):
+            # la voce è stata cercata direttamente nel CGA con lo stato giusto.
+            ans = griglia_fill.get(sezione_def["nome"], {}).get(voce_nome)
+            if isinstance(ans, dict):
+                stato = ans.get("stato")
+                if stato in ("compresa", "opzionale"):
+                    voci_out.append({"nome": voce_nome, "trovata": True,
+                                     "limite": ans.get("limite"), "scoperto": ans.get("scoperto"),
+                                     "franchigia": ans.get("franchigia"),
+                                     "inclusa": stato == "compresa", "opzionale": stato == "opzionale",
+                                     "fonte": ans.get("fonte")})
+                elif stato == "esclusa":
+                    # esclusa ESPLICITAMENTE nel CGA → "Esclusa" (trovata, non coperta)
+                    voci_out.append({"nome": voce_nome, "trovata": True,
+                                     "limite": None, "scoperto": None, "franchigia": None,
+                                     "inclusa": False, "opzionale": False, "fonte": ans.get("fonte")})
+                else:  # "assente" → non documentato
                     voci_out.append({"nome": voce_nome, "trovata": False})
                 continue
 
@@ -4187,6 +4341,9 @@ async def extract_sezioni(req: ExtractSezioniRequest):
         # Secondo passaggio ADDITIVO di completezza (solo formato sezioni; mai distruttivo)
         if tipo_effettivo in _GAP_FILL_TIPI:
             result = await _extract_gaps_sezioni(chunks[0][0], result, req.filename, tipo_effettivo)
+        # Fase 2 Infortuni: estrazione guidata dalla griglia (additiva, kill-switch)
+        if tipo_effettivo == "Infortuni":
+            result = await _extract_griglia_fill_infortuni(chunks[0][0], result, req.filename)
         # Indicizza il testo integrale del CGA per la chat AI (no costo AI aggiuntivo)
         result["cga_doc_id"] = await _cga_store_text(pdf_bytes, req.filename, tipo_effettivo)
         # Griglia standard per ramo: additiva, a sola lettura (vedi _build_griglia)
@@ -4262,6 +4419,9 @@ async def extract_sezioni_stream(req: ExtractSezioniRequest):
                 if tipo_effettivo in _GAP_FILL_TIPI:
                     await queue.put({"type": "progress", "step": "Controllo completezza garanzie...", "pct": 95})
                     result = await _extract_gaps_sezioni(chunks[0][0], result, req.filename, tipo_effettivo)
+                if tipo_effettivo == "Infortuni":
+                    await queue.put({"type": "progress", "step": "Compilazione griglia infortuni...", "pct": 96})
+                    result = await _extract_griglia_fill_infortuni(chunks[0][0], result, req.filename)
                 result["cga_doc_id"] = await _cga_store_text(pdf_bytes, req.filename, tipo_effettivo)
                 # Griglia standard per ramo: additiva, a sola lettura (vedi _build_griglia)
                 result["griglia"] = _build_griglia(result, tipo_effettivo)
