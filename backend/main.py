@@ -3658,11 +3658,35 @@ def _griglia_voci_tool() -> dict:
     }
 
 
-async def _ask_griglia_voci(chunk_bytes: bytes, filename: str, contesto: str, voci: list[str]) -> list[dict]:
-    """Chiede a Claude, per ciascuna voce, stato+valori dal CGA. Ritorna [] su errore."""
+async def _ask_griglia_voci(chunk_bytes: bytes, filename: str, contesto: str, voci: list[str],
+                            mirata: bool = False) -> list[dict]:
+    """Chiede a Claude, per ciascuna voce, stato+valori dal CGA. Ritorna [] su errore.
+    mirata=True: secondo giro su voci a cui è già stato risposto con un generico
+    'S.A.' — chiede espressamente l'ENTITÀ della maggiorazione (vedi Fix valori vaghi)."""
     chunk_b64 = base64.b64encode(chunk_bytes).decode()
     elenco = "\n".join(f"- {v}" for v in voci)
-    prompt = (
+    if mirata:
+        prompt = (
+            f"Analizza questo CGA di polizza Infortuni (file: {filename}).\n"
+            f"Per le voci qui sotto — sotto-clausole della garanzia «{contesto}» — è già stato accertato "
+            f"che il CGA le prevede, ma la risposta precedente era generica ('S.A.' / 'Somma assicurata') "
+            f"e quindi INUTILIZZABILE.\n\n"
+            f"VOCI (ricopia il testo ESATTO nel campo 'voce'):\n{elenco}\n\n"
+            "COMPITO: trova l'ARTICOLO SPECIFICO di ciascuna voce e riporta l'ENTITÀ esatta della prestazione:\n"
+            "— una PERCENTUALE di maggiorazione (es. '+50% della somma assicurata'),\n"
+            "— un IMPORTO o un TETTO (es. 'max € 500.000'),\n"
+            "— un MOLTIPLICATORE (es. 'indennizzo raddoppiato'),\n"
+            "— e le CONDIZIONI se rilevanti (es. 'per morte o IP > 70%').\n"
+            "Esempio di risposta corretta: limite='+50% SA, max €500.000 (per morte o IP >70%)'.\n\n"
+            "REGOLE FERREE:\n"
+            "— NON rispondere di nuovo 'S.A.' / 'Somma assicurata' da solo: è la risposta che stiamo correggendo.\n"
+            "— NON inventare: se dopo aver cercato l'articolo il CGA davvero non indica alcuna entità specifica, "
+            "rispondi con stato='compresa' e limite=null (meglio vuoto che un valore inventato o generico).\n"
+            "— Indica sempre la fonte (articolo/pagina).\n"
+            "— Restituisci UNA voce per OGNI elemento dell'elenco."
+        )
+    else:
+        prompt = (
         f"Analizza questo CGA di polizza Infortuni (file: {filename}).\n"
         f"Le voci qui sotto sono sotto-clausole / maggiorazioni della garanzia «{contesto}».\n"
         f"Per OGNUNA cerca nel CGA se è prevista e riportane stato e valori.\n\n"
@@ -3679,7 +3703,7 @@ async def _ask_griglia_voci(chunk_bytes: bytes, filename: str, contesto: str, vo
         "— limite/scoperto/franchigia: copia i valori testuali dal CGA.\n"
         "— Indica la fonte (articolo/pagina) quando la individui.\n"
         "— Restituisci UNA voce per OGNI elemento dell'elenco, incluse quelle 'assente'."
-    )
+        )
     try:
         msg = await call_claude(
             model=MODEL_VISION, max_tokens=4096,
@@ -3758,8 +3782,9 @@ async def _extract_griglia_fill_infortuni(pdf_bytes: bytes, result: dict, filena
                 continue  # la garanzia padre non è nel prodotto → salta questa sezione
             allowed = set(voci)
             sez_fill = dict(fill.get(sez_nome) or {})
+            voce_chunk: dict[str, int] = {}  # voce → indice del chunk che ha dato la risposta migliore
             # Scansiona OGNI chunk; per ciascuna voce tieni la risposta migliore vista.
-            for cb, ps, pe, pt in chunks:
+            for ci, (cb, ps, pe, pt) in enumerate(chunks):
                 answers = await _ask_griglia_voci(cb, filename, sez_nome, voci)
                 for a in answers:
                     voce = (a.get("voce") or "").strip()
@@ -3769,6 +3794,31 @@ async def _extract_griglia_fill_infortuni(pdf_bytes: bytes, result: dict, filena
                     cand = {k: a.get(k) for k in ("stato", "limite", "scoperto", "franchigia", "fonte")}
                     if _griglia_fill_rank(cand) > _griglia_fill_rank(sez_fill.get(voce)):
                         sez_fill[voce] = cand
+                        voce_chunk[voce] = ci
+
+            # Secondo giro MIRATO sulle voci "trovate ma con valore generico 'S.A.'"
+            # (rank 4): il valore vago è inutile nel confronto. Si richiede l'entità
+            # della maggiorazione sullo STESSO chunk che l'aveva trovata, e si accetta
+            # la nuova risposta solo se migliora (rank più alto) — mai un downgrade.
+            vaghe = [v for v, cell in sez_fill.items() if _griglia_fill_rank(cell) == 4]
+            if vaghe:
+                per_chunk: dict[int, list[str]] = {}
+                for v in vaghe:
+                    per_chunk.setdefault(voce_chunk.get(v, 0), []).append(v)
+                for ci, vs in per_chunk.items():
+                    answers = await _ask_griglia_voci(chunks[ci][0], filename, sez_nome, vs, mirata=True)
+                    migliorate = 0
+                    for a in answers:
+                        voce = (a.get("voce") or "").strip()
+                        if voce not in set(vs):
+                            continue
+                        cand = {k: a.get(k) for k in ("stato", "limite", "scoperto", "franchigia", "fonte")}
+                        if _griglia_fill_rank(cand) > _griglia_fill_rank(sez_fill.get(voce)):
+                            sez_fill[voce] = cand
+                            migliorate += 1
+                    if migliorate:
+                        logger.info(f"[griglia-fill] '{filename}' {sez_nome}: {migliorate} valori vaghi ('S.A.') precisati")
+
             if sez_fill:
                 fill[sez_nome] = sez_fill
             trovate = sum(1 for v in sez_fill.values() if v.get("stato") in ("compresa", "opzionale", "esclusa"))
