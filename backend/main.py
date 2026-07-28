@@ -204,6 +204,22 @@ MODEL_VISION = os.getenv("MODEL_VISION", "claude-opus-4-6").strip()            #
 MODEL_TEXT   = os.getenv("MODEL_TEXT",   "claude-sonnet-4-6").strip()          # estrazione/raffinamento da testo + match
 MODEL_FAST   = os.getenv("MODEL_FAST",   "claude-haiku-4-5-20251001").strip()  # raccomandazioni, summary, detect tipo
 
+# ── PROMPT CACHING DEL DOCUMENTO PDF ──────────────────────────────────────────
+# Ogni passaggio della pipeline (estrazione chunk, refine, gap-fill, griglia fill)
+# rimanda a Claude lo STESSO chunk PDF: un chunk da 60 pagine vale ~120k token di
+# input, quindi la cache è ciò che rende sostenibile l'intera catena.
+# Il TTL di default della cache Anthropic è 5 minuti, ma un'estrazione completa su
+# un CGA lungo dura di più (parecchie chiamate Opus in sequenza): la cache scadeva
+# a metà strada e i passaggi finali ripagavano il prezzo pieno. Con ttl=1h la
+# scrittura costa 2x invece di 1.25x, ma tutte le riletture successive restano a
+# 0.1x per l'intera durata dell'estrazione — con 5+ riletture per chunk il
+# risparmio è netto. Nessun impatto sulle risposte del modello: cambia solo per
+# quanto tempo il documento resta in cache.
+# Override: PDF_CACHE_TTL=5m per tornare al comportamento precedente.
+_PDF_CACHE_TTL = os.getenv("PDF_CACHE_TTL", "1h").strip()
+_PDF_CACHE_CONTROL = ({"type": "ephemeral"} if _PDF_CACHE_TTL in ("", "5m")
+                      else {"type": "ephemeral", "ttl": _PDF_CACHE_TTL})
+
 # ── LIMITI PDF ────────────────────────────────────────────────────────────────
 # Tetti generosi: pensati SOLO per fermare upload abnormi/abusi, non per bloccare
 # le polizze lunghe. Una CGA lunga reale rientra ampiamente in questi limiti.
@@ -3209,7 +3225,7 @@ async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: 
                     {
                         "type": "document",
                         "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64},
-                        "cache_control": {"type": "ephemeral"},
+                        "cache_control": _PDF_CACHE_CONTROL,
                     },
                     {"type": "text", "text": prompt}
                 ]
@@ -3230,7 +3246,7 @@ async def _extract_sezioni_chunk(chunk_bytes: bytes, page_start: int, page_end: 
                         tools=[_sezione_schema(tipo_hint or "Casa")],
                         tool_choice={"type": "tool", "name": "extract_sezioni"},
                         messages=[{"role": "user", "content": [
-                            {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}, "cache_control": {"type": "ephemeral"}},
+                            {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}, "cache_control": _PDF_CACHE_CONTROL},
                             {"type": "text", "text": prompt}]}]
                     )
                     for b2 in retry.content:
@@ -3467,7 +3483,7 @@ Restituisci SOLO un JSON con questa struttura:
                     {
                         "type": "document",
                         "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64},
-                        "cache_control": {"type": "ephemeral"},
+                        "cache_control": _PDF_CACHE_CONTROL,
                     },
                     {"type": "text", "text": prompt}
                 ]
@@ -3602,7 +3618,7 @@ async def _extract_gaps_sezioni(chunk_bytes: bytes, result: dict, filename: str,
             tools=[_sezione_schema(tipo_hint)],
             tool_choice={"type": "tool", "name": "extract_sezioni"},
             messages=[{"role": "user", "content": [
-                {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}, "cache_control": {"type": "ephemeral"}},
+                {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}, "cache_control": _PDF_CACHE_CONTROL},
                 {"type": "text", "text": prompt}
             ]}]
         )
@@ -3712,7 +3728,7 @@ async def _ask_griglia_voci(chunk_bytes: bytes, filename: str, contesto: str, vo
             tools=[_griglia_voci_tool()],
             tool_choice={"type": "tool", "name": "report_voci"},
             messages=[{"role": "user", "content": [
-                {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}, "cache_control": {"type": "ephemeral"}},
+                {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": chunk_b64}, "cache_control": _PDF_CACHE_CONTROL},
                 {"type": "text", "text": prompt},
             ]}],
         )
